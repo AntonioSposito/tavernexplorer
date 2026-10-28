@@ -211,6 +211,14 @@ export interface SharedSheet {
   updatedAt: number;
 }
 
+// Copia di una scheda salvata nel cloud per una stanza.
+export interface CloudSheet {
+  sheet: CharacterSheet;
+  ownerId: string;
+  ownerName: string;
+  updatedAt: number;
+}
+
 export interface PartyCharacterSummary {
   id: string; ownerId: string; ownerName: string; name: string; avatar?: string;
   classDisplay: string; race: string; level: number; ruleset: { id: string; version: string };
