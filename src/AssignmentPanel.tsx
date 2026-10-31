@@ -60,8 +60,8 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
   const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name;
   const visibleTokens = tokens.filter((token) => `${token.tokenName} ${sheetName(token.characterId ?? "") ?? ""}`.toLocaleLowerCase("it").includes(search.toLocaleLowerCase("it")));
 
-  return <Card className="assign-panel">
-    <h2>Assegna personaggi e token</h2>
+  return <Card className="assign-panel"><details className="assign-details">
+    <summary><h2>Assegna personaggi e token</h2></summary>
     <p>Collega i token alle schede del party. Il token passa al primo giocatore connesso che può modificare la scheda; puoi cambiarlo qui sotto.</p>
     {notice && <Alert tone={notice.error ? "danger" : "success"}>{notice.text}</Alert>}
 
@@ -96,5 +96,5 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
       {tokens.length === 0 && <p className="assign-empty">Nessun token nello strato Personaggi.</p>}
       {tokens.length > 0 && visibleTokens.length === 0 && <p className="assign-empty">Nessun token corrisponde alla ricerca.</p>}
     </>}
-  </Card>;
+  </details></Card>;
 }

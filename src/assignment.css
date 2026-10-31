@@ -1,7 +1,8 @@
 .assign-panel{display:grid;gap:.7rem}
 .assign-panel h2,.assign-panel h3,.assign-panel p{margin:0}
 .assign-panel h3{font-size:.85rem;margin-top:.4rem}
-.assign-panel>p,.assign-empty,.assign-count{font-size:.78rem;color:hsl(var(--muted-foreground))}
+.assign-details[open]{display:grid;gap:.7rem}.assign-details>summary{cursor:pointer}.assign-details>summary h2{display:inline}
+.assign-details>p,.assign-empty,.assign-count{font-size:.78rem;color:hsl(var(--muted-foreground))}
 .assign-grid{display:grid;gap:.5rem}
 .assign-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(10rem,1.2fr);align-items:center;gap:.55rem;border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.65rem}
 .assign-item>span{display:grid;gap:.15rem;min-width:0}
