@@ -10,6 +10,7 @@ export const STORAGE_CAMPAIGNS = `${EXTENSION_ID}/campaigns/v1`;
 export const STORAGE_SHARED_INVENTORY = `${EXTENSION_ID}/shared-inventory/v1`;
 export const STORAGE_NOTES = `${EXTENSION_ID}/notes/v1`;
 export const STORAGE_NOTE_ORGANIZATION = `${EXTENSION_ID}/note-organization/v1`;
+export const STORAGE_CLOUD_CACHE = `${EXTENSION_ID}/cloud-cache/v1`;
 export const SHARED_NOTES_META_KEY = `${EXTENSION_ID}/shared-notes`;
 export const INVENTORY_META_KEY = `${EXTENSION_ID}/shared-inventory`;
 export const PERMISSIONS_META_KEY = `${EXTENSION_ID}/permissions`;

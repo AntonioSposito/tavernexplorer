@@ -1,5 +1,5 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_MESSAGES, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
-import type { CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
+import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -42,5 +42,10 @@ export const storage = {
   noteOrganization: {
     get: () => read<NoteOrganization>(STORAGE_NOTE_ORGANIZATION, { folders: [], placements: {} }),
     set: (value: NoteOrganization) => write(STORAGE_NOTE_ORGANIZATION, value),
+  },
+  // Solo cache di lettura della libreria cloud, una per stanza: la fonte di verità resta il server.
+  cloudCache: {
+    get: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []),
+    set: (room: string, value: CloudSheet[]) => write(`${STORAGE_CLOUD_CACHE}/${room}`, value),
   },
 };
