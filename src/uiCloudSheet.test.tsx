@@ -4,12 +4,14 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import { importRoll20 } from "./importer";
+import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
+vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER" }));
 const noop = () => undefined;
 const unsubscribe = () => noop;
@@ -89,4 +91,32 @@ it("il GM assegna la vista dalla Libreria e il giocatore vede solo quella scheda
   expect(host.textContent).toContain("sola lettura");
   expect(host.textContent).not.toContain("Importa Roll20");
   expect(host.querySelector('select[aria-label="Può vedere: aggiungi giocatore"]')).toBeNull();
+});
+
+it("il GM crea un NPC dal bestiario e un giocatore con permesso ne vede lo statblock", async () => {
+  const wolf = { schemaVersion: 1, id: "wolf", name: "Lupo", source: "XMM", creatureType: "Bestia", challengeRating: "1/4", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 13, hp: { average: 11, formula: "2d8+2" }, speed: "40 ft.", abilities: { dex: 15 }, saves: {}, skills: {}, passivePerception: 13, traits: [], actions: [{ id: "bite", name: "Morso", description: "" }], reactions: [], legendaryActions: [], importWarnings: [] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
+  vi.stubGlobal("prompt", () => "Lupo Grigio");
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Lupo");
+  await click("Aggiungi agli NPC");
+  await settle();
+  const npc = [...store.get("te:room:r1:sheets")!.values()].map((value) => JSON.parse(value))[0];
+  expect(npc).toMatchObject({ kind: "npc", rev: 1, acl: { view: [], edit: [] }, sheet: { name: "Lupo Grigio", ac: 13 } });
+  expect(npc.sheet.id).not.toBe("wolf");
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 1, entry: { ...npc, acl: { view: ["Marco"], edit: [] } } }) });
+
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = "Marco"; viewer.role = "PLAYER";
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Libreria");
+  await click("NPC");
+  await click("Lupo Grigio");
+  expect(host.textContent).toContain("PF medi");
+  expect(host.textContent).toContain("Morso");
+  expect(host.textContent).not.toContain("Aggiungi agli NPC");
 });

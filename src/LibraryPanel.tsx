@@ -15,6 +15,7 @@ interface LibraryPanelProps {
   members: Member[];
   player: { name: string; role: "GM" | "PLAYER" };
   onSelect: (id: string) => void;
+  onOpenNpc: (id: string) => void;
   onImport: () => void;
   onExport: () => void;
   onExportPack: () => void;
@@ -22,7 +23,7 @@ interface LibraryPanelProps {
   onDelete: (id: string) => void;
 }
 
-export function LibraryPanel({ entries, activeId, members, player, onSelect, onImport, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
+export function LibraryPanel({ entries, activeId, members, player, onSelect, onOpenNpc, onImport, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
   const [section, setSection] = useState<"pc" | "npc">("pc");
   const isGm = player.role === "GM";
   const players = members.filter((member) => member.role !== "GM");
@@ -39,7 +40,7 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onI
       const subtitle = entry.kind === "pc" ? `${entry.sheet.identity.classDisplay} · ${getRuleset(entry.sheet.ruleset.id).label}` : `${entry.sheet.creatureType} · GS ${entry.sheet.challengeRating}`;
       return <article className="library-card library-entry" key={entry.sheet.id}>
         <div className="library-entry-head">
-          <button className="character-open" onClick={() => onSelect(entry.sheet.id)} disabled={entry.kind !== "pc"}><span><strong>{entry.sheet.name}</strong><small>{subtitle}{!isGm && (editable ? " · puoi modificare" : " · sola lettura")}</small></span></button>
+          <button className="character-open" onClick={() => entry.kind === "pc" ? onSelect(entry.sheet.id) : onOpenNpc(entry.sheet.id)}><span><strong>{entry.sheet.name}</strong><small>{subtitle}{!isGm && (editable ? " · puoi modificare" : " · sola lettura")}</small></span></button>
           {isGm && <button className="danger" aria-label={`Elimina ${entry.sheet.name}`} onClick={() => { if (window.confirm(`Eliminare ${entry.sheet.name} dalla libreria? È consigliato esportare prima un backup.`)) onDelete(entry.sheet.id); }}>×</button>}
         </div>
         {isGm && <div className="acl-row">
@@ -48,7 +49,7 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onI
         </div>}
       </article>;
     })}
-    {shown.length === 0 && <p className="assign-empty">{section === "pc" ? (isGm ? "Nessuna scheda: importa un export Roll20 o un TavernPack." : "Il GM non ti ha ancora reso visibile nessuna scheda.") : "Nessun NPC."}</p>}
+    {shown.length === 0 && <p className="assign-empty">{section === "pc" ? (isGm ? "Nessuna scheda: importa un export Roll20 o un TavernPack." : "Il GM non ti ha ancora reso visibile nessuna scheda.") : (isGm ? "Nessun NPC: aggiungili dal Bestiario con «Aggiungi agli NPC»." : "Il GM non ti ha ancora reso visibile nessun NPC.")}</p>}
   </div>;
 }
 
