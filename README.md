@@ -49,6 +49,21 @@ Ogni deploy di produzione aggiorna automaticamente l'estensione. Prima di
 modifiche incompatibili è necessario aumentare `version` in `package.json` e in
 `public/manifest.json`.
 
+### API delle schede (Upstash)
+
+`api/sheets.ts` è una Vercel Function che salva le schede in Upstash Redis
+(integrazione del Marketplace Vercel, regione `fra1`). Richiede le variabili
+`KV_REST_API_URL` e `KV_REST_API_TOKEN` (o `UPSTASH_REDIS_REST_URL` e
+`UPSTASH_REDIS_REST_TOKEN`), che restano solo lato server.
+
+`pnpm dev` serve solo il frontend. Per provare l'API in locale:
+
+```bash
+vercel link
+vercel env pull .env.local
+vercel dev
+```
+
 ## Dati e sincronizzazione
 
 - Schede, bestiario, avventure e ultimi 200 messaggi: storage locale del browser.

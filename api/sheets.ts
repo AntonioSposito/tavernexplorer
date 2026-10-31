@@ -3,21 +3,34 @@ import type { CloudSheet } from "../src/types";
 
 // Le schede di una stanza stanno in un hash: campo = id scheda, valore = CloudSheet.
 // L'ID della stanza Owlbear fa da chiave condivisa: chi non lo conosce non legge nulla.
+// I permessi (acl) li applica solo il client: chi conosce la stanza può leggere e scrivere tutto.
 const redis = Redis.fromEnv();
 const ID = /^[A-Za-z0-9_-]{1,100}$/;
-const MAX_SHEETS = 50;
+const MAX_SHEETS = 200;
 const MAX_SHEET_BYTES = 200_000;
+const MAX_NAMES = 50;
+
+// Scrive solo se la revisione salvata coincide con quella attesa (0 = scheda nuova).
+// Il JSON della scheda non passa per cjson.encode: trasformerebbe gli array vuoti in oggetti.
+const WRITE_IF_REV = `
+local current = redis.call("HGET", KEYS[1], ARGV[1])
+local rev = current and cjson.decode(current).rev or 0
+if rev ~= tonumber(ARGV[2]) then return current or "null" end
+redis.call("HSET", KEYS[1], ARGV[1], ARGV[3])
+return "ok"`;
 
 const roomKey = (room: string) => `te:room:${room}:sheets`;
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 const fail = (message: string, status = 400) => json({ error: message }, status);
+const validRev = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
+const validName = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 100;
+const validNames = (value: unknown): value is string[] => Array.isArray(value) && value.length <= MAX_NAMES && value.every(validName);
 
-function validSheet(value: unknown): value is CloudSheet {
+function validEntry(value: unknown): value is Pick<CloudSheet, "sheet" | "acl" | "updatedBy"> {
   const entry = value as CloudSheet | null;
-  return !!entry && typeof entry === "object" && typeof entry.ownerId === "string" && ID.test(entry.ownerId)
-    && typeof entry.ownerName === "string" && typeof entry.updatedAt === "number"
-    && !!entry.sheet && entry.sheet.schemaVersion === 1 && typeof entry.sheet.id === "string" && ID.test(entry.sheet.id)
-    && JSON.stringify(entry).length <= MAX_SHEET_BYTES;
+  return !!entry && typeof entry === "object" && validName(entry.updatedBy)
+    && !!entry.acl && validNames(entry.acl.view) && validNames(entry.acl.edit)
+    && !!entry.sheet && entry.sheet.schemaVersion === 1 && typeof entry.sheet.id === "string" && ID.test(entry.sheet.id);
 }
 
 async function readBody(request: Request): Promise<{ room: string; [key: string]: unknown } | null> {
@@ -29,6 +42,14 @@ async function readBody(request: Request): Promise<{ room: string; [key: string]
   }
 }
 
+// 200 con la versione salvata, 409 con quella del server (null se non esiste).
+async function writeIfRev(room: string, expectedRev: number, entry: CloudSheet): Promise<Response> {
+  const value = JSON.stringify(entry);
+  if (value.length > MAX_SHEET_BYTES) return fail("Scheda troppo grande", 413);
+  const result = await redis.eval<[string, number, string], "ok" | CloudSheet | null>(WRITE_IF_REV, [roomKey(room)], [entry.sheet.id, expectedRev, value]);
+  return result === "ok" ? json({ entry }) : json({ entry: result }, 409);
+}
+
 export async function GET(request: Request): Promise<Response> {
   const room = new URL(request.url).searchParams.get("room") ?? "";
   if (!ID.test(room)) return fail("Stanza non valida");
@@ -38,17 +59,18 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function PUT(request: Request): Promise<Response> {
   const body = await readBody(request);
-  const sheets = body?.sheets;
-  if (!body || !Array.isArray(sheets) || !sheets.length || sheets.length > MAX_SHEETS) return fail("Richiesta non valida");
-  if (!sheets.every(validSheet)) return fail("Scheda non valida o troppo grande");
-  await redis.hset(roomKey(body.room), Object.fromEntries(sheets.map((entry) => [entry.sheet.id, entry])));
-  return new Response(null, { status: 204 });
+  if (!body || !validRev(body.rev) || !validEntry(body.entry)) return fail("Richiesta non valida");
+  if (body.rev === 0 && await redis.hlen(roomKey(body.room)) >= MAX_SHEETS) return fail("Troppe schede nella stanza", 413);
+  const { sheet, acl, updatedBy } = body.entry;
+  return writeIfRev(body.room, body.rev, { sheet, acl, updatedBy, rev: body.rev + 1, updatedAt: Date.now() });
 }
 
+// Cancellazione logica: la scheda resta con deletedAt, così i client offline non la ricreano.
 export async function DELETE(request: Request): Promise<Response> {
   const body = await readBody(request);
-  const ids = body?.ids;
-  if (!body || !Array.isArray(ids) || !ids.length || ids.length > MAX_SHEETS || !ids.every((id) => typeof id === "string" && ID.test(id))) return fail("Richiesta non valida");
-  await redis.hdel(roomKey(body.room), ...ids);
-  return new Response(null, { status: 204 });
+  if (!body || typeof body.id !== "string" || !ID.test(body.id) || !validRev(body.rev) || !validName(body.updatedBy)) return fail("Richiesta non valida");
+  const current = await redis.hget<CloudSheet>(roomKey(body.room), body.id);
+  if (!current) return fail("Scheda non trovata", 404);
+  const now = Date.now();
+  return writeIfRev(body.room, body.rev, { ...current, rev: body.rev + 1, updatedAt: now, updatedBy: body.updatedBy, deletedAt: now });
 }
