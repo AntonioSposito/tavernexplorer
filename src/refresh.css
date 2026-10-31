@@ -64,3 +64,10 @@ body {
 .composer button { border:0; border-radius:8px; padding:.5rem .9rem; }
 .composer-note { display:block; margin-top:.4rem; color:hsl(var(--muted-foreground)); font-size:.72rem; line-height:1.35; }
 .turn-empty { margin:0; padding:1.2rem; border:1px dashed hsl(var(--border)); border-radius:var(--radius); color:hsl(var(--muted-foreground)); font-size:.84rem; line-height:1.45; text-align:center; }
+
+.app-body { display:flex; align-items:flex-start; }
+.app-body > main { flex:1; min-width:0; }
+/* top = altezza della .topbar sticky (12px + 34px logo + 12px + 1px bordo) */
+.app-body > .app-tabs { position:sticky; top:59px; flex-direction:column; flex:none; height:calc(100vh - 59px); border-bottom:0; border-right:1px solid hsl(var(--border)); }
+.app-body > .app-tabs button { flex:none; display:flex; justify-content:space-between; align-items:center; gap:6px; text-align:left; border-bottom:0; border-left:3px solid transparent; }
+.app-body > .app-tabs button.active { border-left-color:hsl(var(--primary)); }

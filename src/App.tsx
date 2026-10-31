@@ -263,8 +263,10 @@ export default function App() {
         <option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
       </select>
     </header>
+    </>}
 
-    <nav className="app-tabs">
+    <div className="app-body">
+    {!floatingView && <nav className="app-tabs">
       <button className={tab === "sheet" ? "active" : ""} onClick={() => setTab("sheet")}>Scheda</button>
       <button className={tab === "turns" ? "active" : ""} onClick={() => setTab("turns")}>Turni <span>{turns.entries.length}</span></button>
       <button className={tab === "messages" ? "active" : ""} onClick={() => setTab("messages")}>Messaggi</button>
@@ -275,8 +277,7 @@ export default function App() {
       <button className={tab === "party" ? "active" : ""} onClick={() => setTab("party")}>Party <span>{sharedSheets.length || partyCharacters.length}</span></button>
       <button className={tab === "library" ? "active" : ""} onClick={() => setTab("library")}>Libreria</button>
       {player.role === "GM" && <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>Permessi</button>}
-    </nav>
-    </>}
+    </nav>}
 
     <main>
       {!floatingView && OBR.isAvailable && <div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel(tab)}>Apri {TAB_LABELS[tab].toLowerCase()} in finestra ↗</Button></div>}
@@ -294,6 +295,7 @@ export default function App() {
       {tab === "party" && <Party characters={partyCharacters} sheets={sharedSheets} members={partyMembers} player={player} openId={openPartySheetId} onOpen={setOpenPartySheetId} onRoll={performRoll} onShare={shareEntry} onUpdateShared={async (sheetId, update) => { await runAction(async () => { const entry = sharedSheets.find((item) => item.sheet.id === sheetId); if (!entry) return; const next = update(structuredClone(entry.sheet)); await updateSharedSheet(sheetId, next, entry.updatedAt); setSharedSheets(await getSharedSheets()); if (entry.ownerId === player.id) saveCharacters(charactersRef.current.map((character) => character.id === sheetId ? next : character)); }); }} onEditorsChange={async (sheetId, editors) => { await runAction(async () => { const entry = sharedSheets.find((item) => item.sheet.id === sheetId); if (!entry) return; await setSheetEditors(sheetId, editors, entry.updatedAt); setSharedSheets(await getSharedSheets()); }); }} onAssignPlayer={async (sheetId, ownerId) => { const member = partyMembers.find((item) => item.id === ownerId); if (!member) throw new Error("Giocatore non più connesso"); try { await assignSheetToPlayer(sheetId, member.id, member.name); } finally { setSharedSheets(await getSharedSheets()); } }}/>}
       {tab === "settings" && player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await setPermissions(next); setPermissionState(next); }); }}/>}
     </main>
+    </div>
     <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importFile(file); event.target.value = ""; }}/>
     <input ref={contentRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) import5eToolsFile(file); event.target.value = ""; }}/>
     <input ref={mapRef} hidden type="file" accept="image/png,image/jpeg,image/webp,image/avif" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { const name = window.prompt("Nome della nuova scena", file.name.replace(/\.[^.]+$/, "")); if (name) { try { await uploadMapAsScene(file, name); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Caricamento fallito", "ERROR"); } } } event.target.value = ""; }}/>
