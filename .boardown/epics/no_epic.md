@@ -476,3 +476,129 @@ order: 2900
 **Accettazione.** Party di 4 PG di livello 3 contro 2 Bugbear Warrior (GS 1) → valore e fascia coerenti con la tabella del DMG 2024 (riportare nel test i numeri della tabella).
 
 **Test.** `encounter.test.ts` con 3-4 casi presi dalla tabella.
+
+## Layout per finestre molto larghe
+
+---
+id: TE-38
+type: feature
+priority: low
+status: todo
+order: 3000
+---
+
+**Contesto.** Il limite `max-width:760px` su `.app` è stato tolto: la barra laterale delle tab resta ancorata a sinistra e l'header occupa tutta la larghezza, ma `main` non ha più un tetto. Su finestre molto larghe (popover allargato o finestra flottante a schermo intero) schede, liste e form si stirano fino al bordo destro.
+
+**Da fare.**
+- Controllare tutte le tab (Scheda, Turni, Messaggi, Note, Bestiario, Avventure, Inventario comune, Party, Libreria, Permessi) a 1280px e 1920px e annotare cosa si legge male.
+- Valutare un tetto di larghezza sul contenuto di `main` dove serve (es. form e testi lunghi).
+- Valutare una vista affiancata quando c'è spazio: due pannelli insieme (es. Scheda + Turni, Scheda + Messaggi) invece di una sola tab alla volta.
+
+**Accettazione.** A 1920px nessuna tab ha righe di testo o input stirati su tutta la larghezza; sotto i 760px il layout resta com'è oggi.
+
+## API cloud delle schede con revisione
+
+---
+id: TE-39
+type: tech
+priority: high
+status: todo
+order: 3100
+---
+
+**Contesto.** Le schede passano dai metadata della stanza (limite ~14 KB) a Upstash Redis tramite `api/sheets.ts` (bozza nel commit `36dd4c0`, branch `feat/cloud-sheets`). Il GM gestisce tutte le schede; i permessi sono solo lato client (TE-42). Decisione consapevole: chi conosce l'id della stanza può leggere e scrivere tutto via API.
+
+**Da fare.**
+- Nuovo `CloudSheet` in `src/types.ts`: `{ sheet: CharacterSheet; rev: number; updatedAt: number; updatedBy: string; deletedAt?: number; acl: { view: string[]; edit: string[] } }`. `updatedBy` e le liste `acl` contengono nomi Owlbear. Rimuovere `ownerId`/`ownerName`.
+- Chiave invariata: hash `te:room:<roomId>:sheets`, campo = `sheet.id`.
+- `PUT` di una scheda: `{ room, id, rev, entry }`. Script Lua via `redis.eval` che scrive solo se il `rev` salvato coincide (scheda nuova: `rev` 0) e incrementa `rev`; altrimenti `409` con la versione del server.
+- `DELETE` diventa soft delete (`deletedAt`) passando dallo stesso controllo di `rev`.
+- `GET`: tutte le schede della stanza, comprese quelle cancellate (servono ai client offline per non ricrearle).
+- `vercel.json`: `"regions": ["fra1"]` (stessa regione del DB).
+- Sviluppo locale: `pnpm dev` non serve `api/`. Documentare `vercel dev` con le env Upstash nel README.
+
+**Accettazione.** Due PUT con lo stesso `rev` di partenza: il primo passa, il secondo riceve `409` con la versione aggiornata. Una scheda oltre 200 KB viene rifiutata.
+
+**Test.** Test della validazione e del flusso `rev`/409 con Redis finto.
+
+## Sincronizzazione client con il cloud
+
+---
+id: TE-40
+type: feature
+priority: high
+status: todo
+order: 3200
+---
+
+**Contesto.** Dipende da TE-39. Oggi le schede vivono in `storage.characters` (locale) e quelle "party" vengono pubblicate nei metadata della stanza.
+
+**Da fare.**
+- All'apertura dell'estensione: `GET` della stanza, merge con la cache locale per `rev` (vince il `rev` più alto; le schede con `deletedAt` vengono rimosse dalla cache).
+- Ogni modifica della scheda: upload con debounce (~1-2 s) e `rev` atteso. Su `409`: avviso con scelta "Usa la versione del server" / "Esporta la mia copia" (riusare l'export TavernPack).
+- Offline o errore di rete: la modifica resta in coda locale e riparte alla riconnessione.
+- Aggiornamenti degli altri: polling leggero (es. ogni 15-30 s, solo con il pannello aperto) oppure un segnale nei metadata della stanza con il `rev` cambiato. Scegliere uno dei due e documentarlo.
+- Tenere d'occhio i comandi Upstash del piano free.
+
+**Accettazione.** Il GM modifica i PF, il giocatore con permesso di vista li vede aggiornati senza ricaricare. Due modifiche concorrenti producono un avviso, mai una perdita silenziosa. Chiude TE-5.
+
+## Import Roll20 delle schede da parte del GM
+
+---
+id: TE-41
+type: feature
+priority: high
+status: todo
+order: 3300
+---
+
+**Contesto.** I personaggi oggi sono su Roll20. Li importa tutti il GM (export `roll20-sheet-export` con blocco `normalized`, `importRoll20`), i giocatori non fanno nulla. Dipende da TE-39.
+
+**Da fare.**
+- In `Library` (solo GM): import multiplo di file Roll20/TavernPack direttamente nel cloud.
+- Una scheda nuova nasce con `acl: { view: [], edit: [] }`: la vede solo il GM.
+- Deduplica: se esiste già una scheda con lo stesso `sheet.sourceId`, aggiornarla (stesso `id`, `rev` corretto) invece di crearne una nuova. Mantenere `acl`, `effects`, `counters` e lo stato di gioco (PF correnti, slot usati) e chiedere conferma prima di sovrascriverli.
+- Riepilogo finale: importate, aggiornate, scartate con il motivo (`importWarnings`).
+
+**Accettazione.** Reimportare lo stesso PG non crea duplicati. Un JSON non valido non blocca gli altri file.
+
+## Permessi per scheda in base al nome Owlbear
+
+---
+id: TE-42
+type: feature
+priority: high
+status: todo
+order: 3400
+---
+
+**Contesto.** Il GM decide per ogni scheda chi la vede e chi la modifica. I permessi sono applicati solo dall'estensione: non sono una protezione reale (API aperta a chi conosce la stanza, nomi Owlbear modificabili). Va bene solo per un gruppo di fiducia; il vero controllo lato server resta in TE-20. Dipende da TE-39.
+
+**Da fare.**
+- Editor ACL nella scheda (solo GM): due liste "Può vedere" e "Può modificare" con i giocatori connessi (`getPartyMembers`) e un campo per un nome libero (giocatore non ancora entrato). `edit` include `view`.
+- Funzioni pure `canViewCloudSheet(entry, playerName, role)` e `canEditCloudSheet(...)`: GM sempre sì. Confronto dei nomi senza distinzione tra maiuscole e minuscole e senza spazi ai bordi.
+- Il selettore del personaggio, `Party` e i tiri usano solo le schede visibili; la scheda in sola lettura disattiva l'editor.
+- Avviso nell'editor ACL: se un giocatore cambia nome in Owlbear perde l'accesso finché il GM non aggiorna la lista.
+
+**Accettazione.** Un giocatore senza permessi non vede la scheda nell'app. Con solo `view` la apre ma non la modifica. Il GM vede tutto.
+
+**Test.** Test unitari di `canViewCloudSheet`/`canEditCloudSheet`.
+
+## Rimuovere la condivisione delle schede nei metadata
+
+---
+id: TE-43
+type: tech
+priority: medium
+status: todo
+order: 3500
+---
+
+**Contesto.** Con TE-39…TE-42 il cloud sostituisce la condivisione delle schede nei metadata della stanza. Tenerle entrambe crea due fonti di verità.
+
+**Da fare.**
+- Migrazione una tantum: le schede `sharing: "party"` nei metadata e quelle locali del GM vanno nel cloud. Le schede dei giocatori vengono caricate dal GM con ACL `edit` = nome del proprietario.
+- Rimuovere `publishSharedSheets`, `updateSharedSheet`, `SharedSheetConflictError`, `acceptSharedSheetVersion`, `assignSheetToPlayer`, `publishPartyCharacters` e relativi listener in `src/obr.ts`, il campo `sheet.sharing` (con la gestione nel parser) e l'`AssignmentPanel` se non serve più. Adeguare `tokenAssignment.integration.test.ts`.
+- Aggiornare il README (sezione schede condivise e limiti).
+
+**Accettazione.** Nessuna scheda vive più nei metadata della stanza. Le schede esistenti in una stanza di prova sopravvivono alla migrazione.
