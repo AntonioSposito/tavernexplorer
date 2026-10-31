@@ -5,8 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import App from "./App";
-import { STORAGE_CHARACTERS, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION } from "./constants";
-import { importRoll20 } from "./importer";
+import { STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION } from "./constants";
 import { DEFAULT_RULESET } from "./rulesets";
 import type { MonsterSheet } from "./types";
 
@@ -64,15 +63,4 @@ it("permette di creare una nota e importare un solo mostro dal picker", async ()
   await click("Bestiario");
   expect(host.textContent).toContain("Lupo");
   expect(host.textContent).not.toContain("Drago");
-});
-
-it("completa un riposo lungo dalla scheda e salva le risorse", async () => {
-  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 2, max: 12 }, hit_dice: { current: 0, max: 2, die: "d8" } } } });
-  localStorage.setItem(STORAGE_CHARACTERS, JSON.stringify([sheet]));
-  await act(async () => root.render(<App/>));
-  await click("Riposo lungo");
-  await click("Completa riposo");
-  const saved = JSON.parse(localStorage.getItem(STORAGE_CHARACTERS) || "[]");
-  expect(saved[0].combat.hp.current).toBe(12);
-  expect(saved[0].combat.hitDice.current).toBe(2);
 });

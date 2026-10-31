@@ -1,21 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-// Redis finto in memoria: lo script Lua è emulato, quindi qui si prova l'handler, non il Lua.
-const store = new Map<string, Map<string, string>>();
-const hash = (key: string) => store.get(key) ?? store.set(key, new Map()).get(key)!;
-vi.mock("@upstash/redis", () => ({
-  Redis: { fromEnv: () => ({
-    hvals: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
-    hlen: async (key: string) => hash(key).size,
-    hget: async (key: string, field: string) => { const value = hash(key).get(field); return value ? JSON.parse(value) : null; },
-    eval: async (_script: string, [key]: string[], [field, rev, value]: [string, number, string]) => {
-      const current = hash(key).get(field);
-      if ((current ? JSON.parse(current).rev ?? 0 : 0) !== rev) return current ? JSON.parse(current) : null;
-      hash(key).set(field, value);
-      return "ok";
-    },
-  }) },
-}));
+import { store } from "./fakeRedis";
+vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 
 const { GET, PUT, DELETE } = await import("../api/sheets");
 const sheet = (id = "pg1", extra = {}) => ({ schemaVersion: 1, id, name: "Aria", identity: {}, ...extra });

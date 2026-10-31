@@ -17,14 +17,15 @@ import { TurnOrder } from "./TurnOrder";
 import { setTurnInitiative, stepTurn } from "./turns";
 import { listAdventures, listBestiarySources, loadAdventure, loadBestiarySource, type FiveToolsAdventure, type FiveToolsSource } from "./fivetoolsApi";
 import { DEFAULT_RULESET, getRuleset } from "./rulesets";
+import { canEditCloudSheet, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
 import { storage } from "./storage";
 import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 import { Alert, Badge, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
 import {
   DEFAULT_PERMISSIONS, OBR, addSelectedTokenToTurns, broadcastMessage, getPartyCharacters, getPermissions, getPlayerInfo, getTurnState,
-  getSharedInventory, deleteSharedNote, highlightToken, getPartyMembers, getSharedNotes, onBroadcastMessage, onPartyCharactersChange, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize, publishPartyCharacters, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
+  getSharedInventory, deleteSharedNote, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, getSharedNotes, onBroadcastMessage, onPartyCharactersChange, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize, publishPartyCharacters, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
-import type { ActionEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PartyCharacterSummary, PermissionSettings, PlayerNote, Roll20Export, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
+import type { ActionEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PartyCharacterSummary, PermissionSettings, PlayerNote, CloudSheet, Roll20Export, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
 const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
 const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", campaigns: "Avventure", shared: "Inventario comune", party: "Party", library: "Libreria", settings: "Permessi" };
@@ -36,11 +37,25 @@ const makeMessage = (partial: Partial<ChatMessage>): ChatMessage => ({
   id: crypto.randomUUID(), kind: "text", author: "Giocatore", body: "", visibility: "everyone", createdAt: Date.now(), ...partial,
 });
 
+// Migrazione una tantum: le schede salvate nel browser passano al cloud, poi il browser le dimentica.
+async function migrateLocalSheets(cloud: ReturnType<typeof createCloudLibrary>, viewer: { name: string; role: "GM" | "PLAYER" }) {
+  const local = storage.characters.get();
+  if (!local.length) return;
+  const acl = viewer.role === "GM" ? { view: [], edit: [] } : { view: [], edit: [viewer.name] };
+  for (const sheet of local) {
+    try { await cloud.add({ kind: "pc", sheet, acl, rev: 0, updatedAt: 0, updatedBy: viewer.name }); }
+    catch (error) { if (!(error instanceof SheetExistsError)) throw error; }
+  }
+  storage.characters.set([]);
+}
+
 export default function App() {
   const viewParam = new URLSearchParams(window.location.search).get("view");
   const floatingView = viewParam && viewParam in TAB_LABELS ? viewParam as AppTab : null;
-  const [characters, setCharacters] = useState<CharacterSheet[]>(storage.characters.get());
-  const [activeId, setActiveId] = useState<string | null>(() => storage.characters.get()[0]?.id ?? null);
+  const [library, setLibrary] = useState<LibraryState>({ entries: [], offline: false, conflict: null });
+  const libraryRef = useRef<ReturnType<typeof createCloudLibrary> | null>(null);
+  const characters = useMemo(() => library.entries.flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []), [library.entries]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(storage.messages.get());
   const [notes, setNotes] = useState<PlayerNote[]>(storage.notes.get());
   const [noteOrganization, setNoteOrganization] = useState<NoteOrganization>(storage.noteOrganization.get());
@@ -58,7 +73,7 @@ export default function App() {
   const [syncNotice, setSyncNotice] = useState("");
   const [turns, setTurns] = useState<TurnState>({ round: 1, activeIndex: 0, entries: [] });
   const [tokenImages, setTokenImages] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<AppTab>(floatingView ?? (characters.length ? "sheet" : "library"));
+  const [tab, setTab] = useState<AppTab>(floatingView ?? "sheet");
   const [sheetTab, setSheetTab] = useState<SheetTab>("main");
   const [rollMode, setRollMode] = useState<RollMode>("normal");
   const [visibility, setVisibility] = useState<Visibility>("everyone");
@@ -71,21 +86,30 @@ export default function App() {
   const charactersRef = useRef(characters);
   const active = characters.find((character) => character.id === activeId) ?? null;
 
-  const saveCharacters = (next: CharacterSheet[]) => { setCharacters(next); storage.characters.set(next); };
   const saveMessages = (next: ChatMessage[]) => { const trimmed = next.slice(-200); setMessages(trimmed); storage.messages.set(trimmed); };
-  const updateActive = (update: (sheet: CharacterSheet) => CharacterSheet) => {
-    if (!active) return;
-    saveCharacters(characters.map((character) => character.id === active.id ? update(structuredClone(character)) : character));
+  const activeEntry = library.entries.find((entry) => entry.sheet.id === activeId);
+  const activeEditable = !library.offline && !!activeEntry && canEditCloudSheet(activeEntry, player);
+  // Ogni modifica passa dalla libreria cloud: errori di permesso o rete diventano un avviso.
+  const updateSheet = (id: string, update: (sheet: CharacterSheet) => CharacterSheet) => {
+    try { libraryRef.current?.update(id, (entry) => ({ ...entry, sheet: update(entry.sheet as CharacterSheet) }) as CloudSheet); }
+    catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); }
   };
+  const updateActive = (update: (sheet: CharacterSheet) => CharacterSheet) => { if (active) updateSheet(active.id, update); };
 
   useEffect(() => {
     if (!OBR.isAvailable) { setPlayer({ id: "preview", name: "Modalità anteprima", role: "GM" }); return; }
     let cleanup = () => undefined;
+    let stopLibrary: () => void = () => undefined;
     let disposed = false;
     OBR.onReady(() => {
       if (disposed) return;
       getPlayerInfo().then((info) => {
+        if (disposed) return;
         setPlayer(info);
+        const cloud = createCloudLibrary({ room: OBR.room.id, viewer: info, onChange: setLibrary, notify: notifySheetsChanged, subscribe: onSheetsChanged });
+        libraryRef.current = cloud;
+        stopLibrary = cloud.start();
+        if (!floatingView) void migrateLocalSheets(cloud, info).catch((error) => setSyncNotice(error instanceof Error ? `Schede locali non caricate nel cloud: ${error.message}` : "Schede locali non caricate nel cloud"));
         setMessages((current) => { const visible = current.filter((message) => canViewMessage(message, info.id, info.role)); storage.messages.set(visible); return visible; });
       });
       void publishGmMessageKey().catch((error) => OBR.notification.show(error instanceof Error ? error.message : "Chiave GM non disponibile", "ERROR"));
@@ -117,11 +141,13 @@ export default function App() {
       const stopParty = onPartyCharactersChange(setPartyCharacters);
       const stopNotes = onSharedNotesChange(setSharedNotes);
       const stopMembers = OBR.party.onChange((members) => setPartyMembers(members.map((member) => ({ id: member.id, name: member.name, role: member.role }))));
-      cleanup = () => { stopTurns(); stopMessages(); stopInventory(); stopPermissions(); stopParty(); stopNotes(); stopMembers(); };
+      cleanup = () => { stopTurns(); stopMessages(); stopInventory(); stopPermissions(); stopParty(); stopNotes(); stopMembers(); stopLibrary(); };
     });
     return () => { disposed = true; cleanup(); };
-  }, []);
+  }, [floatingView]);
 
+  // La scheda attiva deve restare tra quelle visibili.
+  useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
   // Bestiario, avventure e permessi sono riservati al GM: chi non lo è torna alla scheda.
   useEffect(() => { if (player.role !== "GM" && GM_TABS.includes(tab) && !floatingView) setTab(characters.length ? "sheet" : "library"); }, [player.role, tab, floatingView, characters.length]);
   const turnTokenIds = turns.entries.flatMap((entry) => entry.tokenId ? [entry.tokenId] : []).join(",");
@@ -129,7 +155,7 @@ export default function App() {
   // Solo la finestra principale decide il personaggio attivo del giocatore.
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
   useEffect(() => { charactersRef.current = characters; if (OBR.isReady) { void publishPartyCharacters(characters).then(() => setSyncNotice("")).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Sincronizzazione party fallita")); } }, [characters, player.id]);
-  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/characters/")) setCharacters(storage.characters.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
+  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
     message.authorId = player.id;
@@ -163,7 +189,9 @@ export default function App() {
       if (parsed && "format" in parsed && parsed.format === "tavernpack") {
         const pack = parseTavernPack(parsed);
         if (!window.confirm("Importare questo TavernPack sostituendo i dati locali correnti?")) return;
-        saveCharacters(pack.data.characters.map((sheet) => ({ ...sheet, sharing: sheet.sharing ?? "private" }))); setMonsters(pack.data.monsters); storage.monsters.set(pack.data.monsters);
+        const skipped = player.role === "GM" ? await addToLibrary(pack.data.characters) : pack.data.characters.length;
+        if (skipped) setSyncNotice(`${skipped} schede del TavernPack non importate: già presenti nella libreria o riservate al GM.`);
+        setMonsters(pack.data.monsters); storage.monsters.set(pack.data.monsters);
         setCampaigns(pack.data.campaigns); storage.campaigns.set(pack.data.campaigns);
         setNotes(pack.data.notes ?? []); storage.notes.set(pack.data.notes ?? []);
         setNoteOrganization(pack.data.noteOrganization ?? { folders: [], placements: {} }); storage.noteOrganization.set(pack.data.noteOrganization ?? { folders: [], placements: {} });
@@ -175,12 +203,25 @@ export default function App() {
       const sheet = "schemaVersion" in parsed ? parseCharacterSheet(parsed) : importRoll20(parsed as Roll20Export);
       if (!sheet.ruleset) sheet.ruleset = { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version };
       if (!sheet.sharing) sheet.sharing = "private";
-      saveCharacters([...characters.filter((item) => item.id !== sheet.id), sheet]);
+      if (player.role !== "GM") throw new Error("Solo il GM può importare schede nella libreria");
+      if (await addToLibrary([sheet])) throw new Error(`${sheet.name} esiste già nella libreria`);
       setActiveId(sheet.id); setTab("sheet");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Importazione fallita";
       if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message);
     }
+  }
+
+  // Carica nuove schede PG visibili solo al GM; ritorna quante erano già presenti.
+  async function addToLibrary(sheets: CharacterSheet[]): Promise<number> {
+    const cloud = libraryRef.current;
+    if (!cloud) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare la libreria");
+    let existing = 0;
+    for (const sheet of sheets) {
+      try { await cloud.add({ kind: "pc", sheet, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: player.name }); }
+      catch (error) { if (error instanceof SheetExistsError) existing += 1; else throw error; }
+    }
+    return existing;
   }
 
   async function import5eToolsFile(file: File) {
@@ -278,11 +319,14 @@ export default function App() {
       {floatingView === "sheet" && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
       {tokenNotice && <Alert tone="danger">{tokenNotice}</Alert>}
       {syncNotice && <Alert tone="danger">{syncNotice}</Alert>}
-      {tab === "sheet" && (active ? <SheetView sheet={active} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={performRoll} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
+      {library.offline && <Alert tone="danger">Server non raggiungibile: le schede sono in sola lettura.</Alert>}
+      {library.conflict && <Alert tone="danger"><p>{library.conflict}</p><Button variant="outline" onClick={() => libraryRef.current?.clearConflict()}>OK</Button></Alert>}
+      {!OBR.isAvailable && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
+      {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={performRoll} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
       {tab === "turns" && <div className="stack"><TurnOrder state={turns} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/></div>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
       {tab === "notes" && <Notes notes={notes} sharedNotes={sharedNotes} organization={noteOrganization} player={player} onOrganizationChange={(next) => { setNoteOrganization(next); storage.noteOrganization.set(next); }} onChange={(next) => { setNotes(next); storage.notes.set(next); }} onPublish={async (note) => runAction(async () => { const shared: SharedNote = { ...note, ownerId: player.id, ownerName: player.name, writePermission: "owner" }; await saveSharedNote(shared); setSharedNotes(await getSharedNotes()); setNotes((current) => { const next = current.filter((item) => item.id !== note.id); storage.notes.set(next); return next; }); })} onSaveShared={async (note) => runAction(async () => { await saveSharedNote(note); setSharedNotes(await getSharedNotes()); })} onDeleteShared={async (id) => runAction(async () => { if (!window.confirm("Rimuovere questa nota dalla stanza?")) return; await deleteSharedNote(id); setSharedNotes(await getSharedNotes()); })} onMakePrivate={async (note) => runAction(async () => { if (!window.confirm("Rendere privata questa nota? Gli altri non potranno più leggerla.")) return; const local = { id: note.id, title: note.title, body: note.body, updatedAt: Date.now() }; setNotes((current) => { const next = [...current.filter((item) => item.id !== local.id), local]; storage.notes.set(next); return next; }); await deleteSharedNote(note.id); setSharedNotes(await getSharedNotes()); })} onSendToGm={(note) => { void runAction(async () => { if (note.body.length > 6000) throw new Error("Nota troppo lunga per un messaggio: massimo 6000 caratteri"); await publish(makeMessage({ kind: "share", author: player.name, title: note.title || "Nota", body: note.body, visibility: "gm" })); if (!floatingView) setTab("messages"); }); }}/>}
-      {tab === "library" && <Library characters={characters} activeId={activeId} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onImport={() => fileRef.current?.click()} onExport={exportCharacter} onExportPack={exportPack} onSharingChange={(id, sharing) => saveCharacters(characters.map((item) => item.id === id ? { ...item, sharing } : item))} onDelete={(id) => { const next = characters.filter((item) => item.id !== id); saveCharacters(next); if (activeId === id) setActiveId(next[0]?.id ?? null); }}/>}
+      {tab === "library" && <Library characters={characters} activeId={activeId} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onImport={() => fileRef.current?.click()} onExport={exportCharacter} onExportPack={exportPack} onSharingChange={(id, sharing) => updateSheet(id, (sheet) => ({ ...sheet, sharing }))} onDelete={(id) => { void runAction(async () => { await libraryRef.current?.remove(id); }); }}/>}
       {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={player.role === "GM" || permissions.playersManageTurns} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { setMonsters(next); storage.monsters.set(next); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
@@ -316,7 +360,7 @@ function ResizeHandle({ panel }: { panel?: AppTab }) {
   return <div className="resize-handle" title="Trascina per ridimensionare" aria-label="Ridimensiona finestra" onPointerDown={(event) => { drag.current = { x: event.screenX, y: event.screenY, width: window.innerWidth, height: window.innerHeight }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = size(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => apply(next)); }} onPointerUp={(event) => { const next = size(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); apply(next, true); }}/>;
 }
 
-function SheetView({ sheet, sheetTab, setSheetTab, rollMode, setRollMode, visibility, setVisibility, onRoll, onShare, onUpdate, onRest }: { sheet: CharacterSheet; sheetTab: SheetTab; setSheetTab: (tab: SheetTab) => void; rollMode: RollMode; setRollMode: (mode: RollMode) => void; visibility: Visibility; setVisibility: (value: Visibility) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRest: (summary: string) => void }) {
+function SheetView({ sheet, editable, sheetTab, setSheetTab, rollMode, setRollMode, visibility, setVisibility, onRoll, onShare, onUpdate, onRest }: { sheet: CharacterSheet; editable: boolean; sheetTab: SheetTab; setSheetTab: (tab: SheetTab) => void; rollMode: RollMode; setRollMode: (mode: RollMode) => void; visibility: Visibility; setVisibility: (value: Visibility) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRest: (summary: string) => void }) {
   const ruleset = getRuleset(sheet.ruleset.id);
   const view = effectiveSheet(sheet);
   return <>
@@ -328,14 +372,17 @@ function SheetView({ sheet, sheetTab, setSheetTab, rollMode, setRollMode, visibi
       <select value={rollMode} onChange={(event) => setRollMode(event.target.value as RollMode)}><option value="normal">Normale</option><option value="advantage">Vantaggio</option><option value="disadvantage">Svantaggio</option></select>
       <select value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select>
     </div>
-    <nav className="sheet-tabs">{(["main", "actions", "spells", "inventory", "traits", "bio", "edit"] as SheetTab[]).map((item) => <button key={item} className={sheetTab === item ? "active" : ""} onClick={() => setSheetTab(item)}>{SHEET_TAB_LABELS[item]}</button>)}</nav>
-    {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onUpdate={onUpdate} editable/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
+    <nav className="sheet-tabs">{(["main", "actions", "spells", "inventory", "traits", "bio", ...editable ? ["edit"] : []] as SheetTab[]).map((item) => <button key={item} className={sheetTab === item ? "active" : ""} onClick={() => setSheetTab(item)}>{SHEET_TAB_LABELS[item]}</button>)}</nav>
+    {!editable && <p className="party-owner">Sola lettura</p>}
+    <div className={editable ? undefined : "readonly-sheet"}>
+    {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onUpdate={onUpdate} editable={editable}/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
     {sheetTab === "actions" && <EntryList entries={sheet.actions} onRoll={onRoll} onShare={onShare} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "spells" && <Spells sheet={view} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "inventory" && <Inventory sheet={sheet} onUpdate={onUpdate}/>}
     {sheetTab === "traits" && <EntryList entries={sheet.traits.map((trait) => ({ ...trait, source: trait.source }))} onRoll={onRoll} onShare={onShare}/>}
     {sheetTab === "bio" && <section className="paper"><h2>Biografia</h2><p className="prose">{sheet.biography || "Nessuna biografia."}</p>{sheet.importWarnings.length > 0 && <details className="warnings"><summary>{sheet.importWarnings.length} note d’importazione</summary><ul>{sheet.importWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}</section>}
-    {sheetTab === "edit" && <><CharacterEditor sheet={sheet} onUpdate={onUpdate}/><EffectsEditor sheet={sheet} onUpdate={onUpdate}/><DeepCharacterEditor sheet={sheet} onUpdate={onUpdate}/></>}
+    {sheetTab === "edit" && editable && <><CharacterEditor sheet={sheet} onUpdate={onUpdate}/><EffectsEditor sheet={sheet} onUpdate={onUpdate}/><DeepCharacterEditor sheet={sheet} onUpdate={onUpdate}/></>}
+    </div>
   </>;
 }
 

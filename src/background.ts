@@ -46,7 +46,7 @@ OBR.onReady(async () => {
       const alreadyPresent = context.items.every((item) => current.entries.some((entry) => entry.tokenId === item.id));
       const entries = alreadyPresent ? current.entries.filter((entry) => !ids.has(entry.tokenId ?? "")) : [...current.entries];
       if (!alreadyPresent) {
-        const linkedSheets = storage.characters.get();
+        const linkedSheets = storage.cloudCache.characters(OBR.room.id);
         for (const item of context.items) {
           if (entries.some((entry) => entry.tokenId === item.id)) continue;
           const entry = createTokenTurn(item, linkedSheets,

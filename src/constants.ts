@@ -2,6 +2,7 @@ export const EXTENSION_ID = "it.tavernexplorer";
 export const TOKEN_META_KEY = `${EXTENSION_ID}/character`;
 export const TURN_META_KEY = `${EXTENSION_ID}/turn-order`;
 export const MESSAGE_CHANNEL = `${EXTENSION_ID}/messages`;
+export const SHEETS_CHANNEL = `${EXTENSION_ID}/sheets-changed`;
 export const GM_MESSAGE_KEY = `${EXTENSION_ID}/gm-message-public-key`;
 export const STORAGE_CHARACTERS = `${EXTENSION_ID}/characters/v1`;
 export const STORAGE_MESSAGES = `${EXTENSION_ID}/messages/v1`;

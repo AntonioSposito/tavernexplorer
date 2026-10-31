@@ -1,5 +1,5 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, PARTY_META_KEY, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PARTY_META_KEY, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import type { CharacterSheet, ChatMessage, PartyCharacterSummary, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
 import { decryptGmMessage, encryptGmMessage, isGmEnvelope } from "./privateMessages";
 import { canManageNote, canWriteNote, readSharedNotes } from "./sharedNotes";
@@ -34,6 +34,16 @@ export function onTurnStateChange(callback: (state: TurnState) => void): () => v
 export async function broadcastMessage(message: ChatMessage): Promise<void> {
   if (!OBR.isAvailable || message.visibility === "self") return;
   await OBR.broadcast.sendMessage(MESSAGE_CHANNEL, message.visibility === "gm" ? await encryptGmMessage(message) : message, { destination: "REMOTE" });
+}
+
+// Avviso senza dati: chi lo riceve rilegge la libreria cloud. "ALL" include i pannelli flottanti di questo browser.
+export function notifySheetsChanged(): void {
+  if (OBR.isAvailable) void OBR.broadcast.sendMessage(SHEETS_CHANNEL, {}, { destination: "ALL" }).catch(() => undefined);
+}
+
+export function onSheetsChanged(callback: () => void): () => void {
+  if (!OBR.isAvailable) return () => undefined;
+  return OBR.broadcast.onMessage(SHEETS_CHANNEL, () => callback());
 }
 
 export function onBroadcastMessage(callback: (message: ChatMessage) => void): () => void {

@@ -23,6 +23,8 @@ interface Options {
   debounceMs?: number;
 }
 
+export class SheetExistsError extends Error {}
+
 const OFFLINE = "Offline: modifiche disabilitate finché il server non risponde";
 
 // Libreria della stanza: il server è la fonte di verità, il browser tiene solo una cache di lettura.
@@ -134,7 +136,7 @@ export function createCloudLibrary({ room, viewer, onChange, fetch: request = fe
       const saved = await apply(sheet.id, await send("PUT", { rev: 0, entry: { kind, sheet, acl, updatedBy: viewer.name } }));
       if (!saved) conflict = null;
       emit();
-      if (!saved) throw new Error(`${sheet.name} esiste già nella libreria`);
+      if (!saved) throw new SheetExistsError(`${sheet.name} esiste già nella libreria`);
     },
     async remove(id: string) {
       editable(id);

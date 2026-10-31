@@ -22,7 +22,7 @@ async function syncTokenStatus(): Promise<void> {
   const [tokens, labels, sheets, turns, role] = await Promise.all([
     OBR.scene.items.getItems((item) => item.layer === "CHARACTER"),
     OBR.scene.local.getItems((item) => typeof item.metadata[TOKEN_STATUS_META_KEY] === "string"),
-    storage.characters.get(), getTurnState(), OBR.player.getRole(),
+    storage.cloudCache.characters(OBR.room.id), getTurnState(), OBR.player.getRole(),
   ]);
   const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
@@ -74,7 +74,7 @@ export function setupTokenStatus(): void {
     })();
   };
   OBR.room.onMetadataChange(schedule);
-  // Le schede ora sono solo locali: le modifiche arrivano dall'app come evento storage.
+  // Le schede arrivano dalla cache cloud scritta dall'app: ogni aggiornamento è un evento storage.
   window.addEventListener("storage", schedule);
   OBR.scene.items.onChange(schedule);
   OBR.scene.onReadyChange(schedule);
