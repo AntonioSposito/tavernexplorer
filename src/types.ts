@@ -203,14 +203,6 @@ export interface CampaignChapter {
 }
 
 // Scheda condivisa nella room: visibile a tutti, scrivibile da owner, GM e delegati.
-export interface SharedSheet {
-  sheet: CharacterSheet;
-  ownerId: string;
-  ownerName: string;
-  editors: string[];
-  updatedAt: number;
-}
-
 // Copia di una scheda salvata nel cloud per una stanza.
 export interface CloudSheet {
   sheet: CharacterSheet;

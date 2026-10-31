@@ -1,5 +1,5 @@
 import OBR from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, PERMISSIONS_META_KEY, SHEETS_META_KEY, TURN_META_KEY } from "./constants";
+import { EXTENSION_ID, PERMISSIONS_META_KEY, TURN_META_KEY } from "./constants";
 import { roll } from "./dice";
 import { storage } from "./storage";
 import { createTokenTurn } from "./tokenTurns";
@@ -8,7 +8,7 @@ import { setupTurnHighlight } from "./tokenHighlight";
 import { setupRemotePanelOpening } from "./floatingPanels";
 import { replaceTurnEntries } from "./turns";
 import { writeRoomMetadata } from "./roomMetadata";
-import type { SharedSheet, TurnState } from "./types";
+import type { TurnState } from "./types";
 
 OBR.onReady(async () => {
   await OBR.contextMenu.create({
@@ -46,9 +46,7 @@ OBR.onReady(async () => {
       const alreadyPresent = context.items.every((item) => current.entries.some((entry) => entry.tokenId === item.id));
       const entries = alreadyPresent ? current.entries.filter((entry) => !ids.has(entry.tokenId ?? "")) : [...current.entries];
       if (!alreadyPresent) {
-        const sharedSheets = roomMeta[SHEETS_META_KEY];
-        const sheets: SharedSheet[] = Array.isArray(sharedSheets) ? sharedSheets : [];
-        const linkedSheets = [...sheets.map((entry) => entry.sheet), ...storage.characters.get()];
+        const linkedSheets = storage.characters.get();
         for (const item of context.items) {
           if (entries.some((entry) => entry.tokenId === item.id)) continue;
           const entry = createTokenTurn(item, linkedSheets,

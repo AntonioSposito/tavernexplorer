@@ -1,14 +1,15 @@
 import OBR, { buildLabel, isLabel } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATUS_META_KEY } from "./constants";
 import { effectiveSheet } from "./effects";
-import { getSharedSheets, getTurnState } from "./obr";
+import { getTurnState } from "./obr";
+import { storage } from "./storage";
 import { linkedCharacterId } from "./tokenTurns";
-import type { SharedSheet, TurnEntry } from "./types";
+import type { CharacterSheet, TurnEntry } from "./types";
 
-export function tokenStatusText(sheet: SharedSheet | undefined, turn: TurnEntry | undefined, role: "GM" | "PLAYER"): string | null {
+export function tokenStatusText(sheet: CharacterSheet | undefined, turn: TurnEntry | undefined, role: "GM" | "PLAYER"): string | null {
   const parts: string[] = [];
   if (sheet) {
-    const hp = effectiveSheet(sheet.sheet).combat.hp;
+    const hp = effectiveSheet(sheet).combat.hp;
     if (hp.current < hp.max || hp.temp > 0) parts.push(`PF ${hp.current}/${hp.max}${hp.temp > 0 ? ` +${hp.temp}` : ""}`);
   }
   const conditions = role === "GM" || !turn?.hidden ? turn?.conditions?.map((condition) => `${condition.name}${condition.remainingRounds ? ` ${condition.remainingRounds}r` : ""}`) ?? [] : [];
@@ -21,9 +22,9 @@ async function syncTokenStatus(): Promise<void> {
   const [tokens, labels, sheets, turns, role] = await Promise.all([
     OBR.scene.items.getItems((item) => item.layer === "CHARACTER"),
     OBR.scene.local.getItems((item) => typeof item.metadata[TOKEN_STATUS_META_KEY] === "string"),
-    getSharedSheets(), getTurnState(), OBR.player.getRole(),
+    storage.characters.get(), getTurnState(), OBR.player.getRole(),
   ]);
-  const sheetsById = new Map(sheets.map((entry) => [entry.sheet.id, entry]));
+  const sheetsById = new Map(sheets.map((sheet) => [sheet.id, sheet]));
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
   const desired = new Map<string, { text: string; position: { x: number; y: number } }>();
   for (const token of tokens) {
@@ -73,6 +74,8 @@ export function setupTokenStatus(): void {
     })();
   };
   OBR.room.onMetadataChange(schedule);
+  // Le schede ora sono solo locali: le modifiche arrivano dall'app come evento storage.
+  window.addEventListener("storage", schedule);
   OBR.scene.items.onChange(schedule);
   OBR.scene.onReadyChange(schedule);
   schedule();

@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { SHEETS_META_KEY, TOKEN_META_KEY } from "./constants";
+import { TOKEN_META_KEY } from "./constants";
 import { importRoll20 } from "./importer";
 
 const room = vi.hoisted((): { metadata: Record<string, unknown>; items: Array<{ id: string; name: string; layer: string; createdUserId: string; metadata: Record<string, unknown> }> } => ({
@@ -22,19 +22,16 @@ vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
 } }));
 
 it("mostra i token liberi e collega soltanto il token scelto", async () => {
-  const { assignSheetToPlayer, getCharacterTokens, setTokenCharacter, setTokenOwner } = await import("./obr");
+  const { getCharacterTokens, setTokenCharacter, setTokenOwner } = await import("./obr");
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
-  room.metadata[SHEETS_META_KEY] = [{ sheet, ownerId: "player", ownerName: "Player", editors: [], updatedAt: 1 }];
 
   expect((await getCharacterTokens()).map((item) => item.tokenId)).toEqual(["token-a", "token-b"]);
-  await setTokenCharacter("token-b", sheet.id);
+  await setTokenCharacter("token-b", sheet.id, "player");
   expect(room.items[0].metadata[TOKEN_META_KEY]).toBeUndefined();
   expect(room.items[1].metadata[TOKEN_META_KEY]).toEqual({ characterId: sheet.id });
   expect(room.items[1].createdUserId).toBe("player");
   await setTokenOwner("token-b", "gm");
   expect(room.items[1].createdUserId).toBe("gm");
-  await assignSheetToPlayer(sheet.id, "new-owner", "Nuovo proprietario");
-  expect(room.items[1].createdUserId).toBe("new-owner");
   expect(room.items[0].createdUserId).toBe("gm");
   await setTokenCharacter("token-b", null);
   expect(room.items[1].metadata[TOKEN_META_KEY]).toBeUndefined();

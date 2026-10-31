@@ -14,7 +14,6 @@ export const SHARED_NOTES_META_KEY = `${EXTENSION_ID}/shared-notes`;
 export const INVENTORY_META_KEY = `${EXTENSION_ID}/shared-inventory`;
 export const PERMISSIONS_META_KEY = `${EXTENSION_ID}/permissions`;
 export const PARTY_META_KEY = `${EXTENSION_ID}/party-characters`;
-export const SHEETS_META_KEY = `${EXTENSION_ID}/party-sheets`;
 export const ROLL_LABEL_META_KEY = `${EXTENSION_ID}/roll-label`;
 export const TOKEN_STATUS_META_KEY = `${EXTENSION_ID}/token-status`;
 

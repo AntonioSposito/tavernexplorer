@@ -69,8 +69,8 @@ vercel dev
 - Schede, bestiario, avventure e ultimi 200 messaggi: storage locale del browser.
 - Owlbear documenta **200 MB di spazio cloud nel piano gratuito** per i dati
   dell'account ([piani e cloud storage](https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage)).
-  È distinto dai metadata della stanza usati qui per sincronizzare schede,
-  note, inventario e turni. L'[API room](https://docs.owlbear.rodeo/extensions/apis/room/#setmetadata)
+  È distinto dai metadata della stanza usati qui per sincronizzare note,
+  inventario e turni. L'[API room](https://docs.owlbear.rodeo/extensions/apis/room/#setmetadata)
   documenta per quei metadata un limite totale inferiore a **16 kB**.
 - I metadata condivisi della stanza sono controllati prima di ogni scrittura:
   TavernExplorer applica una propria soglia prudenziale di 14.000 byte, lasciando
@@ -90,12 +90,10 @@ vercel dev
   eliminare e assegnare alle note senza cambiare i permessi condivisi.
 - Party: le schede nuove sono private nel browser. In **Libreria** si puo' scegliere
   per ogni scheda **Solo questo browser** oppure **Tutto il party**. Solo le schede
-  condivise sono pubblicate nei metadata della stanza e del giocatore. Le schede
-  gia' salvate senza una scelta esplicita vengono trattate come private. Il DM
-  vede e modifica solo le schede condivise, insieme ai delegati autorizzati.
-  Le schede identiche non vengono ripubblicate. Se una scheda locale diverge
-  dalla versione della stanza, l'estensione blocca la sovrascrittura e offre
-  un backup e una scelta esplicita tra le due versioni.
+  condivise pubblicano un riepilogo (CA, PF, caratteristiche) nei metadata del
+  giocatore. Le schede gia' salvate senza una scelta esplicita vengono trattate
+  come private. Le schede complete restano solo nel browser del proprietario
+  finché non arriva il salvataggio cloud (TE-40).
 - Turn order e messaggi possono essere aperti come pannelli flottanti sulla mappa.
 - Buff, debuff e proprietà numeriche degli oggetti equipaggiati modificano CA,
   iniziativa, PF massimi, caratteristiche, tiri salvezza, abilità, CD, attacchi
@@ -112,13 +110,12 @@ vercel dev
   direttamente come scene Owlbear.
 - Collegamento token/scheda: metadata del token. Nel Party il GM vede ogni
   personaggio con il suo proprietario e tutti i token dello strato Personaggi
-  della scena, inclusi quelli senza scheda. Può cercare un token, collegarlo
-  dal relativo menu o cambiare il proprietario della scheda accanto al nome.
+  della scena, inclusi quelli senza scheda. Può cercare un token e collegarlo
+  dal relativo menu.
   Le liste si aggiornano quando cambia la scena. Il menu contestuale del token
   apre la scheda collegata; non assegna automaticamente la scheda attiva ai
   token scollegati. Collegando un token, il proprietario Owlbear del token viene
-  allineato al proprietario della scheda. Cambiando il proprietario della scheda,
-  l'estensione aggiorna i token collegati nella scena aperta. Il GM può anche
+  allineato al proprietario della scheda. Il GM può anche
   scegliere un proprietario diverso per un singolo token. Il controllo esclusivo
   richiede il permesso Owlbear "Owner Only" per lo strato Personaggi
   ([documentazione](https://docs.owlbear.rodeo/docs/permissions/)).
@@ -126,7 +123,7 @@ vercel dev
   Per ogni token collegato a una scheda disponibile viene tirata l'iniziativa
   usando il suo bonus; per gli altri viene chiesto un valore. Cliccando un nome
   nel tracker, il token viene evidenziato da un cerchio locale che svanisce.
-- Dalla scheda aperta dal token e dal Party si applicano danni, cure e PF
+- Dalla scheda aperta dal token si applicano danni, cure e PF
   temporanei indicando una quantità. L'anteprima mostra i PF risultanti;
   i danni consumano prima i PF temporanei, le cure si fermano al massimo
   effettivo e azzerano i salvataggi morte quando restituiscono PF. I PF
@@ -218,8 +215,9 @@ su `main`.
 - I tiri non sono renderizzati come dadi 3D: l'SDK non espone il dado di Owlbear.
 - L'SDK non permette di creare cartelle di asset: i token del bestiario usano il
   prefisso `beasts/` nel nome, non una cartella reale.
-- Le schede condivise vivono nei metadata della stanza: se la stanza viene
-  eliminata restano solo le copie locali dei rispettivi proprietari.
+- Le schede complete restano nel browser del proprietario: il GM non può aprire
+  né modificare quelle dei giocatori e le etichette PF sui token mostrano solo
+  le schede presenti nel proprio browser.
 - Le note condivise sono leggibili da tutti i partecipanti della stanza. Per
   dati riservati al GM usare l'invio cifrato della copia. I permessi di scrittura
   sono controllati dall'interfaccia, secondo i limiti dei metadata Owlbear.

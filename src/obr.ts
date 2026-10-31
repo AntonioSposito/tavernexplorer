@@ -1,6 +1,6 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, PARTY_META_KEY, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, SHEETS_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
-import type { CharacterSheet, ChatMessage, PartyCharacterSummary, PermissionSettings, SharedInventoryItem, SharedNote, SharedSheet, TurnEntry, TurnState } from "./types";
+import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, PARTY_META_KEY, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import type { CharacterSheet, ChatMessage, PartyCharacterSummary, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
 import { decryptGmMessage, encryptGmMessage, isGmEnvelope } from "./privateMessages";
 import { canManageNote, canWriteNote, readSharedNotes } from "./sharedNotes";
 import { replaceTurnEntries } from "./turns";
@@ -109,18 +109,16 @@ export async function uploadMonsterTokens(monsters: Array<{ name: string; source
 
 export interface CharacterToken { tokenId: string; tokenName: string; characterId?: string; ownerId: string }
 
-export async function setTokenCharacter(tokenId: string, characterId: string | null): Promise<void> {
+export async function setTokenCharacter(tokenId: string, characterId: string | null, ownerId?: string): Promise<void> {
   if (!OBR.isAvailable || !(await OBR.scene.isReady())) throw new Error("Apri una scena Owlbear per collegare il token");
   if (await OBR.player.getRole() !== "GM") throw new Error("Solo il GM può collegare i token alle schede");
   const token = (await OBR.scene.items.getItems([tokenId]))[0];
   if (!token || token.layer !== "CHARACTER") throw new Error("Il token non è più nella scena aperta");
-  const sheet = characterId ? (await getSharedSheets()).find((entry) => entry.sheet.id === characterId) : undefined;
-  if (characterId && !sheet) throw new Error("La scheda non è più condivisa nella stanza");
   await OBR.scene.items.updateItems([tokenId], (items) => {
     for (const item of items) {
       if (characterId) item.metadata[TOKEN_META_KEY] = { characterId };
       else delete item.metadata[TOKEN_META_KEY];
-      if (sheet) item.createdUserId = sheet.ownerId;
+      if (ownerId) item.createdUserId = ownerId;
     }
   });
 }
@@ -149,27 +147,6 @@ export async function getTokenImages(tokenIds: string[]): Promise<Record<string,
 }
 
 export { highlightToken } from "./tokenHighlight";
-
-// Riassegna il proprietario di una scheda condivisa. Il nuovo owner potra' modificarla.
-export async function assignSheetToPlayer(sheetId: string, ownerId: string, ownerName: string): Promise<void> {
-  if (!OBR.isAvailable) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo");
-  if (await OBR.player.getRole() !== "GM") throw new Error("Solo il GM può riassegnare le schede");
-  const existing = await getSharedSheets();
-  const sheet = existing.find((entry) => entry.sheet.id === sheetId);
-  if (!sheet) throw new Error("La scheda non è più condivisa nella stanza");
-  if (sheet.ownerId === ownerId) return;
-  const next = existing.map((entry) => entry.sheet.id === sheetId ? { ...entry, ownerId, ownerName, editors: entry.editors.filter((id) => id !== ownerId), updatedAt: Math.max(Date.now(), entry.updatedAt + 1) } : entry);
-  await writeRoomMetadata({ [SHEETS_META_KEY]: next });
-  if (await OBR.scene.isReady()) {
-    try {
-      await OBR.scene.items.updateItems((item) => item.layer === "CHARACTER" && linkedCharacterId(item) === sheetId, (items) => {
-        for (const item of items) item.createdUserId = ownerId;
-      });
-    } catch {
-      throw new Error("Scheda trasferita, ma i token della scena non sono stati aggiornati. Assegna il proprietario dal loro elenco.");
-    }
-  }
-}
 
 // Mostra il risultato sulla mappa attaccato al token del personaggio; sparisce da solo.
 export async function showRollOnMap(characterId: string, label: string, total: number): Promise<void> {
@@ -201,110 +178,6 @@ export async function getPartyCharacters(): Promise<PartyCharacterSummary[]> {
 export function onPartyCharactersChange(callback: (characters: PartyCharacterSummary[]) => void): () => void {
   if (!OBR.isAvailable) return () => undefined;
   return OBR.party.onChange((members) => callback(members.flatMap((member) => Array.isArray(member.metadata[PARTY_META_KEY]) ? member.metadata[PARTY_META_KEY] as unknown as PartyCharacterSummary[] : [])));
-}
-
-function readSheets(metadata: Record<string, unknown>): SharedSheet[] {
-  const value = metadata[SHEETS_META_KEY];
-  return Array.isArray(value) ? value as unknown as SharedSheet[] : [];
-}
-
-// ponytail: controllo lato UI. I metadata della stanza sono scrivibili da ogni
-// client e l'SDK non offre ACL per chiave: impedisce le modifiche accidentali,
-// non un client ostile. Serve un backend se un giorno conta davvero.
-export function canEditSheet(entry: SharedSheet, playerId: string, role: "GM" | "PLAYER"): boolean {
-  return role === "GM" || entry.ownerId === playerId || entry.editors.includes(playerId);
-}
-
-export async function getSharedSheets(): Promise<SharedSheet[]> {
-  if (!OBR.isAvailable) return [];
-  return readSheets(await OBR.room.getMetadata());
-}
-
-export function onSharedSheetsChange(callback: (sheets: SharedSheet[]) => void): () => void {
-  if (!OBR.isAvailable) return () => undefined;
-  return OBR.room.onMetadataChange((metadata) => callback(readSheets(metadata)));
-}
-
-const knownSheetVersions = new Map<string, number>();
-let sheetPublishQueue: Promise<void> = Promise.resolve();
-
-export class SharedSheetConflictError extends Error {
-  constructor(readonly sheetId: string) { super("La scheda nella stanza è cambiata: scegli quale versione conservare prima di sincronizzare."); }
-}
-
-// Pubblica le schede possedute da questo giocatore lasciando intatte quelle altrui.
-async function publishOwnedSheets(sheets: CharacterSheet[]): Promise<void> {
-  if (!OBR.isAvailable) return;
-  const ownerId = await OBR.player.getId(); const ownerName = await OBR.player.getName();
-  const existing = await getSharedSheets();
-  const mine = new Map(existing.filter((entry) => entry.ownerId === ownerId).map((entry) => [entry.sheet.id, entry]));
-  const reassigned = new Set(existing.filter((entry) => entry.ownerId !== ownerId).map((entry) => entry.sheet.id));
-  const local = sheets.filter((sheet) => sheet.sharing === "party" && !reassigned.has(sheet.id));
-  for (const [id, remote] of mine) {
-    if (JSON.stringify(local.find((sheet) => sheet.id === id)) === JSON.stringify(remote.sheet)) {
-      knownSheetVersions.set(id, remote.updatedAt);
-    } else if (knownSheetVersions.get(id) !== remote.updatedAt) {
-      throw new SharedSheetConflictError(id);
-    }
-  }
-  const next = [
-    ...existing.filter((entry) => entry.ownerId !== ownerId),
-    ...local.map((sheet) => {
-      const previous = mine.get(sheet.id);
-      return previous && JSON.stringify(previous.sheet) === JSON.stringify(sheet) ? previous : { sheet, ownerId, ownerName, editors: previous?.editors ?? [], updatedAt: Math.max(Date.now(), (previous?.updatedAt ?? 0) + 1) };
-    }),
-  ];
-  if (JSON.stringify(existing) === JSON.stringify(next)) return;
-  await writeRoomMetadata({ [SHEETS_META_KEY]: next });
-  for (const entry of next) if (entry.ownerId === ownerId) knownSheetVersions.set(entry.sheet.id, entry.updatedAt);
-  for (const id of mine.keys()) if (!next.some((entry) => entry.sheet.id === id)) knownSheetVersions.delete(id);
-}
-
-export function publishSharedSheets(sheets: CharacterSheet[]): Promise<void> {
-  const pending = sheetPublishQueue.then(() => publishOwnedSheets(sheets));
-  sheetPublishQueue = pending.catch(() => undefined);
-  return pending;
-}
-
-export function acceptSharedSheetVersion(entry: SharedSheet): void {
-  knownSheetVersions.set(entry.sheet.id, entry.updatedAt);
-}
-
-export async function publishLocalSheetOverConflict(sheet: CharacterSheet): Promise<void> {
-  const player = await getPlayerInfo();
-  const existing = await getSharedSheets();
-  const previous = existing.find((entry) => entry.sheet.id === sheet.id);
-  if (!previous || previous.ownerId !== player.id) throw new Error("Solo il proprietario può pubblicare questa versione locale");
-  const updatedAt = Math.max(Date.now(), previous.updatedAt + 1);
-  await writeRoomMetadata({ [SHEETS_META_KEY]: existing.map((entry) => entry.sheet.id === sheet.id ? { ...entry, sheet, updatedAt } : entry) });
-  knownSheetVersions.set(sheet.id, updatedAt);
-}
-
-// Scrive la scheda di chiunque, previo controllo dei permessi lato chiamante.
-export async function updateSharedSheet(sheetId: string, sheet: CharacterSheet, expectedUpdatedAt?: number): Promise<void> {
-  if (!OBR.isAvailable) return;
-  const existing = await getSharedSheets();
-  const previous = existing.find((entry) => entry.sheet.id === sheetId);
-  if (!previous || expectedUpdatedAt !== undefined && previous.updatedAt !== expectedUpdatedAt) throw new SharedSheetConflictError(sheetId);
-  const player = await getPlayerInfo();
-  if (!canEditSheet(previous, player.id, player.role)) throw new Error("Non hai il permesso di modificare questa scheda");
-  const updatedAt = Math.max(Date.now(), previous.updatedAt + 1);
-  const next = existing.map((entry) => entry.sheet.id === sheetId ? { ...entry, sheet, updatedAt } : entry);
-  await writeRoomMetadata({ [SHEETS_META_KEY]: next });
-  if (previous.ownerId === player.id) knownSheetVersions.set(sheetId, updatedAt);
-}
-
-export async function setSheetEditors(sheetId: string, editors: string[], expectedUpdatedAt?: number): Promise<void> {
-  if (!OBR.isAvailable) return;
-  const existing = await getSharedSheets();
-  const previous = existing.find((entry) => entry.sheet.id === sheetId);
-  if (!previous || expectedUpdatedAt !== undefined && previous.updatedAt !== expectedUpdatedAt) throw new SharedSheetConflictError(sheetId);
-  const player = await getPlayerInfo();
-  if (player.role !== "GM" && previous.ownerId !== player.id) throw new Error("Solo il proprietario o il GM può cambiare i delegati");
-  const updatedAt = Math.max(Date.now(), previous.updatedAt + 1);
-  const next = existing.map((entry) => entry.sheet.id === sheetId ? { ...entry, editors, updatedAt } : entry);
-  await writeRoomMetadata({ [SHEETS_META_KEY]: next });
-  if (previous.ownerId === player.id) knownSheetVersions.set(sheetId, updatedAt);
 }
 
 export async function getPartyMembers(): Promise<Array<{ id: string; name: string; role: "GM" | "PLAYER" }>> {
