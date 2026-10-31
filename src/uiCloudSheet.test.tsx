@@ -25,7 +25,7 @@ vi.mock("./obr", () => ({
   onTurnStateChange: unsubscribe, onBroadcastMessage: unsubscribe, onSharedInventoryChange: unsubscribe, onPermissionsChange: unsubscribe,
   onPartyCharactersChange: unsubscribe, onSharedNotesChange: unsubscribe, onSheetsChanged: unsubscribe, notifySheetsChanged: noop,
   getCharacterTokens: async () => [], highlightToken: async () => undefined, setTokenCharacter: async () => undefined, setTokenOwner: async () => undefined,
-  setActiveCharacter: async () => undefined, broadcastMessage: async () => undefined,
+  setActiveCharacter: async () => undefined, showRollOnMap: async () => undefined, broadcastMessage: async () => undefined,
 }));
 
 const { default: App } = await import("./App");
@@ -119,4 +119,57 @@ it("il GM crea un NPC dal bestiario e un giocatore con permesso ne vede lo statb
   expect(host.textContent).toContain("PF medi");
   expect(host.textContent).toContain("Morso");
   expect(host.textContent).not.toContain("Aggiungi agli NPC");
+});
+
+const type = async (selector: string, value: string) => {
+  const input = host.querySelector<HTMLInputElement>(selector)!;
+  expect(input, selector).toBeTruthy();
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value); input.dispatchEvent(new Event("input", { bubbles: true })); });
+};
+
+it("crea una nuova azione e converte un'azione importata senza cambiarne i tiri", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.abilities.strength = { score: 16, mod: 3, save: 3, saveProficient: false };
+  sheet.combat.proficiencyBonus = 2;
+  sheet.actions = [{ id: "dagger", name: "Pugnale", attackBonus: 5, damage: "1d4+3", damageType: "Perforante" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+
+  const edit = [...host.querySelectorAll(".entry-actions button")].find((button) => button.textContent === "Modifica") as HTMLButtonElement;
+  await act(async () => edit.click());
+  await click("Salva");
+  await click("+ Nuova azione");
+  await type(".action-form input", "Spada lunga");
+  await type('.action-form input[placeholder="1d8"]', "1d8");
+  await click("Salva");
+  await settle(1_700);
+
+  const actions = cloudSheet().sheet.actions;
+  expect(actions[0]).toMatchObject({ name: "Pugnale", attack: { ability: "none", bonus: 5, proficient: false }, damages: [{ dice: "1d4+3", critDice: "1d4", type: "Perforante" }] });
+  expect(actions[0].attackBonus).toBeUndefined();
+  expect(actions[1]).toMatchObject({ name: "Spada lunga", attack: { ability: "strength", proficient: true }, damages: [{ dice: "1d8", ability: "strength" }] });
+  expect(host.textContent).toContain("+5 1d4+3");
+  expect(host.textContent).toContain("+5 1d8+3");
+});
+
+it("l'attacco tira anche il danno, critico se il d20 naturale è nella gamma", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.abilities.strength = { score: 16, mod: 3, save: 3, saveProficient: false };
+  sheet.combat.proficiencyBonus = 2;
+  sheet.actions = [{ id: "sword", name: "Spada", attack: { ability: "strength", bonus: 0, proficient: true }, critRange: 19, damages: [{ dice: "1d8", ability: "strength", bonus: 0, type: "Tagliente", critDice: "1d8" }] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+  expect([...host.querySelectorAll(".entry-actions button")].map((button) => button.textContent)).toEqual(["Attacco", "Mostra", "Modifica"]);
+  vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 18; return array; });
+  await click("Attacco");
+  await click("Normale");
+  vi.restoreAllMocks();
+  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
+  await click("Messaggi");
+  expect(host.textContent).toContain("Spada — attacco — CRITICO!");
+  expect(host.textContent).toMatch(/1d20\+5 → 24 · Danno critico 1d8\+1d8\+3 → \d+ Tagliente/);
 });
