@@ -204,14 +204,14 @@ export interface CampaignChapter {
 
 // Scheda condivisa nella room: visibile a tutti, scrivibile da owner, GM e delegati.
 // Copia di una scheda salvata nel cloud per una stanza.
-export interface CloudSheet {
-  sheet: CharacterSheet;
+// Libreria cloud: "pc" = personaggi del party, "npc" = statblock dal bestiario.
+export type CloudSheet = {
   rev: number;
   updatedAt: number;
   updatedBy: string;
   deletedAt?: number;
   acl: { view: string[]; edit: string[] };
-}
+} & ({ kind: "pc"; sheet: CharacterSheet } | { kind: "npc"; sheet: MonsterSheet });
 
 export interface PartyCharacterSummary {
   id: string; ownerId: string; ownerName: string; name: string; avatar?: string;

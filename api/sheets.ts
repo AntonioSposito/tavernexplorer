@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { CloudSheet } from "../src/types";
+import type { CharacterSheet, CloudSheet, MonsterSheet } from "../src/types";
 
 // Le schede di una stanza stanno in un hash: campo = id scheda, valore = CloudSheet.
 // L'ID della stanza Owlbear fa da chiave condivisa: chi non lo conosce non legge nulla.
@@ -26,11 +26,17 @@ const validRev = (value: unknown): value is number => Number.isInteger(value) &&
 const validName = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 100;
 const validNames = (value: unknown): value is string[] => Array.isArray(value) && value.length <= MAX_NAMES && value.every(validName);
 
-function validEntry(value: unknown): value is Pick<CloudSheet, "sheet" | "acl" | "updatedBy"> {
+type Entry = Pick<CloudSheet, "kind" | "sheet" | "acl" | "updatedBy">;
+
+// Controllo strutturale minimo: PG riconoscibili da identity, NPC da challengeRating.
+function validEntry(value: unknown): value is Entry {
   const entry = value as CloudSheet | null;
-  return !!entry && typeof entry === "object" && validName(entry.updatedBy)
-    && !!entry.acl && validNames(entry.acl.view) && validNames(entry.acl.edit)
-    && !!entry.sheet && entry.sheet.schemaVersion === 1 && typeof entry.sheet.id === "string" && ID.test(entry.sheet.id);
+  if (!entry || typeof entry !== "object" || !validName(entry.updatedBy)) return false;
+  if (!entry.acl || !validNames(entry.acl.view) || !validNames(entry.acl.edit)) return false;
+  const sheet = entry.sheet as Partial<CharacterSheet & MonsterSheet> | null;
+  if (!sheet || sheet.schemaVersion !== 1 || typeof sheet.id !== "string" || !ID.test(sheet.id) || typeof sheet.name !== "string") return false;
+  return entry.kind === "pc" ? !!sheet.identity && typeof sheet.identity === "object"
+    : entry.kind === "npc" && typeof sheet.challengeRating === "string";
 }
 
 async function readBody(request: Request): Promise<{ room: string; [key: string]: unknown } | null> {
@@ -61,8 +67,8 @@ export async function PUT(request: Request): Promise<Response> {
   const body = await readBody(request);
   if (!body || !validRev(body.rev) || !validEntry(body.entry)) return fail("Richiesta non valida");
   if (body.rev === 0 && await redis.hlen(roomKey(body.room)) >= MAX_SHEETS) return fail("Troppe schede nella stanza", 413);
-  const { sheet, acl, updatedBy } = body.entry;
-  return writeIfRev(body.room, body.rev, { sheet, acl, updatedBy, rev: body.rev + 1, updatedAt: Date.now() });
+  const { kind, sheet, acl, updatedBy } = body.entry;
+  return writeIfRev(body.room, body.rev, { kind, sheet, acl, updatedBy, rev: body.rev + 1, updatedAt: Date.now() } as CloudSheet);
 }
 
 // Cancellazione logica: la scheda resta con deletedAt, così i client offline non la ricreano.

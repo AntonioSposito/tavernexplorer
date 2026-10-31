@@ -18,11 +18,12 @@ vi.mock("@upstash/redis", () => ({
 }));
 
 const { GET, PUT, DELETE } = await import("../api/sheets");
-const sheet = (id = "pg1", extra = {}) => ({ schemaVersion: 1, id, name: "Aria", ...extra });
+const sheet = (id = "pg1", extra = {}) => ({ schemaVersion: 1, id, name: "Aria", identity: {}, ...extra });
+const monster = { schemaVersion: 1, id: "npc1", name: "Goblin", challengeRating: "1/4" };
 const call = (handler: (request: Request) => Promise<Response>, method: string, body: unknown) =>
   handler(new Request("http://test/api/sheets", { method, body: JSON.stringify(body) }));
 const put = (rev: number, entry: unknown) => call(PUT, "PUT", { room: "r1", rev, entry });
-const entry = (extra = {}) => ({ sheet: sheet(), acl: { view: [], edit: [] }, updatedBy: "GM", ...extra });
+const entry = (extra = {}) => ({ kind: "pc", sheet: sheet(), acl: { view: [], edit: [] }, updatedBy: "GM", ...extra });
 
 beforeEach(() => store.clear());
 
@@ -57,4 +58,13 @@ it("la cancellazione è logica e passa dal controllo di rev", async () => {
   expect(sheets).toHaveLength(1);
   expect(sheets[0]).toMatchObject({ rev: 2, sheet: { id: "pg1" } });
   expect(sheets[0].deletedAt).toEqual(expect.any(Number));
+});
+
+it("accetta PG e NPC solo con il formato giusto", async () => {
+  expect((await put(0, entry({ kind: "npc", sheet: monster }))).status).toBe(200);
+  expect((await put(0, entry({ kind: "npc" }))).status).toBe(400);
+  expect((await put(0, entry({ sheet: { ...monster, id: "npc2" } }))).status).toBe(400);
+  expect((await put(0, entry({ kind: "boss" }))).status).toBe(400);
+  const { sheets } = await (await GET(new Request("http://test/api/sheets?room=r1"))).json();
+  expect(sheets[0]).toMatchObject({ kind: "npc", rev: 1, sheet: { name: "Goblin" } });
 });
