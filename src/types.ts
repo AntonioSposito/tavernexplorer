@@ -1,6 +1,6 @@
 export type RollMode = "normal" | "advantage" | "disadvantage";
 export type Visibility = "everyone" | "self" | "gm";
-export type AppTab = "sheet" | "turns" | "messages" | "notes" | "library" | "compendium" | "campaigns" | "shared" | "party" | "settings";
+export type AppTab = "sheet" | "turns" | "messages" | "notes" | "library" | "compendium" | "campaigns" | "shared" | "settings";
 export interface PermissionSettings { playersEditInventory: boolean; playersImportContent: boolean; playersManageTurns: boolean }
 
 export interface AbilityStat {

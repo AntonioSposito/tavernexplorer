@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { getCharacterTokens, highlightToken, OBR, setTokenCharacter, setTokenOwner, type CharacterToken } from "./obr";
-import type { PartyCharacterSummary } from "./types";
 import { Alert, Button, Card, Input, Select } from "./ui";
 
 interface PartyMember { id: string; name: string; role: "GM" | "PLAYER" }
 
 interface AssignmentPanelProps {
-  sheets: PartyCharacterSummary[];
+  // ownerId: giocatore connesso che riceve i token collegati alla scheda.
+  sheets: Array<{ id: string; name: string; ownerId?: string }>;
   members: PartyMember[];
 }
 
@@ -62,7 +62,7 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
 
   return <Card className="assign-panel">
     <h2>Assegna personaggi e token</h2>
-    <p>Collega i token alle schede del party. Il token prende automaticamente il proprietario della scheda; puoi cambiarlo qui sotto.</p>
+    <p>Collega i token alle schede del party. Il token passa al primo giocatore connesso che può modificare la scheda; puoi cambiarlo qui sotto.</p>
     {notice && <Alert tone={notice.error ? "danger" : "success"}>{notice.text}</Alert>}
 
     <div className="assign-heading"><h3>Token sulla scena → personaggi</h3><Button variant="outline" onClick={reload}>Aggiorna</Button></div>
@@ -86,7 +86,7 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
               const ownerId = event.target.value;
               void run(() => setTokenOwner(token.tokenId, ownerId), `${token.tokenName} assegnato a ${members.find((member) => member.id === ownerId)?.name ?? "giocatore"}.`);
             }}>
-              {!members.some((member) => member.id === token.ownerId) && <option value={token.ownerId}>{sheets.find((sheet) => sheet.ownerId === token.ownerId)?.ownerName ?? "Proprietario non connesso"}</option>}
+              {!members.some((member) => member.id === token.ownerId) && <option value={token.ownerId}>Proprietario non connesso</option>}
               {members.map((member) => <option key={member.id} value={member.id}>{member.name}{member.role === "GM" ? " · GM" : ""}</option>)}
             </Select></label>
             <Button variant="ghost" title={`Trova ${token.tokenName} sulla mappa`} aria-label={`Trova ${token.tokenName} sulla mappa`} onClick={() => { void run(() => highlightToken(token.tokenId), `${token.tokenName} evidenziato sulla mappa.`); }}>⌖</Button>

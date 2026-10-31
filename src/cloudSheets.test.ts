@@ -40,6 +40,10 @@ it("il GM vede tutto, i giocatori solo quello che l'ACL concede", () => {
   expect(canViewCloudSheet(entry, { name: "Luca", role: "PLAYER" })).toBe(true);
   expect(canEditCloudSheet(entry, { name: "Luca", role: "PLAYER" })).toBe(true);
   expect(canViewCloudSheet(entry, { name: "Sara", role: "PLAYER" })).toBe(false);
+  const open = pc("ada", { view: ["*"], edit: [] });
+  expect(canViewCloudSheet(open, { name: "Sara", role: "PLAYER" })).toBe(true);
+  expect(canEditCloudSheet(open, { name: "Sara", role: "PLAYER" })).toBe(false);
+  expect(canEditCloudSheet(pc("ada", { view: [], edit: ["*"] }), { name: "Sara", role: "PLAYER" })).toBe(true);
 });
 
 it("unisce le modifiche rapide in un solo salvataggio e i giocatori vedono solo le schede permesse", async () => {

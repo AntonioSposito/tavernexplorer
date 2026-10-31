@@ -16,6 +16,7 @@ import "./notes.css";
 import "./effects.css";
 import "./resources.css";
 import "./turns.css";
+import "./library.css";
 
 if (import.meta.env.DEV) {
   document.documentElement.dataset.env = "dev";

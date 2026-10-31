@@ -5,11 +5,12 @@ export interface Viewer { name: string; role: "GM" | "PLAYER" }
 export interface LibraryState { entries: CloudSheet[]; offline: boolean; conflict: string | null }
 
 // Permessi applicati solo dall'estensione: chi conosce la stanza può aggirarli via API.
+// EVERYONE nelle liste ACL vale per tutti i giocatori della stanza.
+export const EVERYONE = "*";
 const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("it") === b.trim().toLocaleLowerCase("it");
-export const canEditCloudSheet = (entry: CloudSheet, viewer: Viewer) =>
-  viewer.role === "GM" || entry.acl.edit.some((name) => sameName(name, viewer.name));
-export const canViewCloudSheet = (entry: CloudSheet, viewer: Viewer) =>
-  canEditCloudSheet(entry, viewer) || entry.acl.view.some((name) => sameName(name, viewer.name));
+const allows = (names: string[], viewer: Viewer) => names.some((name) => name === EVERYONE || sameName(name, viewer.name));
+export const canEditCloudSheet = (entry: CloudSheet, viewer: Viewer) => viewer.role === "GM" || allows(entry.acl.edit, viewer);
+export const canViewCloudSheet = (entry: CloudSheet, viewer: Viewer) => canEditCloudSheet(entry, viewer) || allows(entry.acl.view, viewer);
 
 interface Options {
   room: string;
