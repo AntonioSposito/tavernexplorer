@@ -15,6 +15,7 @@ import { isSameCharacter, mergeReimport } from "./reimport";
 import { ModifierEditor } from "./ModifierEditor";
 import { ResourcePanel } from "./ResourcePanel";
 import { effectiveSheet, modifierTotal } from "./effects";
+import { resolveAction, type ResolvedAction } from "./actions";
 import { TurnOrder } from "./TurnOrder";
 import { setTurnInitiative, stepTurn } from "./turns";
 import { listAdventures, listBestiarySources, loadAdventure, loadBestiarySource, type FiveToolsAdventure, type FiveToolsSource } from "./fivetoolsApi";
@@ -81,7 +82,7 @@ export default function App() {
   const [visibility, setVisibility] = useState<Visibility>("everyone");
   const [player, setPlayer] = useState({ id: "preview", name: "Giocatore", role: "PLAYER" as "GM" | "PLAYER" });
   const [draft, setDraft] = useState("");
-  const [rollRequest, setRollRequest] = useState<{ title: string; formula: string } | null>(null);
+  const [rollRequest, setRollRequest] = useState<{ title: string; formula: string; critRange?: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<HTMLInputElement>(null);
@@ -170,9 +171,11 @@ export default function App() {
     setMessages((current) => { const next = [...current.filter((item) => item.id !== message.id), message].slice(-200); storage.messages.set(next); return next; });
   }
 
-  async function executeRoll(title: string, formula: string, mode: RollMode) {
+  // critRange: solo per i tiri d'attacco, segna critico (d20 naturale nella gamma) e 1 naturale.
+  async function executeRoll(title: string, formula: string, mode: RollMode, critRange?: number) {
     try {
       const result = roll(formula, mode);
+      if (critRange != null && result.natural != null) title += result.natural >= critRange ? " — CRITICO!" : result.natural === 1 ? " — 1 naturale, mancato" : "";
       await publish(makeMessage({ kind: "roll", author: active?.name ?? player.name, characterId: active?.id, title, body: `${result.formula} → ${result.total}`, formula: result.formula, total: result.total, dice: result.dice, visibility }));
       if (active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
       if (!floatingView) setTab("messages");
@@ -181,7 +184,7 @@ export default function App() {
     }
   }
 
-  function performRoll(title: string, formula: string) { if (supportsRollMode(formula)) setRollRequest({ title, formula }); else void executeRoll(title, formula, rollMode); }
+  function performRoll(title: string, formula: string, critRange?: number) { if (supportsRollMode(formula)) setRollRequest({ title, formula, critRange }); else void executeRoll(title, formula, rollMode, critRange); }
 
   async function shareEntry(entry: ActionEntry | SpellEntry) {
     try {
@@ -359,7 +362,7 @@ export default function App() {
     <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importFile(file); event.target.value = ""; }}/>
     <input ref={contentRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) import5eToolsFile(file); event.target.value = ""; }}/>
     <input ref={mapRef} hidden type="file" accept="image/png,image/jpeg,image/webp,image/avif" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { const name = window.prompt("Nome della nuova scena", file.name.replace(/\.[^.]+$/, "")); if (name) { try { await uploadMapAsScene(file, name); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Caricamento fallito", "ERROR"); } } } event.target.value = ""; }}/>
-    <Dialog open={Boolean(rollRequest)} title={rollRequest?.title ?? "Tiro"} description={rollRequest?.formula} onClose={() => setRollRequest(null)}><div className="roll-choice"><Button onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "normal"); setRollRequest(null); }}>Normale</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "advantage"); setRollRequest(null); }}>Vantaggio</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "disadvantage"); setRollRequest(null); }}>Svantaggio</Button></div></Dialog>
+    <Dialog open={Boolean(rollRequest)} title={rollRequest?.title ?? "Tiro"} description={rollRequest?.formula} onClose={() => setRollRequest(null)}><div className="roll-choice"><Button onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "normal", rollRequest.critRange); setRollRequest(null); }}>Normale</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "advantage", rollRequest.critRange); setRollRequest(null); }}>Vantaggio</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "disadvantage", rollRequest.critRange); setRollRequest(null); }}>Svantaggio</Button></div></Dialog>
   </div>;
 }
 
@@ -398,7 +401,7 @@ function SheetView({ sheet, editable, sheetTab, setSheetTab, rollMode, setRollMo
     {!editable && <p className="party-owner">Sola lettura</p>}
     <div className={editable ? undefined : "readonly-sheet"}>
     {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onUpdate={onUpdate} editable={editable}/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
-    {sheetTab === "actions" && <EntryList entries={sheet.actions} onRoll={onRoll} onShare={onShare} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}
+    {sheetTab === "actions" && <EntryList entries={sheet.actions} sheet={view} onRoll={onRoll} onShare={onShare} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "spells" && <Spells sheet={view} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "inventory" && <Inventory sheet={sheet} onUpdate={onUpdate}/>}
     {sheetTab === "traits" && <EntryList entries={sheet.traits.map((trait) => ({ ...trait, source: trait.source }))} onRoll={onRoll} onShare={onShare}/>}
@@ -431,9 +434,21 @@ function MainSheet({ sheet, onRoll, onUpdate, editable }: { sheet: CharacterShee
 
 function Metric({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) { const content = <><strong>{value}</strong><small>{label}</small></>; return onClick ? <button className="metric" onClick={onClick}>{content}</button> : <div className="metric">{content}</div>; }
 
-function EntryList({ entries, onRoll, onShare, attackModifier = 0, damageModifier = 0 }: { entries: ActionEntry[]; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry) => void; attackModifier?: number; damageModifier?: number }) {
+// Con `sheet` le azioni sono calcolate dalla scheda (form attacchi); senza, si usano i valori fissi (mostri, tratti).
+function EntryList({ entries, sheet, onRoll, onShare, attackModifier = 0, damageModifier = 0 }: { entries: ActionEntry[]; sheet?: CharacterSheet; onRoll: (title: string, formula: string, critRange?: number) => void; onShare: (entry: ActionEntry) => void; attackModifier?: number; damageModifier?: number }) {
   if (!entries.length) return <Empty/>;
-  return <section className="entry-list">{entries.map((entry) => <details key={entry.id} className="entry"><summary><span><strong>{entry.name}</strong><small>{entry.source}</small></span><span>{entry.attackBonus != null && signed(entry.attackBonus + attackModifier)} {entry.damage}{damageModifier !== 0 && entry.damage && signed(damageModifier)}</span></summary><p>{entry.description || "Nessuna descrizione."}</p><div className="entry-actions">{entry.attackBonus != null && <button onClick={() => onRoll(`${entry.name} — attacco`, `1d20${signed(entry.attackBonus! + attackModifier)}`)}>Attacco</button>}{entry.damage && <button onClick={() => onRoll(`${entry.name} — danno`, `${entry.damage}${damageModifier === 0 ? "" : signed(damageModifier)}`)}>Danno</button>}<button onClick={() => onShare(entry)}>Mostra</button></div></details>)}</section>;
+  const extra = damageModifier === 0 ? "" : signed(damageModifier);
+  return <section className="entry-list">{entries.map((entry) => {
+    const resolved: ResolvedAction = sheet ? resolveAction(sheet, entry) : { attackBonus: entry.attackBonus, damage: entry.damage, damageType: entry.damageType, saveDc: entry.saveDc, critRange: 20 };
+    const attack = resolved.attackBonus == null ? null : resolved.attackBonus + attackModifier;
+    const details = [
+      entry.range && `Gittata ${entry.range}`,
+      resolved.damageType,
+      resolved.saveDc != null && `TS ${resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : ""} CD ${resolved.saveDc}${resolved.saveEffect ? ` (${resolved.saveEffect})` : ""}`.replace("TS  CD", "CD"),
+      attack != null && resolved.critRange < 20 && `Critico ${resolved.critRange}-20`,
+    ].filter(Boolean).join(" · ");
+    return <details key={entry.id} className="entry"><summary><span><strong>{entry.name}</strong><small>{entry.source}</small></span><span>{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p><div className="entry-actions">{attack != null && <button onClick={() => onRoll(`${entry.name} — attacco`, `1d20${signed(attack)}`, resolved.critRange)}>Attacco</button>}{resolved.damage && <button onClick={() => onRoll(`${entry.name} — danno`, `${resolved.damage}${extra}`)}>Danno</button>}{attack != null && resolved.critDamage && <button onClick={() => onRoll(`${entry.name} — danno critico`, `${resolved.critDamage}${extra}`)}>Critico</button>}<button onClick={() => onShare(entry)}>Mostra</button></div></details>;
+  })}</section>;
 }
 
 function Spells({ sheet, onRoll, onShare, onUpdate, attackModifier = 0, damageModifier = 0 }: { sheet: CharacterSheet; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; attackModifier?: number; damageModifier?: number }) {

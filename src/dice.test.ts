@@ -16,6 +16,18 @@ describe("dice", () => {
     vi.restoreAllMocks();
   });
 
+  it("riporta il d20 naturale solo per i tiri che iniziano con un d20", () => {
+    vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => {
+      (array as Uint32Array)[0] = 18;
+      return array;
+    });
+    expect(roll("1d20+5").natural).toBe(19);
+    expect(roll("d20-1", "advantage").natural).toBe(19);
+    expect(roll("2d6+3").natural).toBeUndefined();
+    expect(roll("1d200").natural).toBeUndefined();
+    vi.restoreAllMocks();
+  });
+
   it("applica vantaggio ai test d20", () => {
     let value = 0;
     vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => {

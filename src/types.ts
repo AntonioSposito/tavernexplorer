@@ -16,6 +16,17 @@ export interface SkillStat {
   proficient: boolean;
 }
 
+// Caratteristica usata da attacco o danno: "spell" = caratteristica da incantatore, "none" = nessuna.
+export type ActionAbility = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma" | "spell" | "none";
+
+export interface ActionDamage {
+  dice: string;
+  ability: ActionAbility;
+  bonus: number;
+  type: string;
+  critDice: string;
+}
+
 export interface ActionEntry {
   id: string;
   name: string;
@@ -25,6 +36,14 @@ export interface ActionEntry {
   saveDc?: number;
   description?: string;
   source?: string;
+  // Campi del form attacchi (come Roll20): se presenti, attacco, danno e CD si calcolano dalla scheda
+  // e prevalgono sui valori fissi sopra, che restano per le azioni importate.
+  attack?: { ability: ActionAbility; bonus: number; proficient: boolean };
+  range?: string;
+  magicBonus?: number;
+  critRange?: number;
+  damages?: ActionDamage[];
+  save?: { ability: Exclude<ActionAbility, "spell" | "none">; dc: "spell" | number; effect: string };
 }
 
 export interface SpellEntry extends ActionEntry {

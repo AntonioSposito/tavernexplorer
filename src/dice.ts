@@ -4,6 +4,8 @@ export interface RollResult {
   formula: string;
   total: number;
   dice: number[];
+  // d20 tenuto nei tiri che iniziano con un singolo d20 (con vantaggio/svantaggio: quello scelto).
+  natural?: number;
 }
 
 function randomInt(max: number): number {
@@ -52,10 +54,13 @@ export function supportsRollMode(formula: string): boolean {
 
 export function roll(formula: string, mode: RollMode = "normal"): RollResult {
   const clean = sanitizeFormula(formula);
-  if (mode === "normal" || !supportsRollMode(clean)) return rollSimple(clean);
+  if (mode === "normal" || !supportsRollMode(clean)) {
+    const result = rollSimple(clean);
+    return /^1?d20(?!\d)/.test(clean) ? { ...result, natural: result.dice[0] } : result;
+  }
   const modifier = Number(clean.match(/[+-]\d+$/)?.[0] ?? 0);
   const first = randomInt(20);
   const second = randomInt(20);
   const kept = mode === "advantage" ? Math.max(first, second) : Math.min(first, second);
-  return { formula: `${mode === "advantage" ? "2d20kh1" : "2d20kl1"}${modifier >= 0 ? "+" : ""}${modifier}`, total: kept + modifier, dice: [first, second] };
+  return { formula: `${mode === "advantage" ? "2d20kh1" : "2d20kl1"}${modifier >= 0 ? "+" : ""}${modifier}`, total: kept + modifier, dice: [first, second], natural: kept };
 }
