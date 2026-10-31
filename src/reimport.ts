@@ -6,7 +6,6 @@ export function mergeReimport(existing: CharacterSheet, imported: CharacterSheet
   return {
     ...imported,
     id: existing.id,
-    sharing: existing.sharing,
     effects: existing.effects,
     counters: existing.counters,
     combat: {

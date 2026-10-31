@@ -8,7 +8,7 @@
 id: TE-5
 type: tech
 priority: high
-status: todo
+status: done
 order: 100
 ---
 
@@ -502,7 +502,7 @@ order: 3000
 id: TE-39
 type: tech
 priority: high
-status: todo
+status: done
 order: 3100
 ---
 
@@ -527,7 +527,7 @@ order: 3100
 id: TE-40
 type: feature
 priority: high
-status: todo
+status: done
 order: 3200
 ---
 
@@ -548,7 +548,7 @@ order: 3200
 id: TE-41
 type: feature
 priority: high
-status: todo
+status: done
 order: 3300
 ---
 
@@ -568,7 +568,7 @@ order: 3300
 id: TE-42
 type: feature
 priority: high
-status: todo
+status: done
 order: 3400
 ---
 
@@ -590,7 +590,7 @@ order: 3400
 id: TE-43
 type: tech
 priority: medium
-status: todo
+status: done
 order: 3500
 ---
 
@@ -602,3 +602,22 @@ order: 3500
 - Aggiornare il README (sezione schede condivise e limiti).
 
 **Accettazione.** Nessuna scheda vive più nei metadata della stanza. Le schede esistenti in una stanza di prova sopravvivono alla migrazione.
+
+## Editor degli statblock NPC
+
+---
+id: TE-44
+type: feature
+priority: medium
+status: todo
+order: 3600
+---
+
+**Contesto.** Gli NPC della Libreria sono copie di statblock del Bestiario (`kind: "npc"`, `MonsterSheet`) con permessi "Può vedere / Può modificare". Oggi lo statblock è in sola lettura e il permesso di modifica non ha effetto.
+
+**Da fare.**
+- Editor per chi può modificare l'NPC: nome, CA, PF (anche PF attuali, oggi assenti nel `MonsterSheet`), velocità, caratteristiche, tratti, azioni, reazioni, azioni leggendarie.
+- Le modifiche passano da `createCloudLibrary().update` come per i PG (debounce, `rev`, conflitti).
+- Valutare se aggiungere `hp.current` al `MonsterSheet` degli NPC senza cambiare il Bestiario.
+
+**Accettazione.** Un giocatore con "Può modificare" cambia i PF di un NPC e il GM li vede aggiornati; chi ha solo "Può vedere" non vede l'editor.

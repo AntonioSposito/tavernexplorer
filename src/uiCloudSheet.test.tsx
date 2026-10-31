@@ -25,7 +25,7 @@ vi.mock("./obr", () => ({
   onTurnStateChange: unsubscribe, onBroadcastMessage: unsubscribe, onSharedInventoryChange: unsubscribe, onPermissionsChange: unsubscribe,
   onPartyCharactersChange: unsubscribe, onSharedNotesChange: unsubscribe, onSheetsChanged: unsubscribe, notifySheetsChanged: noop,
   getCharacterTokens: async () => [], highlightToken: async () => undefined, setTokenCharacter: async () => undefined, setTokenOwner: async () => undefined,
-  setActiveCharacter: async () => undefined, publishPartyCharacters: async () => undefined, broadcastMessage: async () => undefined,
+  setActiveCharacter: async () => undefined, broadcastMessage: async () => undefined,
 }));
 
 const { default: App } = await import("./App");

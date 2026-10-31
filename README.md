@@ -66,7 +66,12 @@ vercel dev
 
 ## Dati e sincronizzazione
 
-- Schede, bestiario, avventure e ultimi 200 messaggi: storage locale del browser.
+- Schede dei personaggi e NPC: libreria cloud della stanza (Upstash, tramite
+  `api/sheets`), con chiave l'id della stanza Owlbear. Il browser ne tiene solo
+  una cache di lettura: se il server non risponde le schede restano visibili in
+  sola lettura. All'apertura le schede salvate localmente dalle versioni
+  precedenti vengono caricate nel cloud una volta sola e poi rimosse dal browser.
+- Bestiario, avventure e ultimi 200 messaggi: storage locale del browser.
 - Owlbear documenta **200 MB di spazio cloud nel piano gratuito** per i dati
   dell'account ([piani e cloud storage](https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage)).
   È distinto dai metadata della stanza usati qui per sincronizzare note,
@@ -88,12 +93,17 @@ vercel dev
   cifrato; non è una nota collaborativa persistente. Le cartelle organizzano
   note private e condivise per ciascun browser: si possono creare, rinominare,
   eliminare e assegnare alle note senza cambiare i permessi condivisi.
-- Party: le schede nuove sono private nel browser. In **Libreria** si puo' scegliere
-  per ogni scheda **Solo questo browser** oppure **Tutto il party**. Solo le schede
-  condivise pubblicano un riepilogo (CA, PF, caratteristiche) nei metadata del
-  giocatore. Le schede gia' salvate senza una scelta esplicita vengono trattate
-  come private. Le schede complete restano solo nel browser del proprietario
-  finché non arriva il salvataggio cloud (TE-40).
+- Libreria: due sezioni, **Party** (schede dei personaggi) e **NPC** (statblock
+  aggiunti dal Bestiario con «Aggiungi agli NPC»). Solo il GM importa schede
+  (export Roll20 o TavernPack) e crea NPC; reimportare lo stesso personaggio
+  Roll20 aggiorna la scheda esistente mantenendo permessi e stato di gioco.
+  Per ogni scheda il GM sceglie **Può vedere** e **Può modificare** per nome
+  Owlbear o **Tutti**; di base solo il GM vede e modifica. Chi può modificare
+  può anche vedere. Le modifiche si salvano dopo un secondo e mezzo; gli altri
+  client ricevono un avviso via broadcast Owlbear e rileggono la libreria, con
+  un controllo di riserva ogni 90 secondi a pannello visibile. Due modifiche
+  concorrenti alla stessa scheda non si sovrascrivono: la seconda riceve la
+  versione del server e un avviso.
 - Turn order e messaggi possono essere aperti come pannelli flottanti sulla mappa.
 - Buff, debuff e proprietà numeriche degli oggetti equipaggiati modificano CA,
   iniziativa, PF massimi, caratteristiche, tiri salvezza, abilità, CD, attacchi
@@ -108,14 +118,13 @@ vercel dev
   registrato nei messaggi con la visibilità selezionata.
 - Le mappe individuate nelle avventure 5e.tools possono essere caricate
   direttamente come scene Owlbear.
-- Collegamento token/scheda: metadata del token. Nel Party il GM vede ogni
-  personaggio con il suo proprietario e tutti i token dello strato Personaggi
-  della scena, inclusi quelli senza scheda. Può cercare un token e collegarlo
-  dal relativo menu.
+- Collegamento token/scheda: metadata del token. Nella tab **Turni** il GM vede
+  tutti i token dello strato Personaggi della scena, inclusi quelli senza
+  scheda. Può cercare un token e collegarlo a una scheda del party.
   Le liste si aggiornano quando cambia la scena. Il menu contestuale del token
   apre la scheda collegata; non assegna automaticamente la scheda attiva ai
   token scollegati. Collegando un token, il proprietario Owlbear del token viene
-  allineato al proprietario della scheda. Il GM può anche
+  assegnato al primo giocatore connesso che può modificare la scheda. Il GM può anche
   scegliere un proprietario diverso per un singolo token. Il controllo esclusivo
   richiede il permesso Owlbear "Owner Only" per lo strato Personaggi
   ([documentazione](https://docs.owlbear.rodeo/docs/permissions/)).
@@ -155,10 +164,11 @@ l'invio di una copia al party o al GM richiede una scelta per ogni elemento.
 I contenuti 5e.tools vengono richiesti dal mirror sorgente pubblico del progetto
 solo quando si sceglie una sorgente nella dialog ricercabile. L’accesso diretto
 a `5e.tools/data` non viene usato perché la protezione Cloudflare blocca il fetch
-cross-origin degli iframe. TavernExplorer non include i dataset nel bundle. Le
-schede non vengono inviate a un server TavernExplorer. Perciò ogni giocatore deve
-importare le proprie schede nel browser che userà; è consigliato esportare
-backup regolari.
+cross-origin degli iframe. TavernExplorer non include i dataset nel bundle.
+Le schede e gli NPC della libreria sono salvati sul server TavernExplorer
+(Upstash). Chi conosce l'id della stanza può leggerli e modificarli tramite
+l'API: i permessi della libreria sono applicati solo dall'estensione. È
+consigliato esportare backup regolari con **Esporta tutto**.
 
 ## Profili di regole
 
@@ -215,9 +225,12 @@ su `main`.
 - I tiri non sono renderizzati come dadi 3D: l'SDK non espone il dado di Owlbear.
 - L'SDK non permette di creare cartelle di asset: i token del bestiario usano il
   prefisso `beasts/` nel nome, non una cartella reale.
-- Le schede complete restano nel browser del proprietario: il GM non può aprire
-  né modificare quelle dei giocatori e le etichette PF sui token mostrano solo
-  le schede presenti nel proprio browser.
+- I permessi della libreria valgono per il nome Owlbear: un giocatore che si
+  rinomina perde l'accesso finché il GM non aggiorna la scheda, e il nuovo nome
+  vale solo dopo aver riaperto l'estensione. Senza rete o fuori da Owlbear non
+  ci sono schede modificabili.
+- Il permesso «Può modificare» sugli NPC non ha ancora effetto: manca un
+  editor degli statblock.
 - Le note condivise sono leggibili da tutti i partecipanti della stanza. Per
   dati riservati al GM usare l'invio cifrato della copia. I permessi di scrittura
   sono controllati dall'interfaccia, secondo i limiti dei metadata Owlbear.
@@ -225,12 +238,11 @@ su `main`.
   sono scrivibili dai client che usano l'estensione; l'[API room documentata](https://docs.owlbear.rodeo/extensions/apis/room/)
   non descrive ACL per singola chiave. Questi controlli proteggono dalle
   modifiche accidentali, non da un client ostile.
-- Il controllo versione delle schede rileva modifiche remote già visibili, ma
-  l'API room documenta `getMetadata` e `setMetadata`, senza un'operazione di
-  confronto e scrittura atomica. Le [API assets](https://docs.owlbear.rodeo/extensions/apis/assets/)
-  documentano upload e selezione di immagini e scene, non uno store generico
-  di documenti JSON. La scelta di uno storage più capiente e di ACL applicate
-  dal server richiede una valutazione dedicata delle API e del ciclo di vita dei dati.
+- Note, inventario e turni restano nei metadata della stanza: l'API room
+  documenta `getMetadata` e `setMetadata`, senza un'operazione di confronto e
+  scrittura atomica. Le schede usano invece la libreria cloud, che scrive solo
+  se la revisione attesa coincide. ACL applicate dal server richiedono
+  un'identità verificabile dei giocatori (TE-20).
 - L'[API viewport](https://docs.owlbear.rodeo/extensions/apis/viewport/) consente
   il centraggio del token per il solo giocatore che preme il pulsante. La
   posizione dei token resta gestita dalla scena Owlbear.

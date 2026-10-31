@@ -25,7 +25,7 @@ import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavern
 import { Alert, Badge, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
 import {
   DEFAULT_PERMISSIONS, OBR, addSelectedTokenToTurns, broadcastMessage, getPermissions, getPlayerInfo, getTurnState,
-  getSharedInventory, deleteSharedNote, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, getSharedNotes, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize, publishPartyCharacters, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
+  getSharedInventory, deleteSharedNote, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, getSharedNotes, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
 import type { ActionEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PermissionSettings, PlayerNote, CloudSheet, Roll20Export, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
@@ -161,7 +161,7 @@ export default function App() {
   useEffect(() => { void getTokenImages(turnTokenIds ? turnTokenIds.split(",") : []).then(setTokenImages).catch(() => setTokenImages({})); }, [turnTokenIds]);
   // Solo la finestra principale decide il personaggio attivo del giocatore.
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
-  useEffect(() => { charactersRef.current = characters; if (OBR.isReady) { void publishPartyCharacters(characters).then(() => setSyncNotice("")).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Sincronizzazione party fallita")); } }, [characters, player.id]);
+  useEffect(() => { charactersRef.current = characters; }, [characters]);
   useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
@@ -209,7 +209,6 @@ export default function App() {
       if (!parsed || typeof parsed !== "object") throw new Error("JSON non valido: attesa una scheda o un TavernPack");
       const sheet = "schemaVersion" in parsed ? parseCharacterSheet(parsed) : importRoll20(parsed as Roll20Export);
       if (!sheet.ruleset) sheet.ruleset = { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version };
-      if (!sheet.sharing) sheet.sharing = "private";
       if (player.role !== "GM") throw new Error("Solo il GM può importare schede nella libreria");
       const existing = characters.find((item) => isSameCharacter(item, sheet));
       if (existing) {

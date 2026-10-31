@@ -77,7 +77,6 @@ export interface TraitEntry {
 export interface CharacterSheet {
   schemaVersion: 1;
   id: string;
-  sharing?: "private" | "party";
   sourceId?: string;
   name: string;
   avatar?: string;
@@ -212,13 +211,6 @@ export type CloudSheet = {
   deletedAt?: number;
   acl: { view: string[]; edit: string[] };
 } & ({ kind: "pc"; sheet: CharacterSheet } | { kind: "npc"; sheet: MonsterSheet });
-
-export interface PartyCharacterSummary {
-  id: string; ownerId: string; ownerName: string; name: string; avatar?: string;
-  classDisplay: string; race: string; level: number; ruleset: { id: string; version: string };
-  ac: number; hp: { current: number; max: number; temp: number }; initiative: number;
-  abilities: Record<string, AbilityStat>; spellSaveDc: number; spellAttackBonus: number;
-}
 
 export interface CampaignDocument {
   schemaVersion: 1;

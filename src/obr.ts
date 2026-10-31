@@ -1,10 +1,9 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PARTY_META_KEY, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
-import type { CharacterSheet, ChatMessage, PartyCharacterSummary, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
+import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import type { ChatMessage, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
 import { decryptGmMessage, encryptGmMessage, isGmEnvelope } from "./privateMessages";
 import { canManageNote, canWriteNote, readSharedNotes } from "./sharedNotes";
 import { replaceTurnEntries } from "./turns";
-import { effectiveSheet } from "./effects";
 import { linkedCharacterId } from "./tokenTurns";
 import { writeRoomMetadata } from "./roomMetadata";
 
@@ -172,23 +171,6 @@ export async function showRollOnMap(characterId: string, label: string, total: n
 }
 
 export { getFloatingPanelPosition, getFloatingPanelSize, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize } from "./floatingPanels";
-
-function summarize(sheet: CharacterSheet, ownerId: string, ownerName: string): PartyCharacterSummary {
-  sheet = effectiveSheet(sheet);
-  return { id: sheet.id, ownerId, ownerName, name: sheet.name, avatar: sheet.avatar, classDisplay: sheet.identity.classDisplay, race: sheet.identity.race, level: sheet.identity.level, ruleset: sheet.ruleset, ac: sheet.combat.ac, hp: sheet.combat.hp, initiative: sheet.combat.initiative, abilities: sheet.abilities, spellSaveDc: sheet.spellcasting.saveDc, spellAttackBonus: sheet.spellcasting.attackBonus };
-}
-export async function publishPartyCharacters(sheets: CharacterSheet[]): Promise<void> {
-  if (!OBR.isAvailable) return; const ownerId = await OBR.player.getId(); const ownerName = await OBR.player.getName();
-  await OBR.player.setMetadata({ [PARTY_META_KEY]: sheets.filter((sheet) => sheet.sharing === "party").map((sheet) => summarize(sheet, ownerId, ownerName)) });
-}
-export async function getPartyCharacters(): Promise<PartyCharacterSummary[]> {
-  if (!OBR.isAvailable) return [];
-  return (await OBR.party.getPlayers()).flatMap((member) => Array.isArray(member.metadata[PARTY_META_KEY]) ? member.metadata[PARTY_META_KEY] as unknown as PartyCharacterSummary[] : []);
-}
-export function onPartyCharactersChange(callback: (characters: PartyCharacterSummary[]) => void): () => void {
-  if (!OBR.isAvailable) return () => undefined;
-  return OBR.party.onChange((members) => callback(members.flatMap((member) => Array.isArray(member.metadata[PARTY_META_KEY]) ? member.metadata[PARTY_META_KEY] as unknown as PartyCharacterSummary[] : [])));
-}
 
 export async function getPartyMembers(): Promise<Array<{ id: string; name: string; role: "GM" | "PLAYER" }>> {
   if (!OBR.isAvailable) return [];
