@@ -1,0 +1,2 @@
+# Boardown non legge il frontmatter con fine riga CRLF.
+.boardown/** text eol=lf

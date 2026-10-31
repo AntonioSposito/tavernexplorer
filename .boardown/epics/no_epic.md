@@ -621,3 +621,60 @@ order: 3600
 - Valutare se aggiungere `hp.current` al `MonsterSheet` degli NPC senza cambiare il Bestiario.
 
 **Accettazione.** Un giocatore con "Può modificare" cambia i PF di un NPC e il GM li vede aggiornati; chi ha solo "Può vedere" non vede l'editor.
+
+## Numero in basso a sinistra nei messaggi di attacco
+
+---
+id: TE-45
+type: bug
+priority: medium
+status: todo
+order: 3700
+---
+
+**Contesto.** Nei messaggi di tipo `roll` il riquadro `.roll-result` mostra a sinistra `message.dice.join(" + ")` e a destra `total` (`Messages` in `App.tsx`). Per gli attacchi con danno automatico `dice` contiene solo il d20 (o i due d20 con vantaggio/svantaggio), quindi in basso a sinistra compare un numero isolato senza spiegazione, mentre il danno è solo nel testo.
+
+**Da fare.**
+- Decidere cosa mostrare: etichettare i dadi ("d20: 19" / "d20: 4, 17 → 17") oppure toglierli per gli attacchi.
+- Valutare di salvare nel `ChatMessage` anche il risultato del danno in forma strutturata, così il riquadro mostra attacco e danno separati invece del solo totale dell'attacco.
+
+**Accettazione.** In un messaggio di attacco ogni numero visibile ha un'etichetta chiara.
+
+## Attacchi e magie in chat in stile Roll20
+
+---
+id: TE-46
+type: feature
+priority: medium
+status: todo
+order: 3800
+---
+
+**Contesto.** Oggi un attacco è un messaggio di testo (`1d20+5 → 17 · Danno 1d8+3 → 7 Tagliente`) e gli incantesimi hanno ancora pulsanti attacco e danno separati nella tab Magia. Roll20 mostra un riquadro con nome, tiro per colpire, danno con tipo, critico evidenziato, tiro salvezza con CD ed effetto, descrizione richiudibile.
+
+**Da fare.**
+- Messaggio strutturato per attacchi/magie (nuovo `kind` o campi opzionali di `ChatMessage`): nome azione, gittata, attacco (con i due d20 per vantaggio/svantaggio), danno e danno critico con tipo, TS con caratteristica, CD ed effetto, descrizione.
+- Card in chat con il layout ispirato a Roll20; critico e 1 naturale evidenziati.
+- Incantesimi: stesso flusso delle azioni (un solo pulsante che tira attacco + danno, o mostra la CD per gli incantesimi a TS), riusando `resolveAction`.
+- Compatibilità con i messaggi già salvati (testo semplice).
+
+**Accettazione.** Un attacco, un critico e un incantesimo a tiro salvezza producono card leggibili senza aprire il dettaglio; i vecchi messaggi restano visibili.
+
+## Icone di attacco e modifica su azioni e magie
+
+---
+id: TE-47
+type: feature
+priority: low
+status: todo
+order: 3900
+---
+
+**Contesto.** In tab Azioni i comandi sono pulsanti di testo dentro il dettaglio richiudibile (Attacco, Mostra, Modifica); nella tab Magia non c'è modifica. Serve un accesso più rapido.
+
+**Da fare.**
+- Icona "attacca/lancia" (es. dado o spade) sulla riga di ogni azione e incantesimo, cliccabile senza aprire il dettaglio.
+- Icona "modifica" (matita) sulla stessa riga, solo per chi può modificare la scheda; per gli incantesimi serve un form di modifica (estendere `ActionForm` con livello, scuola, concentrazione, rituale).
+- Etichette accessibili (`aria-label`) e tooltip.
+
+**Accettazione.** Da riga chiusa si attacca/lancia e si apre il form di modifica con un clic; chi ha sola lettura non vede la matita.
