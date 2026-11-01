@@ -1,4 +1,4 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -48,5 +48,10 @@ export const storage = {
     get: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []),
     set: (room: string, value: CloudSheet[]) => write(`${STORAGE_CLOUD_CACHE}/${room}`, value),
     characters: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []).flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []),
+  },
+  // Livelli di magie chiusi, come "idScheda:livello": solo comodità di questo browser.
+  closedSpellLevels: {
+    get: () => read<string[]>(STORAGE_CLOSED_SPELL_LEVELS, []),
+    set: (value: string[]) => { try { write(STORAGE_CLOSED_SPELL_LEVELS, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
   },
 };

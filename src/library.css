@@ -34,3 +34,14 @@
 .entry summary .entry-icons { display: flex; gap: .25rem; }
 .entry-icons button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
 .entry-icons button:hover { color: hsl(var(--primary)); }
+
+/* Livello di magie richiudibile: titolo, slot di quel livello, poi la lista. */
+.spell-level { display: grid; gap: .5rem; }
+.spell-level[open] > summary { margin-bottom: .5rem; }
+.spell-level > summary { display: flex; align-items: center; gap: .4rem; cursor: pointer; list-style: none; }
+.spell-level > summary::-webkit-details-marker { display: none; }
+.spell-level > summary::before { content: "▸"; color: hsl(var(--primary)); transition: transform .15s; }
+.spell-level[open] > summary::before { transform: rotate(90deg); }
+.spell-level > summary h2 { margin: 0; }
+.spell-level > .slot { margin-bottom: .5rem; }
+.spell-add { justify-self: start; margin-bottom: .5rem; }

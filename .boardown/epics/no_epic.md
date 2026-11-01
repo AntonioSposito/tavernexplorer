@@ -646,7 +646,7 @@ order: 3700
 id: TE-46
 type: feature
 priority: medium
-status: todo
+status: done
 order: 3800
 ---
 
@@ -666,7 +666,7 @@ order: 3800
 id: TE-47
 type: feature
 priority: low
-status: todo
+status: done
 order: 3900
 ---
 

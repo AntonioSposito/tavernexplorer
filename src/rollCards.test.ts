@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildRollCard, describeRoll, labeledBonus } from "./rollCards";
 
-const attack = { critRange: 19, damage: "5", critDamage: "9", damageType: "Tagliente", range: "1,5 m", save: { ability: "Destrezza", dc: 13, effect: "dimezza" }, description: "Lama" };
+const attack = { critRange: 19, damage: "5", critDamage: "9", damageType: "Tagliente", subtitle: "Gittata 1,5 m", save: { ability: "Destrezza", dc: 13, effect: "dimezza" }, description: "Lama" };
 
 describe("formule etichettate", () => {
   it("labeledBonus salta gli zeri e mette il resto in BONUS", () => {

@@ -1,7 +1,7 @@
 import { ABILITY_TAGS } from "./constants";
 import { labeledBonus } from "./rollCards";
 import { getRuleset } from "./rulesets";
-import type { ActionAbility, ActionEntry, CharacterSheet } from "./types";
+import type { ActionAbility, ActionEntry, CharacterSheet, SpellEntry } from "./types";
 
 export interface ResolvedAction {
   attackBonus?: number;
@@ -16,6 +16,9 @@ export interface ResolvedAction {
   attackFormula?: string;
   damageFormula?: string;
   critDamageFormula?: string;
+  // Solo incantesimi: cura, con e senza etichette.
+  healing?: string;
+  healingFormula?: string;
 }
 
 const signed = (value: number) => value === 0 ? "" : `${value > 0 ? "+" : ""}${value}`;
@@ -29,14 +32,21 @@ function abilityMod(sheet: CharacterSheet, ability: ActionAbility): number {
 }
 
 // Valori effettivi dell'azione per la scheda data (passare la scheda con gli effetti già applicati).
-export function resolveAction(sheet: CharacterSheet, entry: ActionEntry): ResolvedAction {
+export function resolveAction(sheet: CharacterSheet, entry: ActionEntry | SpellEntry): ResolvedAction {
   const magic = entry.magicBonus ?? 0;
+  // Incantesimo con caratteristica scelta: CD 8 + competenza + modificatore invece della CD della scheda.
+  const casting = "castingAbility" in entry && entry.castingAbility && entry.castingAbility !== "spell" && entry.castingAbility !== "none" ? entry.castingAbility : null;
+  const spellDc = casting ? 8 + sheet.combat.proficiencyBonus + abilityMod(sheet, casting) : sheet.spellcasting.saveDc;
+  const healAbility: ActionAbility = "healing" in entry && entry.addAbilityMod ? entry.castingAbility ?? "spell" : "none";
+  const heal = "healing" in entry && entry.healing?.trim()
+    ? { healing: `${entry.healing.trim()}${signed(abilityMod(sheet, healAbility))}`, healingFormula: `${entry.healing.trim()}${labeledBonus([[abilityMod(sheet, healAbility), abilityTag(healAbility)]], abilityMod(sheet, healAbility))}` }
+    : {};
   const critRange = entry.critRange ?? 20;
   const attackBonus = entry.attack
     ? abilityMod(sheet, entry.attack.ability) + (entry.attack.proficient ? sheet.combat.proficiencyBonus : 0) + entry.attack.bonus + magic
     : entry.attackBonus;
   const save = entry.save
-    ? { saveDc: entry.save.dc === "spell" ? sheet.spellcasting.saveDc : entry.save.dc, saveAbility: entry.save.ability, saveEffect: entry.save.effect || undefined }
+    ? { saveDc: entry.save.dc === "spell" ? spellDc : entry.save.dc, saveAbility: entry.save.ability, saveEffect: entry.save.effect || undefined }
     : { saveDc: entry.saveDc };
 
   const attackFormula = entry.attack && attackBonus != null
@@ -44,7 +54,7 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry): Resolv
     : undefined;
   const parts = (entry.damages ?? []).filter((part) => part.dice.trim());
   if (!parts.length) {
-    return { attackBonus, attackFormula, damage: entry.damage, critDamage: entry.damage && getRuleset(sheet.ruleset.id).criticalDamage(entry.damage), damageType: entry.damageType, critRange, ...save };
+    return { attackBonus, attackFormula, damage: entry.damage, critDamage: entry.damage && getRuleset(sheet.ruleset.id).criticalDamage(entry.damage), damageType: entry.damageType, critRange, ...save, ...heal };
   }
   // Il bonus magico si somma solo al primo danno, come nel form di Roll20.
   const flat = parts.map((part, index) => abilityMod(sheet, part.ability) + part.bonus + (index === 0 ? magic : 0));
@@ -54,5 +64,5 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry): Resolv
   const labels = parts.map((part, index) => labeledBonus([[abilityMod(sheet, part.ability), abilityTag(part.ability)], [part.bonus, "BONUS"], [index === 0 ? magic : 0, "MAGIC"]], flat[index]));
   const damageFormula = parts.map((part, index) => `${part.dice.trim()}${labels[index]}`).join("+");
   const critDamageFormula = parts.map((part, index) => `${[part.dice.trim(), part.critDice.trim()].filter(Boolean).join("+")}${labels[index]}`).join("+");
-  return { attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, critRange, ...save };
+  return { attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, critRange, ...save, ...heal };
 }

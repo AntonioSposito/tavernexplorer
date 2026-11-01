@@ -18,6 +18,7 @@ import { effectiveSheet, modifierTotal } from "./effects";
 import { resolveAction, type ResolvedAction } from "./actions";
 import { buildRollCard, describeRoll, DESCRIPTION_LIMIT, labeledBonus, type AttackRoll } from "./rollCards";
 import { ActionForm } from "./ActionForm";
+import { SpellForm } from "./SpellForm";
 import { TurnOrder } from "./TurnOrder";
 import { setTurnInitiative, stepTurn } from "./turns";
 import { listAdventures, listBestiarySources, loadAdventure, loadBestiarySource, type FiveToolsAdventure, type FiveToolsSource } from "./fivetoolsApi";
@@ -412,7 +413,7 @@ function SheetView({ sheet, editable, sheetTab, setSheetTab, rollMode, setRollMo
     <div className={editable ? undefined : "readonly-sheet"}>
     {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onUpdate={onUpdate} editable={editable}/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
     {sheetTab === "actions" && <div className="stack">{editable && <div className="library-actions">{!reordering && <Button onClick={() => setEditingAction("new")}>+ Nuova azione</Button>}{sheet.actions.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}{editable && reordering ? <ol className="order-list">{sheet.actions.map((entry, index) => <li key={entry.id}><span>{entry.name}</span><Button variant="outline" aria-label={`Sposta su ${entry.name}`} disabled={index === 0} onClick={() => moveAction(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${entry.name}`} disabled={index === sheet.actions.length - 1} onClick={() => moveAction(index, 1)}>↓</Button></li>)}</ol> : <EntryList entries={sheet.actions} sheet={view} onRoll={onRoll} onShare={onShare} onEdit={editable ? setEditingAction : undefined} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}</div>}
-    {sheetTab === "spells" && <Spells sheet={view} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
+    {sheetTab === "spells" && <Spells sheet={view} editable={editable} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "inventory" && <Inventory sheet={sheet} onUpdate={onUpdate}/>}
     {sheetTab === "traits" && <EntryList entries={sheet.traits.map((trait) => ({ ...trait, source: trait.source }))} onRoll={onRoll} onShare={onShare}/>}
     {sheetTab === "bio" && <section className="paper"><h2>Biografia</h2><p className="prose">{sheet.biography || "Nessuna biografia."}</p>{sheet.importWarnings.length > 0 && <details className="warnings"><summary>{sheet.importWarnings.length} note d’importazione</summary><ul>{sheet.importWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}</section>}
@@ -457,12 +458,19 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, attackModifier = 0
     const resolved: ResolvedAction = sheet ? resolveAction(sheet, entry) : { attackBonus: entry.attackBonus, damage: entry.damage, damageType: entry.damageType, saveDc: entry.saveDc, critRange: 20 };
     const attack = resolved.attackBonus == null ? null : resolved.attackBonus + attackModifier;
     const save = resolved.saveDc == null ? undefined : { ability: resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : undefined, dc: resolved.saveDc, effect: resolved.saveEffect };
-    const extras = { critRange: resolved.critRange, damageType: resolved.damageType, range: entry.range, save, description: entry.description };
+    const spell = "level" in entry ? entry as SpellEntry : null;
+    const subtitle = [spell && [spell.level === 0 ? "Trucchetto" : `Livello ${spell.level}`, spell.school, spell.concentration && "concentrazione", spell.ritual && "rituale", spell.innate && `innato ${spell.innate}`].filter(Boolean).join(" · "), entry.range && `Gittata ${entry.range}`].filter(Boolean).join(" · ") || undefined;
+    // Gli incantesimi del form includono la descrizione nei tiri solo se richiesto, come in Roll20.
+    const extras = { critRange: resolved.critRange, damageType: resolved.damageType, subtitle, save, description: spell?.includeDescription === false ? undefined : entry.description };
+    const higher = spell?.higherLevel && `${spell.higherLevel.die ? `+${spell.higherLevel.count}${spell.higherLevel.die}` : ""}${spell.higherLevel.bonus ? signed(spell.higherLevel.bonus) : ""} per livello di slot superiore`;
+    const components = spell?.components && [spell.components.verbal && "V", spell.components.somatic && "S", spell.components.material && `M${spell.components.materials ? ` (${spell.components.materials})` : ""}`].filter(Boolean).join(", ");
+    const spellStats = [["Tempo di lancio", spell?.castingTime], ["Bersaglio", spell?.target], ["Componenti", components], ["Durata", spell?.duration], ["Cura", resolved.healing], ["Livelli superiori", higher], ["Classe", spell?.spellClass]]
+      .flatMap(([label, value]) => value ? [{ label: label!, value }] : []);
     const stats = [
       ...attack != null ? [{ label: "Colpire", value: signed(attack), type: resolved.critRange < 20 ? `critico ${resolved.critRange}-20` : undefined }] : [],
       ...resolved.damage ? [{ label: "Danno", value: `${resolved.damage}${extra}`, type: resolved.damageType }] : [],
     ];
-    const shareCard: RollCard = { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], stats, save, description: entry.description?.slice(0, DESCRIPTION_LIMIT) || undefined };
+    const shareCard: RollCard = { name: entry.name, subtitle, rolls: [], stats: [...spellStats, ...stats], save, description: [entry.description, spell?.higherLevelText && `Ai livelli superiori. ${spell.higherLevelText}`].filter(Boolean).join("\n\n").slice(0, DESCRIPTION_LIMIT) || undefined };
     const details = [
       entry.range && `Gittata ${entry.range}`,
       resolved.damageType,
@@ -470,17 +478,38 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, attackModifier = 0
       attack != null && resolved.critRange < 20 && `Critico ${resolved.critRange}-20`,
     ].filter(Boolean).join(" · ");
     // Il nome usa l'azione (attacco con danno, oppure solo danno); le icone condividono e modificano. preventDefault evita di aprire il dettaglio.
-    const use = attack != null
-      ? () => onRoll(entry.name, `${resolved.attackFormula ?? `1d20${signed(resolved.attackBonus ?? 0)}`}${tagged(attackModifier)}`, { ...extras, damage: (resolved.damageFormula ?? resolved.damage) && `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, critDamage: (resolved.critDamageFormula ?? resolved.critDamage) && `${resolved.critDamageFormula ?? resolved.critDamage}${tagged(damageModifier)}` })
-      : resolved.damage ? () => onRoll(entry.name, `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, extras) : null;
+    const use = spell?.output === "spellcard" ? () => onShare(entry, shareCard)
+      : attack != null ? () => onRoll(entry.name, `${resolved.attackFormula ?? `1d20${signed(resolved.attackBonus ?? 0)}`}${tagged(attackModifier)}`, { ...extras, damage: (resolved.damageFormula ?? resolved.damage) && `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, critDamage: (resolved.critDamageFormula ?? resolved.critDamage) && `${resolved.critDamageFormula ?? resolved.critDamage}${tagged(damageModifier)}` })
+      : resolved.damage ? () => onRoll(entry.name, `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, extras)
+      : resolved.healing ? () => onRoll(entry.name, resolved.healingFormula ?? resolved.healing!, { ...extras, damageType: undefined, label: "Cura" })
+      : save ? () => onShare(entry, shareCard) : null;
+    const useTitle = spell?.output === "spellcard" ? "Mostra in chat" : attack != null ? "Tira attacco e danno" : resolved.damage ? "Tira danno" : resolved.healing ? "Tira cura" : "Mostra la CD in chat";
     const stop = (action: () => void) => (event: ReactMouseEvent) => { event.preventDefault(); action(); };
-    return <details key={entry.id} className="entry"><summary><span>{use ? <button className="entry-use" title={attack != null ? "Tira attacco e danno" : "Tira danno"} onClick={stop(use)}>{entry.name}</button> : <strong>{entry.name}</strong>}<small>{entry.source}</small></span><span className="entry-values">{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span><span className="entry-icons"><button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={stop(() => onShare(entry, shareCard))}><ChatIcon/></button>{onEdit && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={stop(() => onEdit(entry))}><EditIcon/></button>}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p></details>;
+    return <details key={entry.id} className="entry"><summary><span>{use ? <button className="entry-use" title={useTitle} onClick={stop(use)}>{entry.name}</button> : <strong>{entry.name}</strong>}<small>{entry.source}</small></span><span className="entry-values">{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span><span className="entry-icons"><button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={stop(() => onShare(entry, shareCard))}><ChatIcon/></button>{onEdit && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={stop(() => onEdit(entry))}><EditIcon/></button>}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p></details>;
   })}</section>;
 }
 
-function Spells({ sheet, onRoll, onShare, onUpdate, attackModifier = 0, damageModifier = 0 }: { sheet: CharacterSheet; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; attackModifier?: number; damageModifier?: number }) {
-  const levels = [...new Set(sheet.spells.map((spell) => spell.level))].sort((a, b) => a - b);
-  return <div className="stack"><section className="paper spell-head"><div><strong>CD {sheet.spellcasting.saveDc}</strong><small>Salvezza</small></div><div><strong>{signed(sheet.spellcasting.attackBonus)}</strong><small>Attacco</small></div></section>{Object.entries(sheet.spellcasting.slots).map(([key, slot]) => <section className="slot" key={key}><span>{key.replace("level_", "Livello ")}</span><button onClick={() => onUpdate((next) => { next.spellcasting.slots[key].used = Math.max(0, next.spellcasting.slots[key].used - 1); return next; })}>−</button><strong>{Math.max(0, slot.total - slot.used)} / {slot.total}</strong><button onClick={() => onUpdate((next) => { next.spellcasting.slots[key].used = Math.min(slot.total, next.spellcasting.slots[key].used + 1); return next; })}>+</button></section>)}{levels.map((level) => <section key={level}><h2>{level === 0 ? "Trucchetti" : `Livello ${level}`}</h2><EntryList entries={sheet.spells.filter((spell) => spell.level === level)} onRoll={onRoll} onShare={onShare} attackModifier={attackModifier} damageModifier={damageModifier}/></section>)}</div>;
+function Spells({ sheet, editable, onRoll, onShare, onUpdate, attackModifier = 0, damageModifier = 0 }: { sheet: CharacterSheet; editable: boolean; onRoll: (title: string, formula: string, attack?: AttackRoll) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; attackModifier?: number; damageModifier?: number }) {
+  // Gli slot stanno sotto il titolo del loro livello (chiavi "level_N"), anche se a quel livello non ci sono magie.
+  const slotKeys = new Map(Object.keys(sheet.spellcasting.slots).map((key) => [Number(key.replace(/\D/g, "")), key]));
+  // Chi modifica vede sempre i trucchetti, per poterne aggiungere.
+  const levels = [...new Set([...editable ? [0] : [], ...sheet.spells.map((spell) => spell.level), ...slotKeys.keys()])].sort((a, b) => a - b);
+  const [editing, setEditing] = useState<{ spell: SpellEntry | null; level: number } | null>(null);
+  const saveSpell = (spell: SpellEntry) => { onUpdate((next) => { const index = next.spells.findIndex((item) => item.id === spell.id); if (index >= 0) next.spells[index] = spell; else next.spells.push(spell); return next; }); setEditing(null); };
+  const deleteSpell = (id: string) => { onUpdate((next) => { next.spells = next.spells.filter((item) => item.id !== id); return next; }); setEditing(null); };
+  const [closed, setClosed] = useState(() => new Set(storage.closedSpellLevels.get()));
+  const toggleLevel = (key: string, open: boolean) => {
+    if (open !== closed.has(key)) return;
+    const next = new Set(closed);
+    if (open) next.delete(key); else next.add(key);
+    setClosed(next);
+    storage.closedSpellLevels.set([...next]);
+  };
+  const slotLabel = (level: number) => { const slot = slotKeys.has(level) ? sheet.spellcasting.slots[slotKeys.get(level)!] : null; return slot ? ` (${Math.max(0, slot.total - slot.used)}/${slot.total})` : ""; };
+  const slotRow = (key: string) => { const slot = sheet.spellcasting.slots[key]; return <div className="slot"><span>Slot</span><button aria-label={`Usa slot ${key}`} onClick={() => onUpdate((next) => { next.spellcasting.slots[key].used = Math.min(slot.total, next.spellcasting.slots[key].used + 1); return next; })}>−</button><strong>{Math.max(0, slot.total - slot.used)} / {slot.total}</strong><button aria-label={`Recupera slot ${key}`} onClick={() => onUpdate((next) => { next.spellcasting.slots[key].used = Math.max(0, next.spellcasting.slots[key].used - 1); return next; })}>+</button></div>; };
+  return <div className="stack"><section className="paper spell-head"><div><strong>CD {sheet.spellcasting.saveDc}</strong><small>Salvezza</small></div><div><strong>{signed(sheet.spellcasting.attackBonus)}</strong><small>Attacco</small></div></section>{levels.map((level) => <details key={level} className="spell-level" open={!closed.has(`${sheet.id}:${level}`)} onToggle={(event) => toggleLevel(`${sheet.id}:${level}`, event.currentTarget.open)}><summary><h2>{level === 0 ? "Trucchetti" : `Livello ${level}`}{slotLabel(level)}</h2></summary>{slotKeys.has(level) && slotRow(slotKeys.get(level)!)}{editable && <Button variant="outline" className="spell-add" onClick={() => setEditing({ spell: null, level })}>+ Aggiungi {level === 0 ? "trucchetto" : "incantesimo"}</Button>}{sheet.spells.some((spell) => spell.level === level) && <EntryList entries={sheet.spells.filter((spell) => spell.level === level)} sheet={sheet} onRoll={onRoll} onShare={onShare} onEdit={editable ? (entry) => setEditing({ spell: entry as SpellEntry, level }) : undefined} attackModifier={attackModifier} damageModifier={damageModifier}/>}</details>)}
+    <Dialog open={editable && editing !== null} title={editing?.spell ? "Modifica incantesimo" : `Nuovo ${editing?.level === 0 ? "trucchetto" : `incantesimo di livello ${editing?.level}`}`} onClose={() => setEditing(null)}>{editing && <SpellForm spell={editing.spell} level={editing.level} onSave={saveSpell} onCancel={() => setEditing(null)} onDelete={editing.spell ? () => deleteSpell(editing.spell!.id) : undefined}/>}</Dialog>
+  </div>;
 }
 
 function Inventory({ sheet, onUpdate }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void }) {

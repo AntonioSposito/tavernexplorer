@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS, STORAGE_MONSTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import { importRoll20 } from "./importer";
 import { DEFAULT_RULESET } from "./rulesets";
@@ -196,4 +196,58 @@ it("riordina le azioni con Modifica ordine e salva il nuovo ordine", async () =>
   expect([...host.querySelectorAll(".entry summary strong")].map((item) => item.textContent)).toEqual(["Bastone", "Coltello", "Arco"]);
   await settle(1_700);
   expect(cloudSheet().sheet.actions.map((action: { name: string }) => action.name)).toEqual(["Bastone", "Coltello", "Arco"]);
+});
+
+it("le magie si usano dal nome: attacco con danno o card con la CD", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spellcasting.saveDc = 13;
+  sheet.spellcasting.slots = { level_2: { total: 3, used: 1 }, level_3: { total: 2, used: 0 } };
+  sheet.spells = [
+    { id: "bolt", name: "Dardo di fuoco", level: 0, school: "Invocazione", prepared: true, ritual: false, concentration: false, attackBonus: 5, damage: "1d10", damageType: "Fuoco", range: "36 m", description: "" },
+    { id: "hold", name: "Blocca persone", level: 2, school: "Ammaliamento", prepared: true, ritual: false, concentration: true, saveDc: 13, description: "Paralizza." },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  expect([...host.querySelectorAll(".spell-level")].map((section) => [section.querySelector("h2")?.textContent, section.querySelector(".slot strong")?.textContent ?? null])).toEqual([["Trucchetti", null], ["Livello 2 (2/3)", "2 / 3"], ["Livello 3 (2/2)", "2 / 2"]]);
+  expect([...host.querySelectorAll<HTMLDetailsElement>(".spell-level")].every((level) => level.tagName === "DETAILS" && level.open)).toBe(true);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Usa slot level_2"]')!.click());
+  expect(host.querySelectorAll(".spell-level")[1].querySelector(".slot strong")?.textContent).toBe("1 / 3");
+  expect(host.querySelectorAll(".spell-level h2")[1].textContent).toBe("Livello 2 (1/3)");
+  await act(async () => { host.querySelectorAll<HTMLDetailsElement>(".spell-level")[2].open = false; });
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_CLOSED_SPELL_LEVELS) ?? "[]")).toEqual([`${sheet.id}:3`]);
+  expect([...host.querySelectorAll(".spell-level")[1].querySelectorAll(".slot button")].map((button) => `${button.textContent} ${button.getAttribute("aria-label")}`)).toEqual(["− Usa slot level_2", "+ Recupera slot level_2"]);
+  const [bolt, hold] = [...host.querySelectorAll<HTMLButtonElement>(".entry-use")];
+  await act(async () => bolt.click());
+  await click("Normale");
+  await act(async () => hold.click());
+  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
+  await click("Messaggi");
+  const [boltCard, holdCard] = [...host.querySelectorAll(".r20-card")];
+  expect(boltCard.querySelector("header")?.textContent).toBe("Dardo di fuocoTrucchetto · Invocazione · Gittata 36 m");
+  expect(boltCard.querySelector(".r20-label")?.textContent).toBe("Colpire");
+  expect(holdCard.querySelector("header")?.textContent).toBe("Blocca personeLivello 2 · Ammaliamento · concentrazione");
+  expect(holdCard.textContent).toContain("CD 13");
+});
+
+it("aggiunge e modifica un incantesimo dal suo livello", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spellcasting.slots = { level_1: { total: 2, used: 0 } };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  expect([...host.querySelectorAll(".spell-add")].map((button) => button.textContent)).toEqual(["+ Aggiungi trucchetto", "+ Aggiungi incantesimo"]);
+  await act(async () => host.querySelectorAll<HTMLButtonElement>(".spell-add")[1].click());
+  await type(".spell-form input", "Dardo incantato");
+  await type('.spell-form input[placeholder="1d4+1"]', "1d4+1");
+  await click("Salva");
+  expect(host.querySelectorAll(".spell-level")[1].querySelector(".entry-use")?.textContent).toBe("Dardo incantato");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Dardo incantato"]')!.click());
+  await type('.spell-form input[placeholder="36 metri"]', "36 metri");
+  await click("Salva");
+  await settle(1_700);
+  expect(cloudSheet().sheet.spells).toMatchObject([{ name: "Dardo incantato", level: 1, range: "36 metri", damages: [{ dice: "1d4+1" }] }]);
 });

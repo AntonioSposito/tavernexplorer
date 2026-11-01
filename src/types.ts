@@ -52,6 +52,24 @@ export interface SpellEntry extends ActionEntry {
   ritual: boolean;
   concentration: boolean;
   school?: string;
+  // Campi del form incantesimi (come Roll20). Attacco, danni e TS stanno nei campi di ActionEntry.
+  castingTime?: string;
+  target?: string;
+  components?: { verbal: boolean; somatic: boolean; material: boolean; materials?: string };
+  duration?: string;
+  // Caratteristica da incantatore: "spell" = quella della scheda (NONE in Roll20).
+  castingAbility?: ActionAbility;
+  innate?: string;
+  output?: "attack" | "spellcard";
+  spellAttack?: "melee" | "ranged";
+  healing?: string;
+  addAbilityMod?: boolean;
+  // Danno extra per ogni livello di slot sopra quello dell'incantesimo: count + die + bonus.
+  higherLevel?: { count: number; die: string; bonus: number };
+  includeDescription?: boolean;
+  higherLevelText?: string;
+  spellClass?: string;
+  spellType?: string;
 }
 
 export interface InventoryEntry {
