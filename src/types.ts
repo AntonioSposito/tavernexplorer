@@ -211,6 +211,8 @@ export interface RollCard {
   stats?: Array<{ label: string; value: string; type?: string }>;
   save?: { ability?: string; dc: number; effect?: string };
   note?: string;
+  // Avviso evidenziato per il tavolo, es. incantesimo lanciato senza slot o slot recuperato a mano.
+  alert?: string;
   description?: string;
 }
 

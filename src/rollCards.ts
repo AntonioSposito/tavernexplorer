@@ -3,7 +3,7 @@ import type { RollCard, RollMode } from "./types";
 
 // Dati dell'azione che accompagnano il tiro: con un d20 è un attacco con danno automatico,
 // senza d20 è un tiro di danno. critRange decide il critico sul d20 naturale.
-export type AttackRoll = { label?: string; critRange: number; damage?: string; critDamage?: string; damageType?: string; subtitle?: string; save?: RollCard["save"]; description?: string };
+export type AttackRoll = { label?: string; alert?: string; critRange: number; damage?: string; critDamage?: string; damageType?: string; subtitle?: string; save?: RollCard["save"]; description?: string };
 
 // shortcut: descrizione troncata per tenere piccolo il broadcast Owlbear; il testo completo resta nella scheda.
 export const DESCRIPTION_LIMIT = 2000;
@@ -40,7 +40,7 @@ export function describeRoll(formula: string, dice: number[]): string {
 // Card del tiro più titolo e testo semplice, usati per la mappa e come ripiego nei client senza card.
 // Con un 1 naturale l'attacco manca e non tira il danno, salvo critRange 1 (impossibile in pratica).
 export function buildRollCard(name: string, formula: string, result: RollResult, mode: RollMode, attack?: AttackRoll): { card: RollCard; title: string; body: string } {
-  const card: RollCard = { name, subtitle: attack?.subtitle, rolls: [], save: attack?.save, description: attack?.description?.slice(0, DESCRIPTION_LIMIT) || undefined };
+  const card: RollCard = { name, subtitle: attack?.subtitle, rolls: [], alert: attack?.alert, save: attack?.save, description: attack?.description?.slice(0, DESCRIPTION_LIMIT) || undefined };
   let title = name;
   let body = `${result.formula} → ${result.total}`;
   if (result.natural == null || !D20_FORMULA.test(result.formula)) {

@@ -205,6 +205,7 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   sheet.spells = [
     { id: "bolt", name: "Dardo di fuoco", level: 0, school: "Invocazione", prepared: true, ritual: false, concentration: false, attackBonus: 5, damage: "1d10", damageType: "Fuoco", range: "36 m", description: "" },
     { id: "hold", name: "Blocca persone", level: 2, school: "Ammaliamento", prepared: true, ritual: false, concentration: true, saveDc: 13, description: "Paralizza." },
+    { id: "shield", name: "Scudo", level: 2, prepared: true, ritual: false, concentration: false, description: "+5 alla CA." },
   ];
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
@@ -219,16 +220,26 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   await settle();
   expect(JSON.parse(localStorage.getItem(STORAGE_CLOSED_SPELL_LEVELS) ?? "[]")).toEqual([`${sheet.id}:3`]);
   expect([...host.querySelectorAll(".spell-level")[1].querySelectorAll(".slot button")].map((button) => `${button.textContent} ${button.getAttribute("aria-label")}`)).toEqual(["− Usa slot level_2", "+ Recupera slot level_2"]);
-  const [bolt, hold] = [...host.querySelectorAll<HTMLButtonElement>(".entry-use")];
+  const [bolt, hold, shield] = [...host.querySelectorAll<HTMLButtonElement>(".entry-use")];
+  expect(shield.textContent).toBe("Scudo");
   await act(async () => bolt.click());
   await click("Normale");
   await act(async () => hold.click());
+  expect([...host.querySelectorAll(".cast-choice button")].map((button) => button.textContent)).toEqual(["Livello 2 (1/3)", "Livello 3 (2/2)", "Senza slot"]);
+  await click("Livello 3 (2/2)");
+  expect(host.querySelectorAll(".spell-level h2")[2].textContent).toBe("Livello 3 (1/2)");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Recupera slot level_2"]')!.click());
+  await act(async () => hold.click());
+  await click("Senza slot");
   expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
   await click("Messaggi");
-  const [boltCard, holdCard] = [...host.querySelectorAll(".r20-card")];
+  const [boltCard, holdCard, notice, freeCast] = [...host.querySelectorAll(".r20-card")];
+  expect(holdCard.querySelector(".r20-alert")).toBeNull();
+  expect(notice.querySelector(".r20-alert")?.textContent).toBe("⚠ Slot di livello 2 recuperato a mano: 2/3");
+  expect(freeCast.querySelector(".r20-alert")?.textContent).toBe("⚠ Lanciato senza slot");
   expect(boltCard.querySelector("header")?.textContent).toBe("Dardo di fuocoTrucchetto · Invocazione · Gittata 36 m");
   expect(boltCard.querySelector(".r20-label")?.textContent).toBe("Colpire");
-  expect(holdCard.querySelector("header")?.textContent).toBe("Blocca personeLivello 2 · Ammaliamento · concentrazione");
+  expect(holdCard.querySelector("header")?.textContent).toBe("Blocca personeLivello 2 · Ammaliamento · concentrazione · slot di livello 3");
   expect(holdCard.textContent).toContain("CD 13");
 });
 

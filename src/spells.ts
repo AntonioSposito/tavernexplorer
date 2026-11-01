@@ -63,3 +63,12 @@ export function validateSpell(draft: SpellDraft): string {
   }
   return "";
 }
+
+// Extra dei livelli superiori come termini di formula etichettati; nel critico raddoppiano solo i dadi.
+export function higherLevelBonus(spell: SpellEntry, castLevel: number | null): { damage: string; crit: string } {
+  const steps = castLevel && spell.higherLevel ? Math.max(0, castLevel - spell.level) : 0;
+  if (!steps || !spell.higherLevel) return { damage: "", crit: "" };
+  const { count, die, bonus } = spell.higherLevel;
+  const flat = bonus ? `${bonus * steps > 0 ? "+" : ""}${bonus * steps}[HIGHER]` : "";
+  return { damage: `${die ? `+${count * steps}${die}[HIGHER]` : ""}${flat}`, crit: `${die ? `+${2 * count * steps}${die}[HIGHER]` : ""}${flat}` };
+}

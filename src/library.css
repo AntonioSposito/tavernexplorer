@@ -45,3 +45,4 @@
 .spell-level > summary h2 { margin: 0; }
 .spell-level > .slot { margin-bottom: .5rem; }
 .spell-add { justify-self: start; margin-bottom: .5rem; }
+.cast-choice { display: grid; gap: .5rem; padding: 1rem; }

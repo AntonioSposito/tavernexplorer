@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAction } from "./actions";
 import { importRoll20 } from "./importer";
-import { toSpell, toSpellDraft, validateSpell } from "./spells";
+import { higherLevelBonus, toSpell, toSpellDraft, validateSpell } from "./spells";
 
 const sheet = () => {
   const value = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
@@ -33,6 +33,13 @@ describe("form incantesimi", () => {
     const spell = toSpell(draft, { id: "x", level: 0, prepared: true });
     expect(spell).not.toHaveProperty("attackBonus");
     expect(spell).not.toHaveProperty("saveDc");
+  });
+
+  it("danno ai livelli superiori: dadi per ogni livello sopra, raddoppiati nel critico", () => {
+    const spell = toSpell({ ...toSpellDraft(null), name: "Dardo", higherDie: "d4", higherCount: 1, higherBonus: 1 }, base);
+    expect(higherLevelBonus(spell, 3)).toEqual({ damage: "+2d4[HIGHER]+2[HIGHER]", crit: "+4d4[HIGHER]+2[HIGHER]" });
+    expect(higherLevelBonus(spell, 1)).toEqual({ damage: "", crit: "" });
+    expect(higherLevelBonus(spell, null)).toEqual({ damage: "", crit: "" });
   });
 
   it("valida nome e formule", () => {
