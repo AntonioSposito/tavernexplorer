@@ -211,11 +211,11 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   await act(async () => root.render(<App/>));
   await settle();
   await click("Magia");
-  expect([...host.querySelectorAll(".spell-level")].map((section) => [section.querySelector("h2")?.textContent, section.querySelector(".slot strong")?.textContent ?? null])).toEqual([["Trucchetti", null], ["Livello 2 (2/3)", "2 / 3"], ["Livello 3 (2/2)", "2 / 2"]]);
+  expect([...host.querySelectorAll(".spell-level")].map((section) => [section.querySelector("h2")?.textContent, section.querySelector(".slot strong")?.textContent ?? null])).toEqual([["Trucchetti", null], ["Livello 2", "2 / 3"], ["Livello 3", "2 / 2"]]);
   expect([...host.querySelectorAll<HTMLDetailsElement>(".spell-level")].every((level) => level.tagName === "DETAILS" && level.open)).toBe(true);
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Usa slot level_2"]')!.click());
   expect(host.querySelectorAll(".spell-level")[1].querySelector(".slot strong")?.textContent).toBe("1 / 3");
-  expect(host.querySelectorAll(".spell-level h2")[1].textContent).toBe("Livello 2 (1/3)");
+  expect(host.querySelectorAll(".spell-level")[1].querySelector("summary .slot strong")?.textContent).toBe("1 / 3");
   await act(async () => { host.querySelectorAll<HTMLDetailsElement>(".spell-level")[2].open = false; });
   await settle();
   expect(JSON.parse(localStorage.getItem(STORAGE_CLOSED_SPELL_LEVELS) ?? "[]")).toEqual([`${sheet.id}:3`]);
@@ -227,7 +227,7 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   await act(async () => hold.click());
   expect([...host.querySelectorAll(".cast-choice button")].map((button) => button.textContent)).toEqual(["Livello 2 (1/3)", "Livello 3 (2/2)", "Senza slot"]);
   await click("Livello 3 (2/2)");
-  expect(host.querySelectorAll(".spell-level h2")[2].textContent).toBe("Livello 3 (1/2)");
+  expect(host.querySelectorAll(".spell-level")[2].querySelector(".slot strong")?.textContent).toBe("1 / 2");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Recupera slot level_2"]')!.click());
   await act(async () => hold.click());
   await click("Senza slot");
@@ -410,4 +410,28 @@ it("aggiunge una risorsa dal pulsante e ne cambia l'ordine", async () => {
   await click("Fine");
   await settle(1_700);
   expect(cloudSheet().sheet.counters.map((counter: { name: string }) => counter.name)).toEqual(["Ira", "Ki"]);
+});
+
+it("riordina gli incantesimi dentro il loro livello; gli slot nel titolo non chiudono il riquadro", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spellcasting.slots = { level_1: { total: 2, used: 0 } };
+  sheet.spells = [
+    { id: "a", name: "Armatura magica", level: 1, prepared: true, ritual: false, concentration: false },
+    { id: "l", name: "Luce", level: 0, prepared: true, ritual: false, concentration: false },
+    { id: "s", name: "Sonno", level: 1, prepared: true, ritual: false, concentration: false },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  const levelOne = () => host.querySelectorAll<HTMLDetailsElement>(".spell-level")[1];
+  await act(async () => levelOne().querySelector<HTMLButtonElement>('[aria-label="Usa slot level_1"]')!.click());
+  expect(levelOne().open).toBe(true);
+  expect(levelOne().querySelector("summary .slot strong")?.textContent).toBe("1 / 2");
+  await act(async () => [...levelOne().querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "Modifica ordine")!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Sonno"]')!.click());
+  await click("Fine");
+  expect([...levelOne().querySelectorAll(".entry-use")].map((button) => button.textContent)).toEqual(["Sonno", "Armatura magica"]);
+  await settle(1_700);
+  expect(cloudSheet().sheet.spells.map((spell: { name: string }) => spell.name)).toEqual(["Sonno", "Luce", "Armatura magica"]);
 });
