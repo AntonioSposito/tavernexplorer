@@ -1,0 +1,21 @@
+/* Tab Base in stile pagina "Core" di Roll20, in una colonna. */
+.core-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+.core-stats .inspiration:disabled { opacity: 1; cursor: default; }
+.core-stats .inspiration:not(.on) strong { color: hsl(var(--muted-foreground)); }
+.core-abilities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.core-abilities button { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem .3rem .6rem; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.core-abilities small { font-size: .7rem; font-weight: 700; letter-spacing: .06em; color: hsl(var(--muted-foreground)); }
+.core-abilities strong { font-family: Georgia, serif; font-size: 1.6rem; line-height: 1.1; color: hsl(var(--primary)); }
+.core-abilities span { min-width: 2.4rem; padding: .05rem .4rem; border: 1px solid hsl(var(--border)); border-radius: 999px; font-size: .8rem; text-align: center; }
+.core-abilities button:hover, .core-list button:hover { border-color: hsl(var(--primary)); }
+.core-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 .9rem; }
+.core-list button { display: grid; grid-template-columns: 12px 2.4rem 1fr; align-items: center; gap: .4rem; padding: .4rem .1rem; border: 0; border-bottom: 1px solid hsl(var(--border)); background: transparent; color: hsl(var(--foreground)); text-align: left; }
+.core-list strong { color: hsl(var(--primary)); text-align: right; }
+.core-list small { color: hsl(var(--muted-foreground)); }
+.core-passive { display: flex; justify-content: space-between; margin: .6rem 0 0; padding-top: .5rem; border-top: 1px solid hsl(var(--border)); }
+.core-passive strong { color: hsl(var(--primary)); }
+@media (max-width: 400px) { .core-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* Competenza ben visibile: pallino pieno nel colore primario e nome in grassetto. */
+.core-list .dot { width: 11px; height: 11px; border: 2px solid hsl(var(--muted-foreground)); background: transparent; }
+.core-list .dot.filled { border-color: hsl(var(--primary)); background: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / .25); }
+.core-list button.proficient > span:last-child { font-weight: 700; }

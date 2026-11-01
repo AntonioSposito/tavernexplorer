@@ -241,6 +241,7 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   expect(boltCard.querySelector(".r20-label")?.textContent).toBe("Colpire");
   expect(holdCard.querySelector("header")?.textContent).toBe("Blocca personeLivello 2 · Ammaliamento · concentrazione · slot di livello 3");
   expect(holdCard.textContent).toContain("CD 13");
+  expect(host.querySelector(".message header strong")?.textContent).toBe("Maga (GM)");
 });
 
 it("aggiunge e modifica un incantesimo dal suo livello", async () => {
@@ -261,4 +262,152 @@ it("aggiunge e modifica un incantesimo dal suo livello", async () => {
   await click("Salva");
   await settle(1_700);
   expect(cloudSheet().sheet.spells).toMatchObject([{ name: "Dardo incantato", level: 1, range: "36 metri", damages: [{ dice: "1d4+1" }] }]);
+});
+
+it("modifica PF attuali e temporanei con frecce e campo numerico, i massimi restano in sola lettura", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 10, max: 12 } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const press = (label: string) => act(async () => host.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!.click());
+  await press("Aumenta PF attuali");
+  await press("Aumenta PF attuali");
+  await press("Aumenta PF attuali");
+  const temp = host.querySelector<HTMLInputElement>('input[aria-label="PF temporanei"]')!;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(temp, "5"); temp.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => { temp.focus(); temp.blur(); });
+  expect(host.querySelector('[aria-label="Diminuisci PF massimi"]')).toBeNull();
+  expect(host.querySelector(".hit-point-box.max strong")?.textContent).toBe("12");
+  expect([...host.querySelectorAll<HTMLInputElement>(".hit-point-control:not(.hit-dice-control) .hit-point-box input")].map((input) => input.value)).toEqual(["12", "5"]);
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat.hp).toEqual({ current: 12, max: 12, temp: 5 });
+});
+
+it("prepara un incantesimo e avvisa il tavolo in chat", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spells = [
+    { id: "light", name: "Luce", level: 0, prepared: false, ritual: false, concentration: false },
+    { id: "sleep", name: "Sonno", level: 1, prepared: false, ritual: false, concentration: false },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  expect(host.querySelectorAll(".prepared-toggle")).toHaveLength(1);
+  const toggle = () => host.querySelector<HTMLButtonElement>('[aria-label="Preparato Sonno"]')!;
+  await act(async () => toggle().click());
+  expect(toggle().getAttribute("aria-pressed")).toBe("true");
+  await act(async () => toggle().click());
+  expect(toggle().getAttribute("aria-pressed")).toBe("false");
+  await act(async () => toggle().click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.spells[1].prepared).toBe(true);
+  await click("Messaggi");
+  expect([...host.querySelectorAll(".r20-alert")].map((alert) => alert.textContent)).toEqual(["⚠ Sonno (livello 1) preparato", "⚠ Sonno (livello 1) preparato"]);
+});
+
+it("tira un dado vita scalandolo dagli attuali; totale e dado si cambiano in Modifica", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 5, max: 30 }, hit_dice: { current: 1, max: 3, die: "d10" } } } });
+  sheet.abilities.constitution = { score: 14, mod: 2, save: 2, saveProficient: false };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  expect(host.querySelector(".hit-dice-control .hit-point-box.max strong")?.textContent).toBe("3");
+  vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 6; return array; });
+  await click("Dado vita (d10)");
+  await settle();
+  vi.restoreAllMocks();
+  // d10 = 7, +2 COS: 5 + 9 = 14 PF.
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="PF attuali"]')?.value).toBe("14");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Dadi vita attuali"]')?.value).toBe("0");
+  expect(host.querySelector<HTMLButtonElement>(".hit-dice-roll")?.disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Aumenta Dadi vita attuali"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Aumenta Dadi vita attuali"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Aumenta Dadi vita attuali"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Aumenta Dadi vita attuali"]')!.click());
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Dadi vita attuali"]')?.value).toBe("3");
+  await click("Messaggi");
+  expect(host.querySelector(".r20-card .r20-row")?.textContent).toBe("PF recuperati9");
+  expect(host.querySelector(".r20-card .r20-roll")?.getAttribute("title")).toBe("Roll 1d10 + 2[CON] = (7) + 2");
+  await click("Scheda");
+  await click("Modifica");
+  const select = [...host.querySelectorAll<HTMLSelectElement>("select")].find((item) => item.closest("label")?.textContent?.startsWith("Dado vita"))!;
+  await act(async () => { select.value = "d8"; select.dispatchEvent(new Event("change", { bubbles: true })); });
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat.hitDice).toEqual({ current: 3, max: 3, die: "d8" });
+});
+
+it("TS contro la morte solo a 0 PF: un 1 naturale colora due fallimenti", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 0, max: 10 } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 0; return array; });
+  await click("TS morte");
+  await settle();
+  vi.restoreAllMocks();
+  expect(host.querySelectorAll(".death-dot.failure")).toHaveLength(2);
+  expect(host.querySelectorAll(".death-dot.success")).toHaveLength(0);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Aumenta PF attuali"]')!.click());
+  expect(host.querySelectorAll(".death-dot.failure")).toHaveLength(0);
+  expect([...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "TS morte")?.disabled).toBe(true);
+});
+
+it("attiva e toglie l'ispirazione dalla tab Base", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const box = () => host.querySelector<HTMLButtonElement>(".inspiration")!;
+  expect(box().getAttribute("aria-pressed")).toBe("false");
+  await act(async () => box().click());
+  expect(box().getAttribute("aria-pressed")).toBe("true");
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat.inspiration).toBe(true);
+});
+
+it("il riposo breve chiede i dadi vita da spendere nella finestra di conferma", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 3, max: 30 }, hit_dice: { current: 2, max: 3, die: "d8" } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  expect(host.querySelector('input[aria-label="Dadi vita da spendere"]')).toBeNull();
+  await click("Riposo breve");
+  await type('input[aria-label="Dadi vita da spendere"]', "5");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Dadi vita da spendere"]')?.value).toBe("2");
+  await click("Completa riposo");
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat.hitDice.current).toBe(0);
+  expect(cloudSheet().sheet.combat.hp.current).toBeGreaterThan(3);
+});
+
+it("chiede conferma prima di eliminare una risorsa personale", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.counters = [{ id: "ki", name: "Ki", current: 2, max: 3, recovery: "short" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Elimina Ki"]')!.click());
+  expect(host.querySelector(".ui-dialog p")?.textContent).toBe("Ki verrà rimossa dalla scheda.");
+  await click("Annulla");
+  expect(host.querySelector('[aria-label="Elimina Ki"]')).not.toBeNull();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Elimina Ki"]')!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
+  expect(host.querySelector('[aria-label="Elimina Ki"]')).toBeNull();
+});
+
+it("aggiunge una risorsa dal pulsante e ne cambia l'ordine", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.counters = [{ id: "ki", name: "Ki", current: 2, max: 3, recovery: "short" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("+ Nuova risorsa");
+  await type('input[aria-label="Nome nuova risorsa"]', "Ira");
+  await click("Aggiungi");
+  await click("Modifica ordine");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Ira"]')!.click());
+  await click("Fine");
+  await settle(1_700);
+  expect(cloudSheet().sheet.counters.map((counter: { name: string }) => counter.name)).toEqual(["Ira", "Ki"]);
 });

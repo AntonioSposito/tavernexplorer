@@ -188,6 +188,8 @@ export interface ChatMessage {
   kind: "text" | "roll" | "share" | "system";
   author: string;
   authorId?: string;
+  // Nome Owlbear di chi ha inviato: author può essere il personaggio controllato.
+  playerName?: string;
   characterId?: string;
   title?: string;
   body: string;

@@ -18,6 +18,7 @@ import "./resources.css";
 import "./turns.css";
 import "./library.css";
 import "./rollCards.css";
+import "./core.css";
 
 if (import.meta.env.DEV) {
   document.documentElement.dataset.env = "dev";

@@ -49,6 +49,9 @@ export const SKILL_LABELS: Record<string, string> = {
   survival: "Sopravvivenza",
 };
 
+// Sigle italiane delle caratteristiche mostrate nella scheda.
+export const ABILITY_SHORT: Record<string, string> = { strength: "FOR", dexterity: "DES", constitution: "COS", intelligence: "INT", wisdom: "SAG", charisma: "CAR" };
+
 // Sigle in stile Roll20 per le etichette dei modificatori nelle formule (es. 1d20+2[DEX]+2[PROF]).
 export const ABILITY_TAGS: Record<string, string> = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
 

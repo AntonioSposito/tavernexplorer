@@ -46,3 +46,9 @@
 .spell-level > .slot { margin-bottom: .5rem; }
 .spell-add { justify-self: start; margin-bottom: .5rem; }
 .cast-choice { display: grid; gap: .5rem; padding: 1rem; }
+
+/* Incantesimi preparati: pallino pieno; i non preparati sono attenuati. */
+.entry.unprepared summary .entry-use, .entry.unprepared summary strong { opacity: .55; }
+.entry-icons .prepared-toggle .dot { width: 11px; height: 11px; border: 2px solid hsl(var(--muted-foreground)); border-radius: 50%; background: transparent; }
+.entry-icons .prepared-toggle.on .dot { border-color: hsl(var(--primary)); background: hsl(var(--primary)); }
+.entry-icons .prepared-toggle:disabled { opacity: 1; cursor: default; }

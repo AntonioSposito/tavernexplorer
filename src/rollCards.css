@@ -17,3 +17,4 @@
 .r20-description summary { cursor: pointer; color: #7e2d40; font-weight: 600; }
 .r20-description p { margin: .3rem 0 0; }
 .r20-alert { margin: 0; padding: .35rem .6rem; border-bottom: 1px solid #e6dcc8; background: #fff1c2; color: #8a4b00; font-weight: 700; }
+.message-player { font-weight: 400; color: hsl(var(--muted-foreground)); }
