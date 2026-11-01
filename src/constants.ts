@@ -47,3 +47,12 @@ export const SKILL_LABELS: Record<string, string> = {
   stealth: "Furtività",
   survival: "Sopravvivenza",
 };
+
+// Sigle in stile Roll20 per le etichette dei modificatori nelle formule (es. 1d20+2[DEX]+2[PROF]).
+export const ABILITY_TAGS: Record<string, string> = { strength: "STR", dexterity: "DEX", constitution: "CON", intelligence: "INT", wisdom: "WIS", charisma: "CHA" };
+
+export const SKILL_ABILITIES: Record<string, string> = {
+  acrobatics: "dexterity", animal_handling: "wisdom", arcana: "intelligence", athletics: "strength", deception: "charisma", history: "intelligence",
+  insight: "wisdom", intimidation: "charisma", investigation: "intelligence", medicine: "wisdom", nature: "intelligence", perception: "wisdom",
+  performance: "charisma", persuasion: "charisma", religion: "intelligence", sleight_of_hand: "dexterity", stealth: "dexterity", survival: "wisdom",
+};

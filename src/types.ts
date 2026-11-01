@@ -176,8 +176,24 @@ export interface ChatMessage {
   formula?: string;
   total?: number;
   dice?: number[];
+  // Card in stile template Roll20; i messaggi senza card (vecchi o di testo) usano title/body.
+  card?: RollCard;
   visibility: Visibility;
   createdAt: number;
+}
+
+export interface RollCard {
+  name: string;
+  subtitle?: string;
+  // d20 naturali (due con vantaggio/svantaggio); il totale mostrato è dado + modifier.
+  // formula: quella tirata, con etichette (assente nelle card salvate prima delle etichette).
+  d20?: { label: string; formula?: string; dice: number[]; modifier: number; kept: number; mode: RollMode; critRange: number };
+  rolls: Array<{ label: string; formula: string; total: number; dice: number[]; type?: string; critical?: boolean }>;
+  // Valori senza tiro (card di "Mostra in chat"), es. Colpire +5, Danno 1d8+3.
+  stats?: Array<{ label: string; value: string; type?: string }>;
+  save?: { ability?: string; dc: number; effect?: string };
+  note?: string;
+  description?: string;
 }
 
 export interface Roll20Export {

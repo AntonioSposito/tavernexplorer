@@ -49,7 +49,7 @@ function rollSimple(formula: string): RollResult {
 // Un tiro accetta vantaggio/svantaggio solo se e' un singolo d20 con modificatore:
 // stessa condizione usata dalla UI per decidere se chiedere la modalita'.
 export function supportsRollMode(formula: string): boolean {
-  try { return /^1?d20([+-]\d+)?$/.test(sanitizeFormula(formula)); } catch { return false; }
+  try { return /^1?d20([+-]\d+)*$/.test(sanitizeFormula(formula)); } catch { return false; }
 }
 
 export function roll(formula: string, mode: RollMode = "normal"): RollResult {
@@ -58,7 +58,7 @@ export function roll(formula: string, mode: RollMode = "normal"): RollResult {
     const result = rollSimple(clean);
     return /^1?d20(?!\d)/.test(clean) ? { ...result, natural: result.dice[0] } : result;
   }
-  const modifier = Number(clean.match(/[+-]\d+$/)?.[0] ?? 0);
+  const modifier = (clean.match(/[+-]\d+/g) ?? []).reduce((sum, term) => sum + Number(term), 0);
   const first = randomInt(20);
   const second = randomInt(20);
   const kept = mode === "advantage" ? Math.max(first, second) : Math.min(first, second);

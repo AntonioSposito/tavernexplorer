@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { ABILITY_LABELS, SKILL_LABELS, TOKEN_META_KEY } from "./constants";
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { ABILITY_LABELS, ABILITY_TAGS, SKILL_ABILITIES, SKILL_LABELS, TOKEN_META_KEY } from "./constants";
 import { roll, supportsRollMode } from "./dice";
 import { importRoll20 } from "./importer";
 import { import5eToolsCampaign, import5eToolsMonsters } from "./import5etools";
@@ -16,6 +16,7 @@ import { ModifierEditor } from "./ModifierEditor";
 import { ResourcePanel } from "./ResourcePanel";
 import { effectiveSheet, modifierTotal } from "./effects";
 import { resolveAction, type ResolvedAction } from "./actions";
+import { buildRollCard, describeRoll, DESCRIPTION_LIMIT, labeledBonus, type AttackRoll } from "./rollCards";
 import { ActionForm } from "./ActionForm";
 import { TurnOrder } from "./TurnOrder";
 import { setTurnInitiative, stepTurn } from "./turns";
@@ -29,15 +30,13 @@ import {
   DEFAULT_PERMISSIONS, OBR, addSelectedTokenToTurns, broadcastMessage, getPermissions, getPlayerInfo, getTurnState,
   getSharedInventory, deleteSharedNote, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, getSharedNotes, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
-import type { ActionEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PermissionSettings, PlayerNote, CloudSheet, Roll20Export, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
+import type { ActionEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PermissionSettings, PlayerNote, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
 const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
 const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", campaigns: "Avventure", shared: "Inventario comune", library: "Libreria", settings: "Permessi" };
 type SheetTab = "main" | "actions" | "spells" | "inventory" | "traits" | "bio" | "edit";
 const SHEET_TAB_LABELS: Record<SheetTab, string> = { main: "Base", actions: "Azioni", spells: "Magia", inventory: "Zaino", traits: "Tratti", bio: "Bio", edit: "Modifica" };
 
-// Tiro d'attacco con danno automatico: critRange decide il critico sul d20 naturale.
-type AttackRoll = { critRange: number; damage?: string; critDamage?: string; damageType?: string };
 const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 const makeMessage = (partial: Partial<ChatMessage>): ChatMessage => ({
   id: crypto.randomUUID(), kind: "text", author: "Giocatore", body: "", visibility: "everyone", createdAt: Date.now(), ...partial,
@@ -175,20 +174,11 @@ export default function App() {
   }
 
   // Con `attack` il messaggio include anche il danno: critico se il d20 naturale è nella gamma, nessun danno con un 1 naturale.
-  async function executeRoll(title: string, formula: string, mode: RollMode, attack?: AttackRoll) {
+  async function executeRoll(name: string, formula: string, mode: RollMode, attack?: AttackRoll) {
     try {
       const result = roll(formula, mode);
-      let body = `${result.formula} → ${result.total}`;
-      if (attack && result.natural != null) {
-        const critical = result.natural >= attack.critRange;
-        if (result.natural === 1 && !critical) title += " — 1 naturale, mancato";
-        else {
-          if (critical) title += " — CRITICO!";
-          const damageFormula = critical ? attack.critDamage ?? attack.damage : attack.damage;
-          if (damageFormula) { const damage = roll(damageFormula); body += ` · ${critical ? "Danno critico" : "Danno"} ${damage.formula} → ${damage.total}${attack.damageType ? ` ${attack.damageType}` : ""}`; }
-        }
-      }
-      await publish(makeMessage({ kind: "roll", author: active?.name ?? player.name, characterId: active?.id, title, body, formula: result.formula, total: result.total, dice: result.dice, visibility }));
+      const { card, title, body } = buildRollCard(name, formula, result, mode, attack);
+      await publish(makeMessage({ kind: "roll", author: active?.name ?? player.name, characterId: active?.id, title, body, card, formula: result.formula, total: result.total, dice: result.dice, visibility }));
       if (active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
     } catch (error) {
       if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Tiro non valido", "ERROR");
@@ -197,10 +187,10 @@ export default function App() {
 
   function performRoll(title: string, formula: string, attack?: AttackRoll) { if (supportsRollMode(formula)) setRollRequest({ title, formula, attack }); else void executeRoll(title, formula, rollMode, attack); }
 
-  async function shareEntry(entry: ActionEntry | SpellEntry) {
+  // `card` arriva dalle liste della scheda con attacco, danno e TS già calcolati; senza, solo nome e descrizione.
+  async function shareEntry(entry: ActionEntry | SpellEntry, card?: RollCard) {
     try {
-      await publish(makeMessage({ kind: "share", author: active?.name ?? player.name, characterId: active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", visibility }));
-      if (!floatingView) setTab("messages");
+      await publish(makeMessage({ kind: "share", author: active?.name ?? player.name, characterId: active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: card ?? { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }
   }
 
@@ -317,9 +307,10 @@ export default function App() {
   async function rollTurnInitiative(entry: TurnEntry) {
     if (player.role !== "GM" && !permissions.playersManageTurns) return;
     try {
-      const result = roll(`1d20${signed(entry.initiativeBonus ?? 0)}`, "normal");
+      const formula = `1d20${signed(entry.initiativeBonus ?? 0)}`;
+      const result = roll(formula, "normal");
       if (!await changeTurns(setTurnInitiative(turns, entry.id, result.total))) return;
-      await publish(makeMessage({ kind: "roll", author: player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, formula: result.formula, total: result.total, dice: result.dice, visibility }));
+      await publish(makeMessage({ kind: "roll", author: player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, card: buildRollCard(`Iniziativa · ${entry.name}`, formula, result, "normal").card, formula: result.formula, total: result.total, dice: result.dice, visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Tiro iniziativa fallito", "ERROR"); }
   }
 
@@ -404,6 +395,8 @@ function SheetView({ sheet, editable, sheetTab, setSheetTab, rollMode, setRollMo
     onUpdate((next) => { const index = next.actions.findIndex((item) => item.id === entry.id); if (index >= 0) next.actions[index] = entry; else next.actions.push(entry); return next; });
     setEditingAction(null);
   };
+  const [reordering, setReordering] = useState(false);
+  const moveAction = (index: number, offset: number) => onUpdate((next) => { const [item] = next.actions.splice(index, 1); next.actions.splice(index + offset, 0, item); return next; });
   const deleteAction = (id: string) => { onUpdate((next) => { next.actions = next.actions.filter((item) => item.id !== id); return next; }); setEditingAction(null); };
   return <>
     <section className="hero">
@@ -418,7 +411,7 @@ function SheetView({ sheet, editable, sheetTab, setSheetTab, rollMode, setRollMo
     {!editable && <p className="party-owner">Sola lettura</p>}
     <div className={editable ? undefined : "readonly-sheet"}>
     {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onUpdate={onUpdate} editable={editable}/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
-    {sheetTab === "actions" && <div className="stack">{editable && <div className="library-actions"><Button onClick={() => setEditingAction("new")}>+ Nuova azione</Button></div>}<EntryList entries={sheet.actions} sheet={view} onRoll={onRoll} onShare={onShare} onEdit={editable ? setEditingAction : undefined} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/></div>}
+    {sheetTab === "actions" && <div className="stack">{editable && <div className="library-actions">{!reordering && <Button onClick={() => setEditingAction("new")}>+ Nuova azione</Button>}{sheet.actions.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}{editable && reordering ? <ol className="order-list">{sheet.actions.map((entry, index) => <li key={entry.id}><span>{entry.name}</span><Button variant="outline" aria-label={`Sposta su ${entry.name}`} disabled={index === 0} onClick={() => moveAction(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${entry.name}`} disabled={index === sheet.actions.length - 1} onClick={() => moveAction(index, 1)}>↓</Button></li>)}</ol> : <EntryList entries={sheet.actions} sheet={view} onRoll={onRoll} onShare={onShare} onEdit={editable ? setEditingAction : undefined} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}</div>}
     {sheetTab === "spells" && <Spells sheet={view} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "inventory" && <Inventory sheet={sheet} onUpdate={onUpdate}/>}
     {sheetTab === "traits" && <EntryList entries={sheet.traits.map((trait) => ({ ...trait, source: trait.source }))} onRoll={onRoll} onShare={onShare}/>}
@@ -442,30 +435,46 @@ function DeepCharacterEditor({ sheet, onUpdate }: { sheet: CharacterSheet; onUpd
 function MainSheet({ sheet, onRoll, onUpdate, editable }: { sheet: CharacterSheet; onRoll: (title: string, formula: string) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; editable: boolean }) {
   return <div className="stack">
     <section className="combat-grid">
-      <Metric label="CA" value={sheet.combat.ac}/><Metric label="Iniziativa" value={signed(sheet.combat.initiative)} onClick={() => onRoll("Iniziativa", `1d20${signed(sheet.combat.initiative)}`)}/><Metric label="Velocità" value={sheet.combat.speed}/><Metric label="Competenza" value={signed(sheet.combat.proficiencyBonus)}/><Metric label="Percezione passiva" value={sheet.combat.passivePerception}/><Metric label="CD incantesimi" value={sheet.spellcasting.saveDc}/>
+      <Metric label="CA" value={sheet.combat.ac}/><Metric label="Iniziativa" value={signed(sheet.combat.initiative)} onClick={() => onRoll("Iniziativa", `1d20${labeledBonus([[sheet.abilities.dexterity?.mod ?? 0, "DEX"]], sheet.combat.initiative)}`)}/><Metric label="Velocità" value={sheet.combat.speed}/><Metric label="Competenza" value={signed(sheet.combat.proficiencyBonus)}/><Metric label="Percezione passiva" value={sheet.combat.passivePerception}/><Metric label="CD incantesimi" value={sheet.spellcasting.saveDc}/>
     </section>
     <HitPointControl sheet={sheet} editable={editable} onUpdate={onUpdate}/>
-    <section className="abilities">{Object.entries(sheet.abilities).map(([key, stat]) => <article key={key}><button onClick={() => onRoll(ABILITY_LABELS[key] ?? key, `1d20${signed(stat.mod)}`)}><small>{ABILITY_LABELS[key] ?? key}</small><strong>{stat.score}</strong><span>{signed(stat.mod)}</span></button><button className={stat.saveProficient ? "proficient" : ""} onClick={() => onRoll(`TS ${ABILITY_LABELS[key] ?? key}`, `1d20${signed(stat.save)}`)}>TS {signed(stat.save)}</button></article>)}</section>
-    <section className="paper"><h2>Abilità</h2><div className="skills">{Object.entries(sheet.skills).map(([key, skill]) => <button key={key} onClick={() => onRoll(SKILL_LABELS[key] ?? key, `1d20${signed(skill.bonus)}`)}><span className={skill.proficient ? "dot filled" : "dot"}/><span>{SKILL_LABELS[key] ?? key}</span><strong>{signed(skill.bonus)}</strong></button>)}</div></section>
+    <section className="abilities">{Object.entries(sheet.abilities).map(([key, stat]) => <article key={key}><button onClick={() => onRoll(ABILITY_LABELS[key] ?? key, `1d20${labeledBonus([[stat.mod, ABILITY_TAGS[key] ?? ""]], stat.mod)}`)}><small>{ABILITY_LABELS[key] ?? key}</small><strong>{stat.score}</strong><span>{signed(stat.mod)}</span></button><button className={stat.saveProficient ? "proficient" : ""} onClick={() => onRoll(`TS ${ABILITY_LABELS[key] ?? key}`, `1d20${labeledBonus([[stat.mod, ABILITY_TAGS[key] ?? ""], [stat.saveProficient ? sheet.combat.proficiencyBonus : 0, "PROF"]], stat.save)}`)}>TS {signed(stat.save)}</button></article>)}</section>
+    <section className="paper"><h2>Abilità</h2><div className="skills">{Object.entries(sheet.skills).map(([key, skill]) => <button key={key} onClick={() => onRoll(SKILL_LABELS[key] ?? key, `1d20${labeledBonus([[sheet.abilities[SKILL_ABILITIES[key]]?.mod ?? 0, ABILITY_TAGS[SKILL_ABILITIES[key]] ?? ""], [skill.proficient ? sheet.combat.proficiencyBonus : 0, "PROF"]], skill.bonus)}`)}><span className={skill.proficient ? "dot filled" : "dot"}/><span>{SKILL_LABELS[key] ?? key}</span><strong>{signed(skill.bonus)}</strong></button>)}</div></section>
   </div>;
 }
 
 function Metric({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) { const content = <><strong>{value}</strong><small>{label}</small></>; return onClick ? <button className="metric" onClick={onClick}>{content}</button> : <div className="metric">{content}</div>; }
 
+const ChatIcon = () => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+const EditIcon = () => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
+
 // Con `sheet` le azioni sono calcolate dalla scheda (form attacchi); senza, si usano i valori fissi (mostri, tratti).
-function EntryList({ entries, sheet, onRoll, onShare, onEdit, attackModifier = 0, damageModifier = 0 }: { entries: ActionEntry[]; sheet?: CharacterSheet; onRoll: (title: string, formula: string, attack?: AttackRoll) => void; onShare: (entry: ActionEntry) => void; onEdit?: (entry: ActionEntry) => void; attackModifier?: number; damageModifier?: number }) {
+function EntryList({ entries, sheet, onRoll, onShare, onEdit, attackModifier = 0, damageModifier = 0 }: { entries: ActionEntry[]; sheet?: CharacterSheet; onRoll: (title: string, formula: string, attack?: AttackRoll) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; onEdit?: (entry: ActionEntry) => void; attackModifier?: number; damageModifier?: number }) {
   if (!entries.length) return <Empty/>;
   const extra = damageModifier === 0 ? "" : signed(damageModifier);
+  const tagged = (value: number) => value === 0 ? "" : `${signed(value)}[EFFECTS]`;
   return <section className="entry-list">{entries.map((entry) => {
     const resolved: ResolvedAction = sheet ? resolveAction(sheet, entry) : { attackBonus: entry.attackBonus, damage: entry.damage, damageType: entry.damageType, saveDc: entry.saveDc, critRange: 20 };
     const attack = resolved.attackBonus == null ? null : resolved.attackBonus + attackModifier;
+    const save = resolved.saveDc == null ? undefined : { ability: resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : undefined, dc: resolved.saveDc, effect: resolved.saveEffect };
+    const extras = { critRange: resolved.critRange, damageType: resolved.damageType, range: entry.range, save, description: entry.description };
+    const stats = [
+      ...attack != null ? [{ label: "Colpire", value: signed(attack), type: resolved.critRange < 20 ? `critico ${resolved.critRange}-20` : undefined }] : [],
+      ...resolved.damage ? [{ label: "Danno", value: `${resolved.damage}${extra}`, type: resolved.damageType }] : [],
+    ];
+    const shareCard: RollCard = { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], stats, save, description: entry.description?.slice(0, DESCRIPTION_LIMIT) || undefined };
     const details = [
       entry.range && `Gittata ${entry.range}`,
       resolved.damageType,
       resolved.saveDc != null && `TS ${resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : ""} CD ${resolved.saveDc}${resolved.saveEffect ? ` (${resolved.saveEffect})` : ""}`.replace("TS  CD", "CD"),
       attack != null && resolved.critRange < 20 && `Critico ${resolved.critRange}-20`,
     ].filter(Boolean).join(" · ");
-    return <details key={entry.id} className="entry"><summary><span><strong>{entry.name}</strong><small>{entry.source}</small></span><span>{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p><div className="entry-actions">{attack != null && <button onClick={() => onRoll(`${entry.name} — attacco`, `1d20${signed(attack)}`, { critRange: resolved.critRange, damage: resolved.damage && `${resolved.damage}${extra}`, critDamage: resolved.critDamage && `${resolved.critDamage}${extra}`, damageType: resolved.damageType })}>Attacco</button>}{attack == null && resolved.damage && <button onClick={() => onRoll(`${entry.name} — danno`, `${resolved.damage}${extra}`)}>Danno</button>}<button onClick={() => onShare(entry)}>Mostra</button>{onEdit && <button onClick={() => onEdit(entry)}>Modifica</button>}</div></details>;
+    // Il nome usa l'azione (attacco con danno, oppure solo danno); le icone condividono e modificano. preventDefault evita di aprire il dettaglio.
+    const use = attack != null
+      ? () => onRoll(entry.name, `${resolved.attackFormula ?? `1d20${signed(resolved.attackBonus ?? 0)}`}${tagged(attackModifier)}`, { ...extras, damage: (resolved.damageFormula ?? resolved.damage) && `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, critDamage: (resolved.critDamageFormula ?? resolved.critDamage) && `${resolved.critDamageFormula ?? resolved.critDamage}${tagged(damageModifier)}` })
+      : resolved.damage ? () => onRoll(entry.name, `${resolved.damageFormula ?? resolved.damage}${tagged(damageModifier)}`, extras) : null;
+    const stop = (action: () => void) => (event: ReactMouseEvent) => { event.preventDefault(); action(); };
+    return <details key={entry.id} className="entry"><summary><span>{use ? <button className="entry-use" title={attack != null ? "Tira attacco e danno" : "Tira danno"} onClick={stop(use)}>{entry.name}</button> : <strong>{entry.name}</strong>}<small>{entry.source}</small></span><span className="entry-values">{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span><span className="entry-icons"><button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={stop(() => onShare(entry, shareCard))}><ChatIcon/></button>{onEdit && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={stop(() => onEdit(entry))}><EditIcon/></button>}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p></details>;
   })}</section>;
 }
 
@@ -485,8 +494,24 @@ function Messages({ messages, draft, setDraft, visibility, setVisibility, onSend
   useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [messages.length, filter]);
   return <div className="messages">
     <nav className="message-filters" aria-label="Filtra messaggi">{([ ["all", "Tutti"], ["everyone", "Pubblici"], ["gm", "GM"], ["self", "Personali"] ] as const).map(([id, label]) => <button key={id} className={filter === id ? "active" : ""} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</nav>
-    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}`}><header><strong>{message.author}</strong><small>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</article>)}</section>
+    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}`}><header><strong>{message.author}</strong><small>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
     <section className="composer"><textarea aria-label="Nuovo messaggio" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim()) onSend(); } }} placeholder="Scrivi un messaggio…"/><div><select aria-label="Destinatari" value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select><button className="primary" disabled={!draft.trim()} onClick={onSend}>Invia</button></div>{visibility === "gm" && <small className="composer-note">Il GM deve avere l'estensione aperta almeno una volta per ricevere messaggi cifrati.</small>}</section>
+  </div>;
+}
+
+const MODE_LABELS: Record<RollMode, string> = { normal: "", advantage: " (vantaggio)", disadvantage: " (svantaggio)" };
+
+// Card ispirata ai template "D&D 5e by Roll20": ogni numero ha un'etichetta, i dadi sono nel tooltip.
+function RollCardView({ card }: { card: RollCard }) {
+  const d20 = card.d20;
+  return <div className="r20-card">
+    <header><strong>{card.name}</strong>{card.subtitle && <small>{card.subtitle}</small>}</header>
+    {d20 && <div className="r20-row"><span className="r20-label">{d20.label}{MODE_LABELS[d20.mode]}</span><span className="r20-values">{d20.dice.map((die, index) => <span key={index} title={d20.formula ? describeRoll(d20.formula, [die]) : undefined} className={["r20-roll", die >= d20.critRange && "crit", die === 1 && "fumble", d20.dice.length > 1 && index !== d20.kept && "dropped"].filter(Boolean).join(" ")}>{die + d20.modifier}</span>)}</span></div>}
+    {card.rolls.map((row, index) => <div className="r20-row" key={index}><span className="r20-label">{row.label}</span><span className="r20-values"><span title={describeRoll(row.formula, row.dice)} className={`r20-roll${row.critical ? " crit" : ""}`}>{row.total}</span>{row.type && <em>{row.type}</em>}</span></div>)}
+    {card.stats?.map((stat) => <div className="r20-row" key={stat.label}><span className="r20-label">{stat.label}</span><span className="r20-values"><strong>{stat.value}</strong>{stat.type && <em>{stat.type}</em>}</span></div>)}
+    {card.save && <div className="r20-row"><span className="r20-label">Tiro salvezza</span><span className="r20-values"><strong>CD {card.save.dc}</strong>{card.save.ability && <em>{card.save.ability}</em>}</span>{card.save.effect && <small className="r20-effect">{card.save.effect}</small>}</div>}
+    {card.note && <p className="r20-note">{card.note}</p>}
+    {card.description && (d20 || card.rolls.length ? <details className="r20-description"><summary>Descrizione</summary><p>{card.description}</p></details> : <p className="r20-description">{card.description}</p>)}
   </div>;
 }
 

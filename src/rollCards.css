@@ -1,0 +1,18 @@
+/* Card dei tiri ispirate ai template "D&D 5e by Roll20": carta chiara, intestazione bordeaux, risultati in riquadri. */
+.r20-card { max-width: 28rem; margin-top: .35rem; border: 1px solid #b9a98a; border-radius: 6px; background: #fdfaf3; color: #2b2118; overflow: hidden; font-size: .85rem; }
+.r20-card header { display: flex; flex-direction: column; padding: .4rem .6rem; background: #7e2d40; color: #fff; }
+.r20-card header strong { font-size: .95rem; }
+.r20-card header small { color: #f1dfe3; font-style: italic; }
+.r20-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem .6rem; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; }
+.r20-label { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #7e2d40; }
+.r20-values { display: flex; align-items: center; gap: .35rem; }
+.r20-values em { color: #5b4a3a; }
+.r20-roll { min-width: 2.2rem; padding: .1rem .4rem; border: 2px solid #c9b98f; border-radius: 4px; background: #fef68e; color: #000; font-weight: 700; text-align: center; cursor: help; }
+.r20-roll.crit { border-color: #3fb315; }
+.r20-roll.fumble { border-color: #b31515; }
+.r20-roll.dropped { opacity: .45; }
+.r20-effect { flex-basis: 100%; color: #5b4a3a; }
+.r20-note { margin: 0; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; color: #b31515; font-weight: 600; }
+.r20-description { margin: 0; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; white-space: pre-wrap; }
+.r20-description summary { cursor: pointer; color: #7e2d40; font-weight: 600; }
+.r20-description p { margin: .3rem 0 0; }

@@ -137,8 +137,7 @@ it("crea una nuova azione e converte un'azione importata senza cambiarne i tiri"
   await settle();
   await click("Azioni");
 
-  const edit = [...host.querySelectorAll(".entry-actions button")].find((button) => button.textContent === "Modifica") as HTMLButtonElement;
-  await act(async () => edit.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Pugnale"]')!.click());
   await click("Salva");
   await click("+ Nuova azione");
   await type(".action-form input", "Spada lunga");
@@ -163,13 +162,38 @@ it("l'attacco tira anche il danno, critico se il d20 naturale è nella gamma", a
   await act(async () => root.render(<App/>));
   await settle();
   await click("Azioni");
-  expect([...host.querySelectorAll(".entry-actions button")].map((button) => button.textContent)).toEqual(["Attacco", "Mostra", "Modifica"]);
+  expect([...host.querySelectorAll(".entry-icons button")].map((button) => button.getAttribute("aria-label"))).toEqual(["Mostra in chat Spada", "Modifica Spada"]);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Mostra in chat Spada"]')!.click());
+  expect(host.querySelector<HTMLDetailsElement>(".entry")?.open).toBe(false);
+  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
   vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 18; return array; });
-  await click("Attacco");
+  await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
   await click("Normale");
   vi.restoreAllMocks();
   expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
   await click("Messaggi");
-  expect(host.textContent).toContain("Spada — attacco — CRITICO!");
-  expect(host.textContent).toMatch(/1d20\+5 → 24 · Danno critico 1d8\+1d8\+3 → \d+ Tagliente/);
+  const card = host.querySelectorAll(".r20-card")[1];
+  expect(card.querySelector("header")?.textContent).toBe("Spada");
+  expect([...card.querySelectorAll(".r20-row")].map((row) => row.textContent)).toEqual(["Colpire24", "Danno critico9Tagliente"]);
+  expect(card.querySelector(".r20-roll.crit")?.textContent).toBe("24");
+  expect([...card.querySelectorAll(".r20-roll")].map((roll) => roll.getAttribute("title"))).toEqual(["Roll 1d20 + 3[STR] + 2[PROF] = (19) + 3 + 2", "Roll 1d8 + 1d8 + 3[STR] = (3) + (3) + 3"]);
+  const shared = host.querySelectorAll(".r20-card")[0];
+  expect([...shared.querySelectorAll(".r20-row")].map((row) => row.textContent)).toEqual(["Colpire+5critico 19-20", "Danno1d8+3Tagliente"]);
+});
+
+it("riordina le azioni con Modifica ordine e salva il nuovo ordine", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.actions = [{ id: "a", name: "Arco" }, { id: "b", name: "Bastone" }, { id: "c", name: "Coltello" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+  await click("Modifica ordine");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta giù Arco"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Coltello"]')!.click());
+  expect([...host.querySelectorAll(".order-list li span")].map((item) => item.textContent)).toEqual(["Bastone", "Coltello", "Arco"]);
+  await click("Fine");
+  expect([...host.querySelectorAll(".entry summary strong")].map((item) => item.textContent)).toEqual(["Bastone", "Coltello", "Arco"]);
+  await settle(1_700);
+  expect(cloudSheet().sheet.actions.map((action: { name: string }) => action.name)).toEqual(["Bastone", "Coltello", "Arco"]);
 });

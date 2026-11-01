@@ -42,6 +42,7 @@ describe("dice", () => {
     expect(supportsRollMode("1d20+5")).toBe(true);
     expect(supportsRollMode("d20+5")).toBe(true);
     expect(supportsRollMode(" 1d20 - 1 ")).toBe(true);
+    expect(supportsRollMode("1d20+2[DEX]+2[PROF]")).toBe(true);
     expect(supportsRollMode("2d6+3")).toBe(false);
     expect(supportsRollMode("2d20")).toBe(false);
     expect(supportsRollMode("1d8+3;drop")).toBe(false);

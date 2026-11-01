@@ -21,3 +21,16 @@
 .action-form-preview{margin:0;font-size:.8rem;color:hsl(var(--primary))}
 .action-form-buttons{display:flex;justify-content:flex-end;gap:.5rem}
 .entry-meta{margin:0 0 .35rem;font-size:.75rem;color:hsl(var(--muted-foreground))}
+
+/* Riordino azioni: una riga per azione con frecce su/giù. */
+.order-list { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.order-list li { display: flex; align-items: center; gap: .4rem; padding: .4rem .6rem; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--card)); }
+.order-list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Riga azione: il nome tira, le icone condividono e modificano senza aprire il dettaglio. */
+.entry summary .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
+.entry summary .entry-use:hover { text-decoration-style: solid; }
+.entry summary .entry-values { margin-left: auto; color: #e7b467; }
+.entry summary .entry-icons { display: flex; gap: .25rem; }
+.entry-icons button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
+.entry-icons button:hover { color: hsl(var(--primary)); }

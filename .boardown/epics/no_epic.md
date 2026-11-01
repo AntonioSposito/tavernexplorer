@@ -628,7 +628,7 @@ order: 3600
 id: TE-45
 type: bug
 priority: medium
-status: todo
+status: done
 order: 3700
 ---
 
