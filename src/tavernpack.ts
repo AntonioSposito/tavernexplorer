@@ -14,7 +14,8 @@ function validateCounter(value: unknown): boolean {
   return !!counter && typeof counter.id === "string" && typeof counter.name === "string"
     && typeof counter.current === "number" && Number.isInteger(counter.current) && counter.current >= 0
     && typeof counter.max === "number" && Number.isInteger(counter.max) && counter.max >= 1 && counter.current <= counter.max
-    && (counter.recovery === "none" || counter.recovery === "short" || counter.recovery === "long");
+    && (counter.recovery === "none" || counter.recovery === "short" || counter.recovery === "long")
+    && (counter.itemId === undefined || typeof counter.itemId === "string") && (counter.traitId === undefined || typeof counter.traitId === "string");
 }
 
 export function parseCharacterSheet(value: unknown): CharacterSheet {

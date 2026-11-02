@@ -44,6 +44,8 @@ export interface ActionEntry {
   critRange?: number;
   damages?: ActionDamage[];
   save?: { ability: Exclude<ActionAbility, "spell" | "none">; dc: "spell" | number; effect: string };
+  // Risorsa (sheet.counters) che l'azione consuma, una per uso: es. Frecce per l'arco lungo.
+  resourceId?: string;
 }
 
 export interface SpellEntry extends ActionEntry {
@@ -106,6 +108,9 @@ export interface ResourceCounter {
   current: number;
   max: number;
   recovery: CounterRecovery;
+  // Creata da "Crea risorsa": con itemId la quantità dell'oggetto dello zaino è il valore attuale.
+  itemId?: string;
+  traitId?: string;
 }
 
 export interface TraitEntry {

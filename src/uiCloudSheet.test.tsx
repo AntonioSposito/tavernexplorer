@@ -634,6 +634,57 @@ it("dallo zaino apre Nuova azione precompilata e la crea solo al salvataggio", a
   expect(cloudSheet().sheet.actions).toMatchObject([{ name: "Longsword", attack: { ability: "strength", proficient: true }, damages: [{ dice: "1d8", type: "Tagliente" }] }]);
 });
 
+it("Crea risorsa dallo zaino e dai tratti: frecce collegate alla quantità, tratto con recupero scelto", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [{ name: "Frecce", count: 20, _rowid: "arrows" }], traits: [{ name: "Recupero energie", description: "Recuperi PF.", _rowid: "wind" }] } });
+  sheet.actions = [{ id: "bow", name: "Arco lungo", damage: "1d8" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Zaino");
+  await click("Crea risorsa");
+  expect(host.querySelector(".ui-dialog h2")?.textContent).toBe("Nuova risorsa");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Massimo risorsa"]')!.value).toBe("20");
+  // Dal popup risorsa si sceglie l'azione che la consuma.
+  const bow = [...host.querySelectorAll<HTMLLabelElement>(".ui-dialog label")].find((label) => label.textContent?.includes("Arco lungo"))!.querySelector("input")!;
+  await act(async () => bow.click());
+  await dialogButton("Aggiungi");
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent === "Crea risorsa")).toBe(false);
+  await click("Modifica risorsa");
+  expect(host.querySelector(".ui-dialog h2")?.textContent).toBe("Modifica risorsa");
+  await dialogButton("Annulla");
+
+  await click("Tratti");
+  await click("Crea risorsa");
+  const recovery = host.querySelector<HTMLSelectElement>('select[aria-label="Recupero risorsa"]')!;
+  await act(async () => { recovery.value = "short"; recovery.dispatchEvent(new Event("change", { bubbles: true })); });
+  await dialogButton("Aggiungi");
+  await settle(1_700);
+  const saved = cloudSheet().sheet;
+  expect(saved.counters).toMatchObject([
+    { name: "Frecce", current: 20, max: 20, recovery: "none", itemId: saved.inventory[0].id },
+    { name: "Recupero energie", current: 1, max: 1, recovery: "short", traitId: saved.traits[0].id },
+  ]);
+  expect(saved.actions[0].resourceId).toBe(saved.counters[0].id);
+
+  // Usare l'azione scala una freccia dallo zaino.
+  await click("Azioni");
+  await click("Arco lungo");
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory[0].count).toBe(19);
+
+  await click("Scheda");
+  await click("Base");
+  await click("Riduci Frecce");
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory[0].count).toBe(18);
+  expect(host.textContent).toContain("18 / 20");
+
+  await click("Messaggi");
+  expect(host.textContent).toContain("Frecce −1 (19/20)");
+  expect(host.textContent).toContain("Eroe usa Frecce: 18/20");
+}, 10_000);
+
 it("riordina lo zaino e mette in cima gli equipaggiati senza cambiare l'ordine salvato", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [
     { name: "Corda", _rowid: "rope" }, { name: "Torcia", _rowid: "torch" }, { name: "Spada", equipped: true, _rowid: "sword" },

@@ -1,5 +1,6 @@
 import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
+import { syncCountersFromItems, syncItemsFromCounters } from "./resources";
 import { getRuleset } from "./rulesets";
 import type { CharacterSheet, CounterRecovery, ResourceCounter } from "./types";
 
@@ -43,8 +44,10 @@ export function takeShortRest(sheet: CharacterSheet, diceToSpend: number, rollDi
   next.combat.hitDice.current -= diceToSpend;
   if (pools.length) next.combat.hitDicePools = pools;
   if (next.spellcasting.slotRecovery === "short") for (const slot of Object.values(next.spellcasting.slots)) slot.used = 0;
+  syncCountersFromItems(next);
   const counters = restoreCounters(next.counters ?? [], "short");
   next.counters = counters.counters;
+  syncItemsFromCounters(next);
   return { sheet: next, healed: Math.max(0, next.combat.hp.current - sheet.combat.hp.current), spentDice: diceToSpend, rolls, restoredCounters: counters.restored };
 }
 
@@ -59,7 +62,9 @@ export function takeLongRest(sheet: CharacterSheet): RestResult {
   hitDice.current = Math.min(hitDice.max, hitDice.current + getRuleset(sheet.ruleset.id).hitDiceRecoveredOnLongRest(hitDice.max));
   for (const pool of next.combat.hitDicePools ?? []) pool.current = Math.min(pool.max, pool.current + getRuleset(sheet.ruleset.id).hitDiceRecoveredOnLongRest(pool.max));
   for (const slot of Object.values(next.spellcasting.slots)) slot.used = 0;
+  syncCountersFromItems(next);
   const counters = restoreCounters(next.counters ?? [], "long");
   next.counters = counters.counters;
+  syncItemsFromCounters(next);
   return { sheet: next, healed: Math.max(0, maximum - sheet.combat.hp.current), spentDice: 0, rolls: [], restoredCounters: counters.restored };
 }

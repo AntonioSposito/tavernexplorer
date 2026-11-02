@@ -138,40 +138,13 @@ order: 1500
 
 **Test.** `blankSheet.test.ts`: forma valida (round trip TavernPack) e ricalcolo dei derivati sull'esempio sopra.
 
-## PF dei mostri nel turn order
-
----
-id: TE-24
-type: feature
-priority: high
-status: todo
-order: 1600
----
-
-**Contesto.** `TurnEntry` (`types.ts`) non ha PF. I PF esistono solo sulle schede PG condivise, letti da `tokenStatus.ts`. Il GM non può tracciare goblin #1/#2/#3. I mostri entrano nel tracker da `Bestiary.onAddTurn` → `addSelectedTokenToTurns` (`obr.ts:57`). `MonsterSheet.hp` ha `average` e `formula`.
-
-**Da fare.**
-- `TurnEntry.hp?: { current: number; max: number; temp: number }`, usato solo per voci senza `characterId` di PG (mostri o PNG).
-- Quando si aggiunge un mostro al tracker: opzione "PF medi" (default) o "Tira PF" (`roll(hp.formula)`). Se più token sono selezionati, ogni voce riceve PF propri e un suffisso numerico al nome (Goblin 1, Goblin 2).
-- In `TurnOrder.tsx`, modalità ⚙ (solo `canManage`): mini-form danni/cura/temporanei che riusa `applyHitPointAction` da `hitPoints.ts` (non duplicare la logica). Funzione pura `applyTurnHitPoints(state, entryId, action, amount)` in `turns.ts`.
-- A 0 PF: voce barrata con pulsante "Rimuovi" (non rimuoverla in automatico).
-- `tokenStatusText`: per i mostri il GM vede `PF x/y`, i giocatori solo uno stato descrittivo (Illeso / Ferito / Sanguinante sotto il 50% / A terra), mai il numero. Le voci `hidden` non mostrano nulla ai giocatori.
-- Spazio: i metadata della room hanno una soglia di 14.000 byte (`roomMetadata.ts`). Verificare con 20 mostri nel tracker che la scrittura passi.
-
-**Accettazione.**
-- Due Goblin aggiunti con PF medi 7: danni 5 al primo → 2/7, il secondo resta 7/7.
-- Il giocatore vede "Ferito" sul token, il GM vede "PF 2/7".
-- Turni avanti e indietro non alterano i PF.
-
-**Test.** `turns.test.ts`: `applyTurnHitPoints` con temporanei, cura sopra il massimo e voce inesistente. `tokenStatus.test.ts`: testo per GM e per giocatore, voce nascosta.
-
 ## Tiri salvezza contro la morte
 
 ---
 id: TE-25
 type: feature
 priority: high
-status: todo
+status: done
 order: 1700
 ---
 
@@ -189,31 +162,6 @@ order: 1700
 - Cura da 0 → contatori azzerati, `stable`/`dead` rimossi.
 
 **Test.** `hitPoints.test.ts`: tutti i casi sopra, più danno critico a 0 PF.
-
-## Colpi critici sui danni
-
----
-id: TE-26
-type: feature
-priority: high
-status: todo
-order: 1800
----
-
-**Contesto.** `Ruleset.criticalDamage` (`rulesets.ts`) raddoppia i dadi, ma nessuno lo chiama. In `App.tsx` `EntryList` e `Spells` hanno pulsanti separati per attacco e danno. `executeRoll` pubblica un `ChatMessage` con `dice`.
-
-**Da fare.**
-- Rilevare il 20 naturale: in `roll()` (`dice.ts`) aggiungere `natural?: number` al `RollResult` per i tiri d20 singoli (con vantaggio/svantaggio: il dado tenuto). Salvarlo nel `ChatMessage` (`critical?: boolean`).
-- Nel messaggio di un attacco critico mostrare il pulsante "Danno critico", che tira `getRuleset(sheet.ruleset.id).criticalDamage(formula)` sulla stessa azione. Serve collegare messaggio e azione: aggiungere `actionId?: string` al messaggio di attacco.
-- Anche il pulsante danno sulla scheda accetta un toggle "Critico".
-- Mostri (`Bestiary`): stesso comportamento per le loro azioni.
-- 1 naturale: etichetta "Mancato automaticamente" nel messaggio.
-
-**Accettazione.**
-- `1d8+3` critico → `2d8+3`; `2d6+1d4+2` → `4d6+2d4+2`.
-- Il pulsante compare solo sul messaggio dell'autore (o al GM) e solo per attacchi con 20 naturale.
-
-**Test.** `dice.test.ts`: `natural` con vantaggio e svantaggio (`randomInt` mockato). `rulesets.test.ts` copre già il raddoppio: aggiungere la formula con più gruppi di dadi.
 
 ## Indebolimento 2024
 
@@ -679,24 +627,28 @@ order: 3900
 
 **Accettazione.** Da riga chiusa si attacca/lancia e si apre il form di modifica con un clic; chi ha sola lettura non vede la matita.
 
-## Risorse collegate agli oggetti dello zaino
+## Creare risorse da zaino e tratti
 
 ---
 id: TE-48
 type: feature
 priority: medium
-status: todo
+status: done
 order: 4000
 ---
 
-**Contesto.** Le Risorse (`ResourcePanel`, `sheet.counters`) e la quantità degli oggetti dello Zaino (`InventoryEntry.count`) sono separate: frecce, dardi o pozioni vanno tenuti a mano in due posti.
+**Contesto.** Le Risorse (`ResourcePanel`, `sheet.counters`) sono separate dallo Zaino (`InventoryEntry.count`) e dai Tratti (`TraitEntry`): frecce, pozioni o usi di un tratto (es. "Recupero energie") vanno creati e tenuti a mano.
 
 **Da fare.**
-- Creare una risorsa da un oggetto dello zaino (es. "Usa come risorsa" nel popup oggetto, come "Use as a resource" di Roll20), per munizioni e consumabili.
-- Collegare il contatore della risorsa all'oggetto: −/+ della risorsa cambia la quantità dell'oggetto e viceversa; il massimo resta della risorsa.
-- Valutare il collegamento dalle azioni (es. un attacco con arco consuma una freccia), come "Ammo tracking" di Roll20.
+- Pulsante "Crea risorsa" accanto a "Crea azione", nel dettaglio espanso della voce: oggetto dello zaino (`InventoryPanel.tsx`, `library-actions`) e tratto (`App.tsx`, `entry-actions`), visibile solo a chi può modificare (come "Use as a resource" di Roll20). Apre il popup risorsa precompilato con il nome della voce.
+- Zaino: collegare il contatore della risorsa all'oggetto: −/+ della risorsa cambia la quantità dell'oggetto e viceversa; il massimo resta della risorsa.
+- Tratti: il tratto non ha quantità; la risorsa resta collegata al tratto (nome, eliminazione) con massimo e recupero (breve/lungo/nessuno) scelti nel popup.
+- Se la voce ha già una risorsa collegata, al posto di "Crea risorsa" si mostra il collegamento invece di crearne un'altra.
+- Collegare le azioni alla risorsa (1 per uso, come "Ammo tracking" di Roll20): dal popup azione, dal popup risorsa e quindi dallo zaino ("Modifica risorsa" quando la risorsa esiste). Usare l'azione scala la risorsa; ogni uso compare in chat.
 
-**Accettazione.** Una risorsa "Frecce" creata da un oggetto scala la quantità nello zaino e la quantità modificata nello zaino si vede nella risorsa.
+**Accettazione.**
+- Una risorsa "Frecce" creata da un oggetto scala la quantità nello zaino e la quantità modificata nello zaino si vede nella risorsa.
+- Da un tratto "Recupero energie" si crea una risorsa con massimo 1 e recupero breve, che compare in Risorse.
 
 ## Segnalare all'import da Roll20 ciò che non viene importato
 

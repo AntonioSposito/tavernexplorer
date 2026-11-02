@@ -103,6 +103,8 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
       </div>}
     </fieldset>
 
+    {(sheet.counters ?? []).length > 0 && <label><span>Consuma risorsa (1 per uso)</span><Select aria-label="Risorsa consumata" value={draft.resourceId ?? ""} onChange={(event) => patch({ resourceId: event.target.value || undefined })}><option value="">Nessuna</option>{sheet.counters!.map((counter) => <option key={counter.id} value={counter.id}>{counter.name}</option>)}</Select></label>}
+
     <label><span>Descrizione</span><Textarea value={draft.description ?? ""} onChange={(event) => patch({ description: event.target.value || undefined })}/></label>
 
     {preview && <p className="action-form-preview">{[preview.attackBonus != null && `Attacco ${signed(preview.attackBonus)}`, preview.damage && `Danno ${preview.damage}`, preview.attackBonus != null && preview.critDamage && `Critico ${preview.critDamage}`, preview.saveDc != null && `CD ${preview.saveDc}`].filter(Boolean).join(" · ") || "Nessun tiro"}</p>}

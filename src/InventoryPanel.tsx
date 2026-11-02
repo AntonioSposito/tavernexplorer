@@ -7,7 +7,9 @@ import { ModifierEditor } from "./ModifierEditor";
 import { storage } from "./storage";
 import { modifierTags } from "./effects";
 import { actionFromItem, itemModifierList, modifiersFromText, parseItemModifiers } from "./itemModifiers";
-import type { ActionEntry, CharacterSheet, InventoryEntry, RollCard, StatModifier } from "./types";
+import { CreateResource } from "./ResourcePanel";
+import { counterForItem, counterFromItem, unlinkCounters } from "./resources";
+import type { ActionEntry, CharacterSheet, InventoryEntry, ResourceCounter, RollCard, StatModifier } from "./types";
 import { Button, Card, Dialog, Input, Textarea } from "./ui";
 
 // I pesi restano salvati in libbre (come Roll20 e 5e.tools); si mostrano e si scrivono in kg
@@ -29,7 +31,7 @@ const draftOf = (item: InventoryEntry | null): Draft => item
   ? { id: item.id, name: item.name, count: item.count == null ? "" : String(item.count), weight: item.weight == null ? "" : String(toKg(item.weight)), equipped: item.equipped, modifiers: [...item.modifiers ?? [], ...modifiersFromText(item.modifiersText)], unknown: parseItemModifiers(item.modifiersText).unknown.join(", "), properties: item.properties ?? "", description: item.description ?? "" }
   : { id: null, name: "", count: "1", weight: "", equipped: false, properties: "", modifiers: [], unknown: "", description: "" };
 
-export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, editable }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; onCreateAction: (action: ActionEntry) => void; editable: boolean }) {
+export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpenResource, editable }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; onCreateAction: (action: ActionEntry) => void; onOpenResource: (counter: ResourceCounter) => void; editable: boolean }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   // Ricerca 5e.tools aperta sopra il form "Nuovo oggetto" (il form resta in draft, nascosto).
   const [picking, setPicking] = useState(false);
@@ -65,7 +67,7 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, edita
     });
     setDraft(null);
   };
-  const remove = (id: string) => { onUpdate((next) => { next.inventory = next.inventory.filter((item) => item.id !== id); return next; }); setDraft(null); };
+  const remove = (id: string) => { onUpdate((next) => { unlinkCounters(next, "itemId", id); next.inventory = next.inventory.filter((item) => item.id !== id); return next; }); setDraft(null); };
   const share = (item: InventoryEntry) => {
     const stats = [item.count != null && { label: "Quantità", value: String(item.count) }, item.weight != null && { label: "Peso", value: `${kgText(item.weight)} kg (${lbText(item.weight)})` }, item.properties && { label: "Proprietà", value: item.properties }, itemTags(item).length > 0 && { label: "Modificatori", value: itemTags(item).join(", ") }].filter((stat) => !!stat);
     onShare({ id: item.id, name: item.name, description: item.description }, { name: item.name, subtitle: item.equipped ? "Equipaggiato" : undefined, rolls: [], stats, note: item.description });
@@ -95,7 +97,7 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, edita
           {item.properties && <p className="entry-meta">Proprietà: {item.properties}</p>}
           {parseItemModifiers(item.modifiersText).unknown.length > 0 && <p className="entry-meta inventory-over">Non applicati: {parseItemModifiers(item.modifiersText).unknown.join(", ")}</p>}
           <p>{item.description || "Nessuna descrizione."}</p>
-          {editable && <div className="library-actions"><Button variant="outline" onClick={() => onCreateAction(actionFromItem(item, sheet))}>Crea azione</Button></div>}
+          {editable && <div className="library-actions"><Button variant="outline" onClick={() => onCreateAction(actionFromItem(item, sheet))}>Crea azione</Button><CreateResource counter={counterForItem(sheet, item)} onOpen={(counter) => onOpenResource(counter ?? counterFromItem(item))}/></div>}
         </div>
       </details>)}
       </>}
