@@ -1,5 +1,6 @@
 import { DEFAULT_RULESET } from "./rulesets";
 import { ABILITY_SHORT } from "./constants";
+import { fixProficiencyChoice } from "./effects";
 import { itemModifierList, modifiersFromText, parseItemModifiers } from "./itemModifiers";
 import type { AbilityStat, ActionEntry, CharacterSheet, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency, TraitEntry, TraitSource } from "./types";
 
@@ -189,6 +190,7 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
   };
   sheet.spells = importSpells(spellcasting, actions, warnings);
   sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet));
+  fixProficiencyChoice(sheet);
   sheet.importedItemModifiers = sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item));
   sheet.tools = importTools(normalized.tools, source.raw, sheet.abilities, sheet.combat.proficiencyBonus);
   return sheet;

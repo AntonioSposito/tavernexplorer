@@ -1,12 +1,12 @@
 import { expect, it } from "vitest";
 import { resolveAction } from "./actions";
-import { effectiveSheet, explainValue } from "./effects";
+import { effectiveSheet, explainCheck, explainValue } from "./effects";
 import { applyDeathSave } from "./hitPoints";
 import { importRoll20 } from "./importer";
 
 const base = () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: {
-    identity: { character_name: "Eroe" }, combat: { proficiency_bonus: 3, initiative: 2 },
+    identity: { character_name: "Eroe", level: 5 }, combat: { proficiency_bonus: 3, initiative: 2 },
     abilities: { wisdom: { score: 12, mod: 1, save: 1 }, dexterity: { score: 14, mod: 2, save: 2 } },
     skills: { stealth: { ability: "dexterity", bonus: 5, proficient: true }, insight: { ability: "wisdom", bonus: 1, proficient: false } },
   } });
@@ -37,4 +37,40 @@ it("il modificatore dei TS contro la morte conta, ma 1 naturale resta due fallim
   const combat = base().combat;
   expect(applyDeathSave(combat, 8, 2).deathSaves).toEqual({ successes: 1, failures: 0 });
   expect(applyDeathSave(combat, 1, 10).deathSaves).toEqual({ successes: 0, failures: 2 });
+});
+
+it("competenza per livello: salendo di livello cambiano i valori con competenza, e si può personalizzare", () => {
+  const sheet = base();
+  expect(sheet.options).toEqual({ proficiency: "level" });
+  sheet.identity.level = 9; // per livello +4, importato +3 → +1 a ciò che usa la competenza
+  sheet.skills.stealth.proficient = true;
+  sheet.abilities.wisdom.saveProficient = true;
+  const view = effectiveSheet(sheet);
+  expect(view.combat.proficiencyBonus).toBe(4);
+  expect(view.skills.stealth.bonus).toBe(6);
+  expect(view.skills.insight.bonus).toBe(1);
+  expect(view.abilities.wisdom.save).toBe(2);
+  expect(explainValue(sheet, view, "skill:stealth", "Furtività", view.skills.stealth.bonus)).toBe("Furtività +6\nBase +5\nCompetenza +1");
+  sheet.options = { proficiency: 3 };
+  expect(effectiveSheet(sheet).skills.stealth.bonus).toBe(5);
+});
+
+it("un bonus importato diverso da quello per livello resta personalizzato anche salendo di livello", () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", level: 1 }, combat: { proficiency_bonus: 3 } } });
+  expect(sheet.options).toEqual({ proficiency: 3 });
+  sheet.identity.level = 9;
+  expect(effectiveSheet(sheet).combat.proficiencyBonus).toBe(3);
+});
+
+it("tooltip di iniziativa, TS e abilità: caratteristica, competenza se si applica, fonti e Altro", () => {
+  const sheet = base();
+  sheet.abilities.wisdom.saveProficient = true;
+  sheet.abilities.wisdom.save = 4;
+  sheet.options = { proficiency: "level", jackOfAllTrades: true };
+  const view = effectiveSheet(sheet);
+  expect(explainCheck(sheet, view, "initiative", "Iniziativa", view.combat.initiative)).toBe("Iniziativa +3\nDestrezza +2\nJack of all trades +1");
+  expect(explainCheck(sheet, view, "save:wisdom", "TS Saggezza", view.abilities.wisdom.save)).toBe("TS Saggezza +4\nSaggezza +1\nCompetenza +3");
+  expect(explainCheck(sheet, view, "skill:stealth", "Furtività", view.skills.stealth.bonus)).toBe("Furtività +5\nDestrezza +2\nCompetenza +3");
+  expect(explainCheck(sheet, view, "skill:insight", "Intuizione", view.skills.insight.bonus)).toBe("Intuizione +2\nSaggezza +1\nJack of all trades +1");
+  expect(explainCheck(sheet, view, "passivePerception", "Percezione passiva", 11)).toBe("Percezione passiva 11\nBase 10\nSaggezza +1");
 });

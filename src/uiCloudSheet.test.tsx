@@ -743,7 +743,7 @@ it("un tratto ha modificatori sempre attivi e crea un'azione precompilata", asyn
 
   await click("Scheda");
   await click("Base");
-  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +6\nBase +1\nAllerta +5");
+  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +6\nDestrezza +0\nAllerta +5\nAltro +1");
 });
 
 it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", async () => {
@@ -758,5 +758,5 @@ it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", as
   await settle(1_700);
   expect(cloudSheet().sheet.options).toMatchObject({ bonuses: { initiative: 3 }, initiativeMode: "advantage" });
   await click("Base");
-  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +5\nBase +2\nOpzioni +3");
+  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +5\nDestrezza +0\nOpzioni +3\nAltro +2");
 });

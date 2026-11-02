@@ -7,7 +7,7 @@ export type AttackRoll = { label?: string; alert?: string; critRange: number; da
 
 // shortcut: descrizione troncata per tenere piccolo il broadcast Owlbear; il testo completo resta nella scheda.
 export const DESCRIPTION_LIMIT = 2000;
-const D20_FORMULA = /^(1?d20|2d20k[hl]1)([+-]\d+)*$/;
+const D20_FORMULA = /^(1?d20|2d20k[hl]1)(min\d+)?([+-]\d+)*$/;
 
 // Modificatori con etichetta in stile Roll20: "+2[DEX]+2[PROF]". Salta gli zeri; la differenza dal totale va in [BONUS].
 export function labeledBonus(parts: Array<[number, string]>, total: number): string {

@@ -2,6 +2,7 @@ import OBR from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID, PERMISSIONS_META_KEY, TURN_META_KEY } from "./constants";
 import { roll } from "./dice";
 import { storage } from "./storage";
+import { initiativeRoll } from "./initiative";
 import { createTokenTurn } from "./tokenTurns";
 import { setupTokenStatus } from "./tokenStatus";
 import { setupTurnHighlight } from "./tokenHighlight";
@@ -50,7 +51,7 @@ OBR.onReady(async () => {
         for (const item of context.items) {
           if (entries.some((entry) => entry.tokenId === item.id)) continue;
           const entry = createTokenTurn(item, linkedSheets,
-            (bonus) => roll(`1d20${bonus >= 0 ? "+" : ""}${bonus}`, "normal").total,
+            (_bonus, sheet) => { const spec = initiativeRoll(sheet); return roll(spec.formula, spec.mode).total + spec.tiebreaker; },
             (name) => { const value = window.prompt(`Iniziativa per ${name}`, "0"); return value === null ? null : Number(value) || 0; },
           );
           if (entry) entries.push(entry);

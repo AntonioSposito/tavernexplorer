@@ -49,18 +49,30 @@ function rollSimple(formula: string): RollResult {
 // Un tiro accetta vantaggio/svantaggio solo se e' un singolo d20 con modificatore:
 // stessa condizione usata dalla UI per decidere se chiedere la modalita'.
 export function supportsRollMode(formula: string): boolean {
-  try { return /^1?d20([+-]\d+)*$/.test(sanitizeFormula(formula)); } catch { return false; }
+  try { return /^1?d20([+-]\d+)*$/.test(sanitizeFormula(withoutFloor(formula).formula)); } catch { return false; }
+}
+
+// "1d20min10…": il d20 iniziale vale almeno 10 (Reliable talent di Roll20). Il minimo si toglie prima
+// del calcolo e si applica ai d20 tirati, così dadi, naturale e totale restano coerenti.
+function withoutFloor(formula: string): { formula: string; floor: number } {
+  const match = /^(\s*1?d20)min(\d+)/i.exec(formula);
+  return match ? { formula: match[1] + formula.slice(match[0].length), floor: Number(match[2]) } : { formula, floor: 0 };
 }
 
 export function roll(formula: string, mode: RollMode = "normal"): RollResult {
-  const clean = sanitizeFormula(formula);
+  const { formula: plain, floor } = withoutFloor(formula);
+  const clean = sanitizeFormula(plain);
+  const min = (value: number) => Math.max(value, floor);
+  const shown = (text: string) => floor ? text.replace(/^(1?d20|2d20k[hl]1)/, `$1min${floor}`) : text;
   if (mode === "normal" || !supportsRollMode(clean)) {
     const result = rollSimple(clean);
-    return /^1?d20(?!\d)/.test(clean) ? { ...result, natural: result.dice[0] } : result;
+    if (!/^1?d20(?!\d)/.test(clean)) return result;
+    const natural = min(result.dice[0]);
+    return { formula: shown(result.formula), total: result.total + natural - result.dice[0], dice: [natural, ...result.dice.slice(1)], natural };
   }
   const modifier = (clean.match(/[+-]\d+/g) ?? []).reduce((sum, term) => sum + Number(term), 0);
-  const first = randomInt(20);
-  const second = randomInt(20);
+  const first = min(randomInt(20));
+  const second = min(randomInt(20));
   const kept = mode === "advantage" ? Math.max(first, second) : Math.min(first, second);
-  return { formula: `${mode === "advantage" ? "2d20kh1" : "2d20kl1"}${modifier >= 0 ? "+" : ""}${modifier}`, total: kept + modifier, dice: [first, second], natural: kept };
+  return { formula: shown(`${mode === "advantage" ? "2d20kh1" : "2d20kl1"}${modifier >= 0 ? "+" : ""}${modifier}`), total: kept + modifier, dice: [first, second], natural: kept };
 }

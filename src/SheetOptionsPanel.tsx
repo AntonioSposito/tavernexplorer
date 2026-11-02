@@ -1,4 +1,5 @@
 import { ABILITY_LABELS, ABILITY_SHORT, SKILL_ABILITIES, SKILL_LABELS } from "./constants";
+import { effectiveProficiency, proficiencyByLevel } from "./effects";
 import type { CharacterSheet, RollMode, SheetOptions } from "./types";
 import { Card, Input, Select } from "./ui";
 
@@ -11,12 +12,17 @@ export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; 
   const options = sheet.options ?? {};
   const setOptions = (change: (options: SheetOptions) => void) => onUpdate((next) => { const updated = { ...next.options }; change(updated); next.options = updated; return next; });
   const bonus = (target: string, label: string) => <label key={target}><span>{label}</span><Input type="number" aria-label={label} value={options.bonuses?.[target] ?? 0} onChange={(event) => setOptions((next) => { next.bonuses = { ...next.bonuses, [target]: Math.trunc(Number(event.target.value)) || 0 }; })}/></label>;
-  const check = (key: "jackOfAllTrades" | "ignoreUnequippedWeight", label: string) => <label className="action-form-check"><input type="checkbox" checked={!!options[key]} onChange={(event) => setOptions((next) => { next[key] = event.target.checked; })}/> {label}</label>;
+  const check = (key: "jackOfAllTrades" | "ignoreUnequippedWeight" | "reliableTalent" | "dexTiebreaker", label: string) => <label className="action-form-check"><input type="checkbox" checked={!!options[key]} onChange={(event) => setOptions((next) => { next[key] = event.target.checked; })}/> {label}</label>;
   const die = /^d?(\d+)$/i.exec(sheet.combat.hitDice.die.trim())?.[1];
+  const byLevel = proficiencyByLevel(sheet.identity.level);
+  const proficiency = effectiveProficiency(sheet);
+  const custom = (options.proficiency ?? (byLevel === sheet.combat.proficiencyBonus ? "level" : "custom")) !== "level";
 
   return <div className="stack options-panel">
     <Card><h2>Classe</h2><div className="editor-grid">
       <label><span>Dado vita</span><Select aria-label="Dado vita" value={die ? `d${die}` : ""} onChange={(event) => onUpdate((next) => { next.combat.hitDice.die = event.target.value; return next; })}>{!die && <option value="">—</option>}{["d4", "d6", "d8", "d10", "d12"].map((value) => <option key={value} value={value}>{value.toUpperCase()}</option>)}</Select></label>
+      <label><span>Bonus di competenza</span><Select aria-label="Bonus di competenza" value={custom ? "custom" : "level"} onChange={(event) => setOptions((next) => { next.proficiency = event.target.value === "level" ? "level" : proficiency; })}><option value="level">Per livello (+{byLevel}, livello {sheet.identity.level})</option><option value="custom">Personalizzato</option></Select></label>
+      {custom && <label><span>Competenza personalizzata</span><Input type="number" min="0" aria-label="Competenza personalizzata" value={proficiency} onChange={(event) => setOptions((next) => { next.proficiency = Math.max(0, Math.trunc(Number(event.target.value)) || 0); })}/></label>}
     </div></Card>
     <Card><h2>Caratteristiche</h2><div className="editor-grid">{ABILITIES.map((ability) => bonus(`ability:${ability}`, `${ABILITY_LABELS[ability]} +`))}</div></Card>
     <Card><h2>Tiri salvezza</h2><div className="editor-grid">
@@ -32,11 +38,13 @@ export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; 
       </div>)}</div>
       <p className="muted">Maestria raddoppia la competenza solo se sei competente nell'abilità.</p>
       {check("jackOfAllTrades", "Jack of all trades (metà competenza alle prove senza competenza, iniziativa compresa)")}
+      {check("reliableTalent", "Reliable talent (nelle prove con competenza, abilità e strumenti, il d20 vale almeno 10)")}
       <div className="editor-grid">{bonus("passivePerception", "Modificatore Percezione passiva")}</div>
     </Card>
     <Card><h2>Combattimento</h2><div className="editor-grid">
       {bonus("initiative", "Modificatore iniziativa")}
       <label><span>Stile iniziativa</span><Select aria-label="Stile iniziativa" value={options.initiativeMode ?? "normal"} onChange={(event) => setOptions((next) => { next.initiativeMode = event.target.value as RollMode; })}>{MODES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label>
+      <div className="options-inline">{check("dexTiebreaker", "Spareggio con la Destrezza nei Turni (+DES/100)")}</div>
       <label><span>Gamma del critico</span><Input type="number" min="2" max="20" aria-label="Gamma del critico" value={options.critRange ?? 20} onChange={(event) => setOptions((next) => { next.critRange = Math.min(20, Math.max(2, Math.trunc(Number(event.target.value)) || 20)); })}/></label>
     </div></Card>
     <Card><h2>Incantesimi</h2><div className="editor-grid">

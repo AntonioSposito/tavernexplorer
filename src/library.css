@@ -113,3 +113,4 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .options-skills { display: grid; gap: 6px; margin-bottom: .5rem; }
 .options-skills > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem; align-items: center; gap: 8px; }
 .options-panel .muted { margin: .25rem 0 .5rem; font-size: .8rem; }
+.options-inline { display: flex; align-items: end; padding-bottom: .5rem; }

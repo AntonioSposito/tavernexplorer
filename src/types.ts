@@ -206,7 +206,14 @@ export interface SheetOptions {
   // Abilità con Maestria (Roll20: Expertise): competenza doppia se si è competenti.
   expertise?: string[];
   jackOfAllTrades?: boolean;
+  // Prove con competenza (abilità e strumenti): il d20 vale almeno 10.
+  reliableTalent?: boolean;
   initiativeMode?: RollMode;
+  // Iniziativa nei turni + Destrezza/100, per gli spareggi.
+  dexTiebreaker?: boolean;
+  // "level" = 2 + (livello − 1) / 4 come Roll20 "By Level"; un numero = valore personalizzato.
+  // Assente: per livello se coincide con il bonus importato, altrimenti il bonus importato.
+  proficiency?: "level" | number;
   critRange?: number;
   carryMultiplier?: number;
   encumbrance?: "simple" | "variant" | "off";

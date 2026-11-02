@@ -36,7 +36,7 @@ export function ProficiencyPanel({ sheet, onUpdate, onRoll, onShare, editable }:
   const proficiencies = sheet.proficiencies ?? [];
   const tools = (sheet.tools ?? []).map((tool) => normalizeTool(sheet, tool));
 
-  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); onRoll(tool.name, `1d20${labeledBonus(parts, sum(parts))}`); };
+  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); onRoll(tool.name, `${sheet.options?.reliableTalent ? "1d20min10" : "1d20"}${labeledBonus(parts, sum(parts))}`); };
   const share = (name: string, kind: Kind, tool?: ToolEntry) => {
     const stats = tool && [{ label: "Caratteristica", value: tool.ability ? ABILITY_LABELS[tool.ability] : "A scelta" }, { label: "Bonus", value: signed(sum(toolParts(sheet, tool, tool.ability))) }];
     onShare({ id: tool?.id ?? name, name, description: KIND_LABELS[kind] }, { name, subtitle: KIND_LABELS[kind], rolls: [], stats });

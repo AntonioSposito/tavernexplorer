@@ -14,13 +14,31 @@ export const MODIFIER_TARGETS = [
   ...["acrobatics", "animal_handling", "arcana", "athletics", "deception", "history", "insight", "intimidation", "investigation", "medicine", "nature", "perception", "performance", "persuasion", "religion", "sleight_of_hand", "stealth", "survival"].map((skill) => [`skill:${skill}`, SKILL_LABELS[skill]]),
 ];
 
+export const proficiencyByLevel = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4);
+// Fissa la scelta "per livello / valore importato" prima che il livello cambi (import, tab Modifica):
+// altrimenti dopo un passaggio di livello il bonus non coinciderebbe più e tornerebbe quello importato.
+export function fixProficiencyChoice(sheet: CharacterSheet) {
+  if (sheet.options?.proficiency !== undefined) return;
+  const imported = sheet.combat.proficiencyBonus;
+  // Bonus mancante nell'export (0): per livello.
+  sheet.options = { ...sheet.options, proficiency: imported <= 0 || proficiencyByLevel(sheet.identity.level) === imported ? "level" : imported };
+}
+
+// Bonus di competenza in uso: le differenze col bonus importato si propagano ai valori con competenza.
+export function effectiveProficiency(sheet: CharacterSheet): number {
+  const imported = sheet.combat.proficiencyBonus;
+  const byLevel = proficiencyByLevel(sheet.identity.level);
+  const option = sheet.options?.proficiency ?? (byLevel === imported ? "level" : imported);
+  return option === "level" ? byLevel : option;
+}
+
 const ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
 
 // Opzioni della tab "Modifica (prova)" come gruppi di modificatori con un nome (per i tooltip).
 function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: StatModifier[] }> {
   const options = sheet.options;
   if (!options) return [];
-  const pb = sheet.combat.proficiencyBonus;
+  const pb = effectiveProficiency(sheet);
   const bonuses = Object.entries(options.bonuses ?? {}).filter(([, amount]) => amount).flatMap(([target, amount]) =>
     (target === "saveAll" ? ABILITY_KEYS.map((ability) => `save:${ability}`) : [target]).map((item) => ({ id: `option:${item}`, target: item, amount })));
   const expertise = (options.expertise ?? []).filter((skill) => sheet.skills[skill]?.proficient).map((skill) => ({ id: `expertise:${skill}`, target: `skill:${skill}`, amount: pb }));
@@ -81,9 +99,30 @@ function derivedAbility(sheet: CharacterSheet, target: string): string | undefin
   if (target.startsWith("save:")) return target.slice(5);
   if (target.startsWith("skill:")) return sheet.skills[target.slice(6)]?.ability;
   if (target === "initiative") return "dexterity";
-  if (target === "passivePerception") return sheet.skills.perception?.ability;
+  if (target === "passivePerception") return sheet.skills.perception?.ability ?? "wisdom";
   if (target === "spellSaveDc" || target === "spellAttack") return sheet.spellcasting.ability;
   return undefined;
+}
+
+// Tooltip di iniziativa, tiri salvezza e abilità scomposti come in Roll20: modificatore di caratteristica,
+// competenza se si applica, poi effetti/oggetti/tratti/opzioni. "Altro" è quanto il valore importato
+// contiene oltre a questo (es. Maestria o bonus impostati su Roll20).
+export function explainCheck(sheet: CharacterSheet, view: CharacterSheet, target: string, label: string, total: number): string {
+  const ability = derivedAbility(sheet, target);
+  const passive = target === "passivePerception";
+  const proficient = target.startsWith("save:") ? !!sheet.abilities[target.slice(5)]?.saveProficient : target.startsWith("skill:") ? !!sheet.skills[target.slice(6)]?.proficient : passive && !!sheet.skills.perception?.proficient;
+  // Percezione passiva = 10 + Percezione: valgono anche i modificatori di Percezione.
+  const sources = passive ? [...modifierSources(sheet, "passivePerception"), ...modifierSources(sheet, "skill:perception")] : modifierSources(sheet, target);
+  const parts = [
+    ...passive ? [{ name: "Base", amount: 10 }] : [],
+    ...ability ? [{ name: ABILITY_LABELS[ability] ?? ability, amount: view.abilities[ability]?.mod ?? 0 }] : [],
+    ...proficient ? [{ name: "Competenza", amount: view.combat.proficiencyBonus }] : [],
+    ...sources,
+  ];
+  const other = total - parts.reduce((sum, part) => sum + part.amount, 0);
+  if (other) parts.push({ name: "Altro", amount: other });
+  const format = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
+  return [`${label} ${passive ? total : format(total)}`, ...parts.map((part, index) => `${part.name} ${passive && index === 0 ? part.amount : format(part.amount)}`)].join("\n");
 }
 
 // Tooltip "da cosa è dato" come quello della CA: totale, base e ogni effetto/oggetto che lo cambia.
@@ -94,6 +133,12 @@ export function explainValue(sheet: CharacterSheet, view: CharacterSheet, target
   const ability = derivedAbility(sheet, target);
   const delta = ability ? (view.abilities[ability]?.mod ?? 0) - (sheet.abilities[ability]?.mod ?? 0) : 0;
   if (delta) parts.unshift({ name: `Mod. ${ABILITY_LABELS[ability!] ?? ability}`, amount: delta });
+  const usesProficiency = target === "spellSaveDc" || target === "spellAttack"
+    || (target.startsWith("save:") && sheet.abilities[target.slice(5)]?.saveProficient)
+    || (target.startsWith("skill:") && sheet.skills[target.slice(6)]?.proficient)
+    || (target === "passivePerception" && sheet.skills.perception?.proficient);
+  const pbDelta = view.combat.proficiencyBonus - sheet.combat.proficiencyBonus;
+  if (usesProficiency && pbDelta) parts.unshift({ name: "Competenza", amount: pbDelta });
   if (!parts.length) return undefined;
   const format = (value: number) => withSign ? `${value >= 0 ? "+" : ""}${value}` : String(value);
   const base = total - parts.reduce((sum, part) => sum + part.amount, 0);
@@ -113,6 +158,16 @@ export function modifierTotal(sheet: CharacterSheet, target: string): number {
 export function effectiveSheet(sheet: CharacterSheet): CharacterSheet {
   const result = structuredClone(sheet);
   const mods = activeModifiers(sheet);
+  // Competenza cambiata (per livello o personalizzata): si aggiorna dove i valori importati la includono.
+  const pbDelta = effectiveProficiency(sheet) - sheet.combat.proficiencyBonus;
+  if (pbDelta) {
+    result.combat.proficiencyBonus += pbDelta;
+    for (const ability of Object.values(result.abilities)) if (ability.saveProficient) ability.save += pbDelta;
+    for (const skill of Object.values(result.skills)) if (skill.proficient) skill.bonus += pbDelta;
+    if (result.skills.perception?.proficient) result.combat.passivePerception += pbDelta;
+    result.spellcasting.saveDc += pbDelta;
+    result.spellcasting.attackBonus += pbDelta;
+  }
   const total = (target: string) => mods.filter((mod) => mod.target === target).reduce((sum, mod) => sum + mod.amount, 0);
   for (const [key, ability] of Object.entries(result.abilities)) {
     const previousMod = ability.mod;

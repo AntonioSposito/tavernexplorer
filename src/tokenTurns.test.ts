@@ -14,6 +14,6 @@ it("usa la scheda collegata a ciascun token e chiede l'iniziativa solo per quell
   expect(linked).toMatchObject({ tokenId: "token-a", characterId: sheet.id, name: "Ada", initiative: 16, initiativeBonus: 4 });
   expect(unlinked).toMatchObject({ tokenId: "token-b", name: "Goblin", initiative: 7 });
   expect(unlinked?.characterId).toBeUndefined();
-  expect(roll).toHaveBeenCalledExactlyOnceWith(4);
+  expect(roll).toHaveBeenCalledExactlyOnceWith(4, sheet);
   expect(ask).toHaveBeenCalledExactlyOnceWith("Goblin");
 });

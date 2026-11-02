@@ -8,6 +8,8 @@ export function mergeReimport(existing: CharacterSheet, imported: CharacterSheet
     id: existing.id,
     effects: existing.effects,
     counters: existing.counters,
+    // Le opzioni della scheda sono dell'utente: il reimport aggiunge solo quelle che mancano (es. la competenza).
+    options: { ...imported.options, ...existing.options },
     combat: {
       ...imported.combat,
       hp: { ...hp, current: Math.min(existing.combat.hp.current, hp.max), temp: existing.combat.hp.temp },

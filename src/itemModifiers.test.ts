@@ -68,7 +68,7 @@ it("precompila l'azione di un'arma dalle proprietà importate da 5e.tools", () =
 
 it("il tooltip di un valore mostra base, effetti/oggetti e il modificatore di caratteristica cambiato", () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: {
-    identity: { character_name: "Eroe" },
+    identity: { character_name: "Eroe" }, combat: { proficiency_bonus: 2 },
     abilities: { strength: { score: 14, mod: 2, save: 2 } },
     skills: { athletics: { ability: "strength", bonus: 4, proficient: true } },
   } });
