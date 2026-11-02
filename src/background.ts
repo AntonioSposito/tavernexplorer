@@ -5,7 +5,7 @@ import { announceInitiative, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetIn
 import { createTokenTurn, linkedCharacterId } from "./tokenTurns";
 import { setupTokenStatus } from "./tokenStatus";
 import { setupTurnHighlight } from "./tokenHighlight";
-import { setupRemotePanelOpening } from "./floatingPanels";
+import { openFloatingPanel, setupRemotePanelOpening } from "./floatingPanels";
 import { replaceTurnEntries } from "./turns";
 import { writeRoomMetadata } from "./roomMetadata";
 import type { TurnState } from "./types";
@@ -18,13 +18,14 @@ OBR.onReady(async () => {
       label: "TavernExplorer: apri scheda",
       filter: { every: [{ key: "layer", value: "CHARACTER" }] },
     }],
-    onClick: async (context, elementId) => {
+    onClick: async (context) => {
       if (context.items.length !== 1) return;
       const token = context.items[0];
-      await OBR.popover.open({
-        id: `${EXTENSION_ID}/sheet-popover`, url: `/?token=${encodeURIComponent(token.id)}`,
-        width: 480, height: 720, anchorElementId: elementId,
-      });
+      // Come "Apri … in finestra": pannello spostabile e chiudibile. Mostro del bestiario (solo nel browser del GM)
+      // nel Bestiario, token senza scheda nella Libreria.
+      const characterId = linkedCharacterId(token);
+      const view = !characterId ? "library" : storage.monsters.get().some((monster) => monster.id === characterId) ? "compendium" : "sheet";
+      await openFloatingPanel(view, undefined, token.id);
     },
   });
 

@@ -23,11 +23,12 @@ export async function resizeFloatingPanel(view: AppTab, size: PanelSize, persist
 }
 
 // L'URL resta fisso: riaprire con la stessa pagina sposta il popover senza ricaricarlo.
-export async function openFloatingPanel(view: AppTab, position?: { left: number; top: number }): Promise<void> {
+// token: aperto da "Apri scheda" sul token, la finestra mostra la scheda collegata (chi la sposta lo ripassa).
+export async function openFloatingPanel(view: AppTab, position?: { left: number; top: number }, token?: string): Promise<void> {
   if (!OBR.isAvailable) return;
   const anchorPosition = position ?? getFloatingPanelPosition(view);
   try { localStorage.setItem(`${EXTENSION_ID}/${view}-position`, JSON.stringify(anchorPosition)); } catch { /* storage non disponibile */ }
-  await OBR.popover.open({ id: `${EXTENSION_ID}/${view}-panel`, url: `/?view=${view}`, ...getFloatingPanelSize(view), anchorReference: "POSITION", anchorPosition, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" }, disableClickAway: true });
+  await OBR.popover.open({ id: `${EXTENSION_ID}/${view}-panel`, url: `/?view=${view}${token ? `&token=${encodeURIComponent(token)}` : ""}`, ...getFloatingPanelSize(view), anchorReference: "POSITION", anchorPosition, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" }, disableClickAway: true });
 }
 
 // Il GM chiede a tutti gli altri partecipanti di aprire un pannello (es. il turn order a inizio combattimento).

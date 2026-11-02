@@ -391,10 +391,11 @@ export default function App() {
 }
 
 function FloatingHandle({ view }: { view: AppTab }) {
+  const token = new URLSearchParams(window.location.search).get("token") ?? undefined;
   // Coordinate schermo: il popover si muove sotto il puntatore, quelle client restano ferme.
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null); const frame = useRef(0);
   const position = (event: ReactPointerEvent) => drag.current ? { left: Math.max(0, Math.round(drag.current.left + event.screenX - drag.current.x)), top: Math.max(0, Math.round(drag.current.top + event.screenY - drag.current.y)) } : null;
-  return <div className="floating-handle" onPointerDown={(event) => { if ((event.target as HTMLElement).closest("button")) return; drag.current = { x: event.screenX, y: event.screenY, ...getFloatingPanelPosition(view) }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = position(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => void openFloatingPanel(view, next)); }} onPointerUp={(event) => { const next = position(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); void openFloatingPanel(view, next); }}><span>⠿ {TAB_LABELS[view]}</span><Button variant="ghost" aria-label="Chiudi pannello" onClick={() => void OBR.popover.close(`it.tavernexplorer/${view}-panel`)}>×</Button></div>;
+  return <div className="floating-handle" onPointerDown={(event) => { if ((event.target as HTMLElement).closest("button")) return; drag.current = { x: event.screenX, y: event.screenY, ...getFloatingPanelPosition(view) }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = position(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => void openFloatingPanel(view, next, token)); }} onPointerUp={(event) => { const next = position(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); void openFloatingPanel(view, next, token); }}><span>⠿ {TAB_LABELS[view]}</span><Button variant="ghost" aria-label="Chiudi pannello" onClick={() => void OBR.popover.close(`it.tavernexplorer/${view}-panel`)}>×</Button></div>;
 }
 
 const ACTION_SIZE_KEY = "it.tavernexplorer/action-size";

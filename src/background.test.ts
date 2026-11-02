@@ -38,7 +38,16 @@ it("apre il token senza collegarlo di nascosto alla scheda attiva", async () => 
   const menu = mock.menus.find((item) => item.id.endsWith("/token-menu"))!;
   await menu.onClick({ items: [{ id: "token-1", name: "Lupo", metadata: {} }] }, "button-1");
   expect(mock.updateItems).not.toHaveBeenCalled();
-  expect(mock.open).toHaveBeenCalledWith(expect.objectContaining({ url: "/?token=token-1" }));
+  expect(mock.open).toHaveBeenCalledWith(expect.objectContaining({ id: "it.tavernexplorer/library-panel", url: "/?view=library&token=token-1", anchorReference: "POSITION" }));
+});
+
+it("apre la scheda del token in finestra: PG nella scheda, mostro nel bestiario", async () => {
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([{ id: "goblin", name: "Goblin", challengeRating: "1/4", abilities: { dex: 14 } }]));
+  const menu = mock.menus.find((item) => item.id.endsWith("/token-menu"))!;
+  await menu.onClick({ items: [{ id: "token-pg", name: "Eroe", metadata: { [TOKEN_META_KEY]: { characterId: "eroe" } } }] }, "button-1");
+  expect(mock.open).toHaveBeenLastCalledWith(expect.objectContaining({ id: "it.tavernexplorer/sheet-panel", url: "/?view=sheet&token=token-pg" }));
+  await menu.onClick({ items: [{ id: "token-gob", name: "Goblin", metadata: { [TOKEN_META_KEY]: { characterId: "goblin" } } }] }, "button-1");
+  expect(mock.open).toHaveBeenLastCalledWith(expect.objectContaining({ id: "it.tavernexplorer/compendium-panel", url: "/?view=compendium&token=token-gob" }));
 });
 
 it("blocca il menu iniziativa per un giocatore senza permesso", async () => {
