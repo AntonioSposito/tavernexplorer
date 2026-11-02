@@ -23,10 +23,11 @@ export function adjustHitPoints(combat: Combat, field: HitPointField, delta: num
 
 // Tiro salvezza contro la morte dal d20 naturale: 20 = torna a 1 PF e azzera i tiri, 1 = due fallimenti,
 // da 10 in su successo, sotto fallimento. I contatori si fermano a 3 (stabile o morto).
-export function applyDeathSave(combat: Combat, natural: number): Combat {
+// bonus: Death save modifier delle opzioni; 20 e 1 naturali restano speciali.
+export function applyDeathSave(combat: Combat, natural: number, bonus = 0): Combat {
   if (natural === 20) return { ...combat, hp: { ...combat.hp, current: Math.max(1, combat.hp.current) }, deathSaves: { successes: 0, failures: 0 } };
   const { successes, failures } = combat.deathSaves;
-  const deathSaves = natural >= 10
+  const deathSaves = natural !== 1 && natural + bonus >= 10
     ? { successes: Math.min(3, successes + 1), failures }
     : { successes, failures: Math.min(3, failures + (natural === 1 ? 2 : 1)) };
   return { ...combat, deathSaves };

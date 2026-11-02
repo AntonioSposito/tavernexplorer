@@ -8,8 +8,8 @@ export function ModifierEditor({ modifiers, onChange }: { modifiers: StatModifie
     {modifiers.map((modifier) => <div className="modifier-row" key={modifier.id}>
       <Select aria-label="Caratteristica modificata" value={modifier.target} onChange={(event) => patch(modifier.id, { target: event.target.value })}>{MODIFIER_TARGETS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
       <Input aria-label="Valore modificatore" type="number" value={modifier.amount} onChange={(event) => patch(modifier.id, { amount: Number(event.target.value) || 0 })}/>
-      <Button variant="destructive" aria-label="Rimuovi modificatore" onClick={() => onChange(modifiers.filter((item) => item.id !== modifier.id))}>×</Button>
+      <Button type="button" variant="destructive" aria-label="Rimuovi modificatore" onClick={() => onChange(modifiers.filter((item) => item.id !== modifier.id))}>×</Button>
     </div>)}
-    <Button variant="outline" onClick={() => onChange([...modifiers, { id: crypto.randomUUID(), target: "ac", amount: 1 }])}>+ Modificatore</Button>
+    <Button type="button" variant="outline" onClick={() => onChange([...modifiers, { id: crypto.randomUUID(), target: "ac", amount: 1 }])}>+ Modificatore</Button>
   </div>;
 }

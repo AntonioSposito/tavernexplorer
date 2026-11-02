@@ -111,9 +111,17 @@ export interface ResourceCounter {
 export interface TraitEntry {
   id: string;
   name: string;
+  // Testo mostrato sotto il nome, es. "Aasimar • Racial" (unico campo nei tratti salvati prima del form).
   source?: string;
+  // Campi del form tratti di Roll20: SOURCE (uno dei sei valori) e SOURCE TYPE (testo libero).
+  sourceKind?: TraitSource;
+  sourceType?: string;
   description: string;
+  // Sempre attivi (un tratto non si equipaggia), come gli effetti.
+  modifiers?: StatModifier[];
 }
+
+export type TraitSource = "Racial" | "Class" | "Feat" | "Background" | "Item" | "Other";
 
 export interface CharacterSheet {
   schemaVersion: 1;
@@ -164,6 +172,8 @@ export interface CharacterSheet {
   // Assenti nelle schede importate prima di questo campo.
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
+  // Opzioni della tab "Modifica (prova)", come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
+  options?: SheetOptions;
   // Modificatori degli oggetti equipaggiati al momento dell'import: Roll20 li ha già sommati ai valori esportati.
   importedItemModifiers?: StatModifier[];
   currency: Record<string, number>;
@@ -188,6 +198,20 @@ export interface ToolEntry {
 }
 
 export type ToolProficiency = "proficient" | "expertise" | "jack";
+
+export interface SheetOptions {
+  // Bonus fissi per bersaglio di modificatore ("save:wisdom", "skill:stealth", "initiative"…), più
+  // "saveAll" (Global saving throw modifier) e "deathSave" (Death save modifier).
+  bonuses?: Record<string, number>;
+  // Abilità con Maestria (Roll20: Expertise): competenza doppia se si è competenti.
+  expertise?: string[];
+  jackOfAllTrades?: boolean;
+  initiativeMode?: RollMode;
+  critRange?: number;
+  carryMultiplier?: number;
+  encumbrance?: "simple" | "variant" | "off";
+  ignoreUnequippedWeight?: boolean;
+}
 
 export interface TurnEntry {
   id: string;

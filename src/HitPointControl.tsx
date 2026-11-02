@@ -1,3 +1,4 @@
+import { modifierTotal } from "./effects";
 import { useState } from "react";
 import { adjustHitPoints, applyDeathSave, type HitPointField } from "./hitPoints";
 import type { RollResult } from "./dice";
@@ -9,6 +10,8 @@ import { Input } from "./ui";
 interface HitPointControlProps {
   sheet: CharacterSheet;
   editable: boolean;
+  // Tooltip dei PF massimi quando effetti o oggetti li cambiano.
+  maxTitle?: string;
   onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void;
 }
 
@@ -16,10 +19,10 @@ interface HitPointControlProps {
 const FIELDS: Array<[HitPointField, string]> = [["max", "PF massimi"], ["current", "PF attuali"], ["temp", "PF temporanei"]];
 
 // Numero modificabile a mano (salvato all'uscita o con Invio) con frecce ▲▼ di un punto.
-function StepperBox({ field, label, value, editable, onChange }: { field: string; label: string; value: number; editable: boolean; onChange: (delta: number) => void }) {
+function StepperBox({ field, label, value, editable, onChange, title }: { field: string; label: string; value: number; editable: boolean; onChange: (delta: number) => void; title?: string }) {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = () => { if (draft !== null && /^\d+$/.test(draft.trim())) onChange(Number(draft) - value); setDraft(null); };
-  return <div className={`hit-point-box ${field}`}>
+  return <div className={`hit-point-box ${field}${title ? " value-explained" : ""}`} title={title}>
     <small>{label}</small>
     {editable ? <div className="hit-point-stepper">
       <Input aria-label={label} type="number" inputMode="numeric" min="0" value={draft ?? value} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}/>
@@ -31,7 +34,7 @@ function StepperBox({ field, label, value, editable, onChange }: { field: string
   </div>;
 }
 
-export function HitPointControl({ sheet, editable, onUpdate }: HitPointControlProps) {
+export function HitPointControl({ sheet, editable, onUpdate, maxTitle }: HitPointControlProps) {
   // sheet ha gli effetti applicati: il suo massimo è il limite dei PF attuali, le modifiche vanno sulla scheda base.
   const change = (field: HitPointField, delta: number) => {
     if (!editable || !delta) return;
@@ -39,7 +42,7 @@ export function HitPointControl({ sheet, editable, onUpdate }: HitPointControlPr
   };
   return <section className="paper hit-point-control">
     <h2>Punti ferita</h2>
-    <div className="hit-point-boxes">{FIELDS.map(([field, label]) => <StepperBox key={field} field={field} label={label} value={sheet.combat.hp[field]} editable={editable && field !== "max"} onChange={(delta) => change(field, delta)}/>)}</div>
+    <div className="hit-point-boxes">{FIELDS.map(([field, label]) => <StepperBox key={field} field={field} label={label} value={sheet.combat.hp[field]} editable={editable && field !== "max"} title={field === "max" ? maxTitle : undefined} onChange={(delta) => change(field, delta)}/>)}</div>
   </section>;
 }
 
@@ -81,11 +84,12 @@ export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue }: Hit
   const canRoll = editable && !busy && sheet.combat.hp.current === 0 && successes < 3 && failures < 3;
   const rollSave = async () => {
     setBusy(true);
-    const result = await onRollValue("TS contro la morte", "1d20");
+    const bonus = modifierTotal(sheet, "deathSave");
+    const result = await onRollValue("TS contro la morte", `1d20${bonus ? `${bonus > 0 ? "+" : ""}${bonus}` : ""}`);
     setBusy(false);
     if (result?.natural == null) return;
     const natural = result.natural;
-    onUpdate((next) => { next.combat = applyDeathSave(next.combat, natural); return next; });
+    onUpdate((next) => { next.combat = applyDeathSave(next.combat, natural, bonus); return next; });
   };
   const dots = (count: number, kind: string, label: string) => <span className="death-dots" aria-label={`${label}: ${count} su 3`}>{[0, 1, 2].map((index) => <span key={index} className={`death-dot${index < count ? ` ${kind}` : ""}`}/>)}</span>;
   return <section className="paper hit-point-control death-save-control">

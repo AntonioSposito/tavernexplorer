@@ -41,7 +41,8 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry | SpellE
   const heal = "healing" in entry && entry.healing?.trim()
     ? { healing: `${entry.healing.trim()}${signed(abilityMod(sheet, healAbility))}`, healingFormula: `${entry.healing.trim()}${labeledBonus([[abilityMod(sheet, healAbility), abilityTag(healAbility)]], abilityMod(sheet, healAbility))}` }
     : {};
-  const critRange = entry.critRange ?? 20;
+  // Critical range globale delle opzioni: vale il più ampio tra quello dell'azione e quello della scheda.
+  const critRange = Math.min(entry.critRange ?? 20, sheet.options?.critRange ?? 20);
   const attackBonus = entry.attack
     ? abilityMod(sheet, entry.attack.ability) + (entry.attack.proficient ? sheet.combat.proficiencyBonus : 0) + entry.attack.bonus + magic
     : entry.attackBonus;

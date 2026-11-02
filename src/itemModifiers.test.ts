@@ -1,12 +1,12 @@
 import { expect, it } from "vitest";
-import { armorClass, effectiveSheet, modifierSources, setManualArmorClass } from "./effects";
+import { armorClass, effectiveSheet, explainValue, modifierSources, setManualArmorClass } from "./effects";
 import { importRoll20 } from "./importer";
 import { actionFromItem, parseItemModifiers } from "./itemModifiers";
 
 it("legge il campo Modifiers degli oggetti Roll20", () => {
   const { modifiers, unknown } = parseItemModifiers("Item Type: Light Armor, AC 11, AC +1, Strength +2, Wisdom Save -1, Saving Throws +1, Sleight of Hand +3, Volare +5");
   expect(modifiers.map(({ target, amount }) => `${target} ${amount}`)).toEqual([
-    "ac 1", "ability:strength 2", "save:wisdom -1",
+    "armor:light 11", "ac 1", "ability:strength 2", "save:wisdom -1",
     "save:strength 1", "save:dexterity 1", "save:constitution 1", "save:intelligence 1", "save:wisdom 1", "save:charisma 1",
     "skill:sleight_of_hand 3",
   ]);
@@ -64,4 +64,17 @@ it("precompila l'azione di un'arma dalle proprietà importate da 5e.tools", () =
   const sword = actionFromItem({ id: "s", name: "Longsword", count: 1, equipped: true, properties: "1d8 Tagliente (1d10 a due mani), Versatile" }, sheet);
   expect(sword).toMatchObject({ attack: { ability: "strength" }, damages: [{ dice: "1d8", ability: "strength", type: "Tagliente" }] });
   expect(actionFromItem({ id: "r", name: "Corda", count: 1, equipped: false }, sheet).damages).toEqual([]);
+});
+
+it("il tooltip di un valore mostra base, effetti/oggetti e il modificatore di caratteristica cambiato", () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: {
+    identity: { character_name: "Eroe" },
+    abilities: { strength: { score: 14, mod: 2, save: 2 } },
+    skills: { athletics: { ability: "strength", bonus: 4, proficient: true } },
+  } });
+  sheet.inventory = [{ id: "belt", name: "Cintura", count: 1, equipped: true, modifiers: [{ id: "m1", target: "ability:strength", amount: 2 }, { id: "m2", target: "skill:athletics", amount: 1 }] }];
+  const view = effectiveSheet(sheet);
+  expect(explainValue(sheet, view, "skill:athletics", "Atletica", view.skills.athletics.bonus)).toBe("Atletica +6\nBase +4\nMod. Forza +1\nCintura +1");
+  expect(explainValue(sheet, view, "ability:strength", "Forza", view.abilities.strength.score, false)).toBe("Forza 16\nBase 14\nCintura +2");
+  expect(explainValue(sheet, view, "initiative", "Iniziativa", view.combat.initiative)).toBeUndefined();
 });

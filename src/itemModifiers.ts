@@ -43,13 +43,25 @@ export function parseArmor(text: string | undefined): { type: ArmorType; ac: num
   return type && ac ? { type, ac: Number(ac) } : null;
 }
 
+// Modificatori di un oggetto: la lista, più il vecchio testo Roll20 degli oggetti non ancora riaperti nel form.
+export function itemModifierList(item: { modifiers?: StatModifier[]; modifiersText?: string }): StatModifier[] {
+  return [...item.modifiers ?? [], ...parseItemModifiers(item.modifiersText).modifiers];
+}
+
+// Testo Roll20 → voci della lista con id nuovi (import e conversione nel form).
+export function modifiersFromText(text: string | undefined): StatModifier[] {
+  return parseItemModifiers(text).modifiers.map((mod) => ({ ...mod, id: crypto.randomUUID() }));
+}
+
 // Campo "Modifiers" degli oggetti Roll20, es. "AC +1, Strength Save +2, Item Type: Light Armor".
 // Solo i bonus con segno: "AC 11" (CA base dell'armatura) e "Item Type" sono ignorati.
 export function parseItemModifiers(text: string | undefined): { modifiers: StatModifier[]; unknown: string[] } {
   const modifiers: StatModifier[] = [];
   const unknown: string[] = [];
-  // Uno scudo con "AC 2" senza segno vale come "AC +2".
-  const shield = parseArmor(text)?.type === "shield";
+  // Armatura: voce "armor:<tipo>" con la CA base (calcolo automatico). Uno scudo con "AC 2" senza segno vale come "AC +2".
+  const armor = parseArmor(text);
+  const shield = armor?.type === "shield";
+  if (armor && !shield) modifiers.push({ id: `armor:${armor.type}`, target: `armor:${armor.type}`, amount: armor.ac });
   for (const part of (text ?? "").split(",").map((item) => item.trim()).filter(Boolean)) {
     if (shield && /^(?:ac|ca)\s+\d+$/i.test(part)) { modifiers.push({ id: `ac:${part}`, target: "ac", amount: Number(part.replace(/\D/g, "")) }); continue; }
     const match = /^(.*?)\s*([+-]\s*\d+)$/.exec(part);

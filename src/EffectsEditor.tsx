@@ -24,7 +24,6 @@ export function EffectsEditor({ sheet, onUpdate }: { sheet: CharacterSheet; onUp
     <Dialog open={draft !== null} title={draft?.isNew ? "Nuovo effetto" : "Modifica effetto"} onClose={() => setDraft(null)}>{draft && <div className="action-form">
       <label><span>Nome</span><Input aria-label="Nome effetto" value={draft.effect.name} autoFocus placeholder="Benedizione, Avvelenato…" onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, name: event.target.value } })}/></label>
       <label><span>Round rimasti (vuoto = senza scadenza)</span><Input type="number" min="0" value={draft.effect.remainingRounds ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, remainingRounds: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) } })}/></label>
-      {/* div e non form: i pulsanti di ModifierEditor non hanno type="button". */}
       <ModifierEditor modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
       <div className="action-form-buttons">{!draft.isNew && <Button type="button" variant="destructive" onClick={() => remove(draft.effect.id)}>Elimina</Button>}<Button type="button" variant="secondary" onClick={() => setDraft(null)}>Annulla</Button><Button type="button" onClick={save}>Salva</Button></div>
     </div>}</Dialog>

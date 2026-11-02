@@ -606,10 +606,12 @@ it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {
   await settle();
   await click("Shield");
   expect(host.querySelector<HTMLInputElement>('input[aria-label="Nome oggetto"]')!.value).toBe("Shield");
-  expect(host.querySelector<HTMLInputElement>('input[aria-label="Modificatori oggetto"]')!.value).toBe("Item Type: Shield, AC +2");
+  expect(host.querySelector<HTMLSelectElement>('select[aria-label="Caratteristica modificata"]')!.value).toBe("ac");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Valore modificatore"]')!.value).toBe("2");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
   await settle(1_700);
-  expect(cloudSheet().sheet.inventory).toMatchObject([{ name: "Shield", count: 1, weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." }]);
+  expect(cloudSheet().sheet.inventory).toMatchObject([{ name: "Shield", count: 1, weight: 6, modifiers: [{ target: "ac", amount: 2 }], description: "Uno scudo." }]);
+  expect(cloudSheet().sheet.inventory[0].modifiersText).toBeUndefined();
 });
 
 it("dallo zaino apre Nuova azione precompilata e la crea solo al salvataggio", async () => {
@@ -650,4 +652,111 @@ it("riordina lo zaino e mette in cima gli equipaggiati senza cambiare l'ordine s
   expect(names()).toEqual(["Spada", "Torcia", "Corda"]);
   await settle(1_700);
   expect(cloudSheet().sheet.inventory.map((item: { name: string }) => item.name)).toEqual(["Torcia", "Corda", "Spada"]);
+});
+
+it("nella tab Tratti crea, modifica e riordina i tratti con il form Roll20", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, traits: [{ name: "Scurovisione", source: "Elfo • Racial", description: "Vedi al buio.", _rowid: "dark" }] } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Tratti");
+  await click("+ Nuovo tratto");
+  await type('input[aria-label="Nome tratto"]', "Mercante");
+  const source = host.querySelector<HTMLSelectElement>('select[aria-label="Source tratto"]')!;
+  expect([...source.options].map((option) => option.textContent)).toEqual(["Choose...", "Racial", "Class", "Feat", "Background", "Item", "Other"]);
+  await act(async () => { source.value = "Background"; source.dispatchEvent(new Event("change", { bubbles: true })); });
+  await type('input[aria-label="Source type tratto"]', "background");
+  await dialogButton("Salva");
+
+  // Tratto salvato prima del form: il testo "Elfo • Racial" riempie i due campi.
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Scurovisione"]')!.click());
+  expect(host.querySelector<HTMLSelectElement>('select[aria-label="Source tratto"]')!.value).toBe("Racial");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Source type tratto"]')!.value).toBe("Elfo");
+  await dialogButton("Annulla");
+
+  await click("Modifica ordine");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Mercante"]')!.click());
+  await click("Fine");
+  await settle(1_700);
+  expect(cloudSheet().sheet.traits).toMatchObject([{ name: "Mercante", source: "background • Background", sourceKind: "Background", sourceType: "background" }, { name: "Scurovisione" }]);
+});
+
+it("nel popup oggetto aggiunge modificatori scelti dalla lista", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { ac: 12 } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  await click("+ Nuovo oggetto");
+  await type('input[aria-label="Nome oggetto"]', "Anello");
+  await act(async () => host.querySelector<HTMLInputElement>(".ui-dialog .action-form-check input")!.click());
+  await click("+ Modificatore");
+  expect(host.querySelector(".ui-dialog")).not.toBeNull();
+  const target = host.querySelector<HTMLSelectElement>('select[aria-label="Caratteristica modificata"]')!;
+  await act(async () => { target.value = "save:wisdom"; target.dispatchEvent(new Event("change", { bubbles: true })); });
+  await type('input[aria-label="Valore modificatore"]', "2");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory).toMatchObject([{ name: "Anello", equipped: true, modifiers: [{ target: "save:wisdom", amount: 2 }] }]);
+  expect(host.querySelector(".inventory-mods")?.textContent).toBe("TS Saggezza +2");
+});
+
+it("un oggetto salvato con il vecchio testo Roll20 passa alla lista quando si riapre il form", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.inventory = [{ id: "leather", name: "Cuoio", count: 1, equipped: true, modifiersText: "Item Type: Light Armor, AC 11, Volare +5" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Armatura leggera (CA base) 11");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Cuoio"]')!.click());
+  expect(host.querySelector<HTMLSelectElement>('select[aria-label="Caratteristica modificata"]')!.value).toBe("armor:light");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("Testo Roll20 non riconosciuto: Volare +5");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory).toMatchObject([{ modifiers: [{ target: "armor:light", amount: 11 }], modifiersText: "Volare +5" }]);
+});
+
+it("un tratto ha modificatori sempre attivi e crea un'azione precompilata", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 1 }, traits: [{ name: "Allerta", source: "Feat", description: "Sempre pronto.", _rowid: "alert" }] } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Tratti");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Allerta"]')!.click());
+  await click("+ Modificatore");
+  const target = host.querySelector<HTMLSelectElement>('select[aria-label="Caratteristica modificata"]')!;
+  await act(async () => { target.value = "initiative"; target.dispatchEvent(new Event("change", { bubbles: true })); });
+  await type('input[aria-label="Valore modificatore"]', "5");
+  await dialogButton("Salva");
+
+  await click("Crea azione");
+  expect(host.querySelector(".ui-dialog h2")?.textContent).toBe("Nuova azione");
+  await dialogButton("Salva");
+  await settle(1_700);
+  const saved = cloudSheet().sheet;
+  expect(saved.traits[0].modifiers).toMatchObject([{ target: "initiative", amount: 5 }]);
+  expect(host.querySelector(".entry .inventory-mods")?.textContent).toBe("Iniziativa +5");
+  expect(saved.actions).toMatchObject([{ name: "Allerta", description: "Sempre pronto." }]);
+
+  await click("Scheda");
+  await click("Base");
+  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +6\nBase +1\nAllerta +5");
+});
+
+it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 2 } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica (prova)");
+  await type('input[aria-label="Modificatore iniziativa"]', "3");
+  const style = host.querySelector<HTMLSelectElement>('select[aria-label="Stile iniziativa"]')!;
+  await act(async () => { style.value = "advantage"; style.dispatchEvent(new Event("change", { bubbles: true })); });
+  await settle(1_700);
+  expect(cloudSheet().sheet.options).toMatchObject({ bonuses: { initiative: 3 }, initiativeMode: "advantage" });
+  await click("Base");
+  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +5\nBase +2\nOpzioni +3");
 });

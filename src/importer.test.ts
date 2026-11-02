@@ -19,6 +19,20 @@ const fixture = {
 };
 
 describe("import Roll20 ogl5e", () => {
+  it("decodifica la bio di Roll20 con lettere accentate in latin-1 (escape)", () => {
+    const sheet = importRoll20({ ...fixture, character: { ...fixture.character, bio_text: "%3Cp%3Eio%20sono%20Vor%2C%20in%20una%20comunit%E0%20%E8%20%u2019ok%3C/p%3E" } });
+    expect(sheet.biography).toBe("io sono Vor, in una comunità è ’ok");
+  });
+
+  it("separa SOURCE e SOURCE TYPE dei tratti dalle righe raw, anche con i valori italiani", () => {
+    const sheet = importRoll20({ ...fixture, normalized: { ...fixture.normalized, traits: [
+      { name: "Darkvision", source: "Orco • Razziale", description: "", _rowid: "t1" },
+      { name: "Mercante", source: "mercante • Background", description: "", _rowid: "t2" },
+      { name: "Vecchio", source: "Talento", description: "", _rowid: "t3" },
+    ] }, raw: { repeating: { repeating_traits: [{ _rowid: "t1", source: "Razziale", source_type: "Orco" }, { _rowid: "t2", source: "Background", source_type: "mercante" }] } } });
+    expect(sheet.traits.map(({ source, sourceKind, sourceType }) => [source, sourceKind, sourceType])).toEqual([["Orco • Racial", "Racial", "Orco"], ["mercante • Background", "Background", "mercante"], ["Talento", undefined, undefined]]);
+  });
+
   it("unisce nome e tipo delle competenze divisi dall'exporter e legge gli strumenti", () => {
     const sheet = importRoll20({ ...fixture, normalized: { ...fixture.normalized,
       proficiencies: [

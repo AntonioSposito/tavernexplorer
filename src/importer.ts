@@ -1,7 +1,7 @@
 import { DEFAULT_RULESET } from "./rulesets";
 import { ABILITY_SHORT } from "./constants";
-import { parseItemModifiers } from "./itemModifiers";
-import type { AbilityStat, ActionEntry, CharacterSheet, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency } from "./types";
+import { itemModifierList, modifiersFromText, parseItemModifiers } from "./itemModifiers";
+import type { AbilityStat, ActionEntry, CharacterSheet, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency, TraitEntry, TraitSource } from "./types";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj => (value && typeof value === "object" ? (value as Obj) : {});
@@ -14,10 +14,14 @@ const num = (value: unknown, fallback = 0) => {
 const bool = (value: unknown) => value === true || value === 1 || value === "1" || value === "on";
 const uid = () => crypto.randomUUID();
 
-function decodeLegacy(value: string): string {
+// Roll20 codifica la bio con escape(): %XX sono byte latin-1 (%E0 = à), non UTF-8, e decodeURIComponent li rifiuta.
+// Prima si prova UTF-8 (export più vecchi), poi la decodifica di escape().
+export function decodeLegacy(value: string): string {
   try {
     const unicodeFixed = value.replace(/%u([0-9a-f]{4})/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-    const decoded = decodeURIComponent(unicodeFixed.replace(/%(?![0-9a-f]{2})/gi, "%25"));
+    let decoded: string;
+    try { decoded = decodeURIComponent(unicodeFixed.replace(/%(?![0-9a-f]{2})/gi, "%25")); }
+    catch { decoded = unicodeFixed.replace(/%([0-9a-f]{2})/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16))); }
     const documentValue = new DOMParser().parseFromString(decoded, "text/html");
     return documentValue.body.textContent?.trim() ?? "";
   } catch {
@@ -45,6 +49,33 @@ function importProficiencies(value: unknown): ProficiencyEntry[] {
     const id = text(row._rowid, uid());
     const type = types.get(id) ?? (text(row.type).toUpperCase() || "LANGUAGE");
     return { id, name: text(row.name).trim(), type: PROFICIENCY_TYPES[type] ?? "OTHER" };
+  });
+}
+
+// Campo "Modifiers" Roll20 → lista; resta come testo solo ciò che non è riconosciuto (mostrato come "Non applicati").
+function itemModifierFields(value: string) {
+  const unknown = parseItemModifiers(value).unknown.join(", ");
+  const modifiers = modifiersFromText(value);
+  return { ...modifiers.length ? { modifiers } : {}, ...unknown ? { modifiersText: unknown } : {} };
+}
+
+// SOURCE dei tratti, anche come lo salva Roll20 in italiano.
+const TRAIT_SOURCES: Record<string, TraitSource> = {
+  racial: "Racial", razziale: "Racial", class: "Class", classe: "Class", feat: "Feat", talento: "Feat",
+  background: "Background", item: "Item", oggetto: "Item", other: "Other", altro: "Other",
+};
+export const traitSource = (value: string): TraitSource | undefined => TRAIT_SOURCES[value.trim().toLowerCase()];
+export const traitSourceText = (kind: TraitSource | undefined, type: string | undefined) => [type?.trim(), kind].filter(Boolean).join(" • ") || undefined;
+
+// normalized.traits unisce i due campi in "source_type • source"; quelli separati sono nelle righe raw.
+function importTraits(value: unknown, raw: unknown): TraitEntry[] {
+  const rawRows = new Map(arr(obj(obj(raw).repeating).repeating_traits).map((row) => [text(row._rowid), row]));
+  return arr(value).filter((entry) => text(entry.name).trim()).map((entry) => {
+    const id = text(entry._rowid, uid());
+    const row = rawRows.get(id);
+    const sourceKind = row ? traitSource(text(row.source)) : undefined;
+    const sourceType = row ? text(row.source_type).trim() || undefined : undefined;
+    return { id, name: text(entry.name).trim(), source: (row ? traitSourceText(sourceKind, sourceType) : undefined) ?? (text(entry.source) || undefined), sourceKind, sourceType, description: text(entry.description) };
   });
 }
 
@@ -150,15 +181,15 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
     skills: Object.fromEntries(Object.entries(obj(normalized.skills)).map(([key, raw]) => { const skill = obj(raw); return [key, { ability: text(skill.ability), bonus: num(skill.bonus), proficient: bool(skill.proficient) }]; })),
     spellcasting: { ability: text(spellcasting.ability), saveDc: num(spellcasting.save_dc), attackBonus: num(spellcasting.attack_bonus), slots },
     actions, spells: [],
-    inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined, weight: entry.weight == null || entry.weight === "" ? null : num(entry.weight), properties: text(entry.properties) || undefined, modifiersText: text(entry.modifiers) || undefined })),
+    inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined, weight: entry.weight == null || entry.weight === "" ? null : num(entry.weight), properties: text(entry.properties) || undefined, ...itemModifierFields(text(entry.modifiers)) })),
     proficiencies: importProficiencies(normalized.proficiencies),
-    traits: arr(normalized.traits).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), source: text(entry.source) || undefined, description: text(entry.description) })),
+    traits: importTraits(normalized.traits, source.raw),
     currency: Object.fromEntries(Object.entries(obj(normalized.currency)).map(([key, value]) => [key, num(value)])),
     biography: decodeLegacy(text(character.bio_text) || text(character.bio_html)), importWarnings: warnings,
   };
   sheet.spells = importSpells(spellcasting, actions, warnings);
   sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet));
-  sheet.importedItemModifiers = sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => parseItemModifiers(item.modifiersText).modifiers);
+  sheet.importedItemModifiers = sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item));
   sheet.tools = importTools(normalized.tools, source.raw, sheet.abilities, sheet.combat.proficiencyBonus);
   return sheet;
 }
