@@ -67,7 +67,8 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
     {editing && canManage && <div className="turn-tools">
       {onOpenForPlayers && <button onClick={onOpenForPlayers}>Apri il turn order ai giocatori ↗</button>}
       <button onClick={onAttach} disabled={!active}>Collega scheda e token selezionato</button>
-      {state.entries.length > 0 && <button className="turn-clear" onClick={() => onChange({ round: 1, activeIndex: 0, entries: [] })}>Svuota ordine</button>}
+      <button aria-pressed={!state.hideTokenStats} onClick={() => onChange({ ...state, hideTokenStats: !state.hideTokenStats })}>{state.hideTokenStats ? "Mostra barre vita e CA" : "Nascondi barre vita e CA"}</button>
+      {state.entries.length > 0 && <button className="turn-clear" onClick={() => onChange({ ...state, round: 1, activeIndex: 0, entries: [] })}>Svuota ordine</button>}
     </div>}
     <footer className="turn-footer">
       <button className="turn-step" onClick={onPrevious} disabled={!canManage || !state.entries.length || (state.round === 1 && state.activeIndex === 0)} aria-label="Turno precedente">←</button>

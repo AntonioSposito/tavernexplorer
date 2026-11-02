@@ -20,6 +20,8 @@ export const INVENTORY_META_KEY = `${EXTENSION_ID}/shared-inventory`;
 export const PERMISSIONS_META_KEY = `${EXTENSION_ID}/permissions`;
 export const ROLL_LABEL_META_KEY = `${EXTENSION_ID}/roll-label`;
 export const TOKEN_STATUS_META_KEY = `${EXTENSION_ID}/token-status`;
+// Barra della vita e CA disegnate in locale sotto il token.
+export const TOKEN_STATS_META_KEY = `${EXTENSION_ID}/token-stats`;
 
 export const ABILITY_LABELS: Record<string, string> = {
   strength: "Forza",

@@ -270,6 +270,8 @@ export interface TurnState {
   round: number;
   activeIndex: number;
   entries: TurnEntry[];
+  // Barre della vita e CA sui token nascoste (es. fuori dal combattimento).
+  hideTokenStats?: boolean;
 }
 
 export interface ChatMessage {
