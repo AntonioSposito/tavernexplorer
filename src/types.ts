@@ -78,6 +78,10 @@ export interface InventoryEntry {
   count: number | null;
   equipped: boolean;
   description?: string;
+  // Campi del form oggetto di Roll20, come testo: non sono applicati alla scheda.
+  weight?: number | null;
+  properties?: string;
+  modifiersText?: string;
   modifiers?: StatModifier[];
 }
 

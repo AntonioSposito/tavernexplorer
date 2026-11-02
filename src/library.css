@@ -65,3 +65,16 @@
 .ability-query { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 /* Risorse (con Riposi sotto) e Competenze affiancate; una colonna se la finestra è stretta. */
 .sheet-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }
+/* Zaino come Roll20: equipaggiato, quantità, nome, peso; dettagli nella riga richiudibile. */
+.inventory-head, .inventory-item > summary { display: grid; grid-template-columns: 1.6rem 2.6rem minmax(0, 1fr) 3rem auto; align-items: center; gap: .5rem; }
+.inventory-head { padding: 0 .25rem; color: hsl(var(--muted-foreground)); font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
+.inventory-head span:nth-child(4) { grid-column: 4; }
+.inventory-item { border-top: 1px solid hsl(var(--border)); }
+.inventory-item > summary { padding: .5rem .25rem; cursor: pointer; list-style: none; }
+.inventory-item > summary::-webkit-details-marker { display: none; }
+.inventory-item > summary strong { overflow-wrap: anywhere; }
+.inventory-item .inventory-qty, .inventory-item .inventory-weight { text-align: center; color: hsl(var(--muted-foreground)); }
+.inventory-item .entry-icons { display: inline-flex; gap: .25rem; }
+.inventory-body { display: grid; gap: .5rem; padding: 0 .25rem .75rem 4.7rem; }
+.inventory-body p { margin: 0; white-space: pre-wrap; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+input.inventory-qty { width: 100%; min-width: 0; padding: .2rem; border: 1px solid hsl(var(--input)); border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground)); text-align: center; }

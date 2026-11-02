@@ -529,3 +529,35 @@ it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira",
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent?.startsWith("Carisma"))!.click());
   expect(host.querySelector(".ui-dialog")?.textContent).toContain("1d20+3[CHA]+2[PROF]");
 });
+
+it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [{ name: "Leather Armor", count: 1, weight: null, equipped: false, properties: "AC", modifiers: "+1", description: "", _rowid: "armor" }] } });
+  expect(sheet.inventory[0]).toMatchObject({ weight: null, properties: "AC", modifiersText: "+1" });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Zaino");
+
+  await click("+ Nuovo oggetto");
+  await type('input[aria-label="Nome oggetto"]', "Frecce");
+  await type('input[aria-label="Quantità oggetto"]', "20");
+  await type('input[aria-label="Peso oggetto"]', "1");
+  await dialogButton("Salva");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Leather Armor"]')!.click());
+  await type('input[aria-label="Nome oggetto"]', "Armatura di cuoio");
+  await dialogButton("Salva");
+  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Equipaggiato Armatura di cuoio"]')!.click());
+  await type('input[aria-label="Quantità Frecce"]', "18");
+  await settle(1_700);
+
+  let saved = cloudSheet().sheet.inventory;
+  expect(saved).toMatchObject([{ id: "armor", name: "Armatura di cuoio", equipped: true, properties: "AC", modifiersText: "+1" }, { name: "Frecce", count: 18, weight: 1, equipped: false }]);
+  expect(host.querySelector('[aria-label="Mostra in chat Frecce"]')).not.toBeNull();
+
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Frecce"]')!.click());
+  await dialogButton("Elimina");
+  await settle(1_700);
+  saved = cloudSheet().sheet.inventory;
+  expect(saved.map((item: { name: string }) => item.name)).toEqual(["Armatura di cuoio"]);
+});

@@ -149,7 +149,7 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
     skills: Object.fromEntries(Object.entries(obj(normalized.skills)).map(([key, raw]) => { const skill = obj(raw); return [key, { ability: text(skill.ability), bonus: num(skill.bonus), proficient: bool(skill.proficient) }]; })),
     spellcasting: { ability: text(spellcasting.ability), saveDc: num(spellcasting.save_dc), attackBonus: num(spellcasting.attack_bonus), slots },
     actions, spells: [],
-    inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined })),
+    inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined, weight: entry.weight == null || entry.weight === "" ? null : num(entry.weight), properties: text(entry.properties) || undefined, modifiersText: text(entry.modifiers) || undefined })),
     proficiencies: importProficiencies(normalized.proficiencies),
     traits: arr(normalized.traits).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), source: text(entry.source) || undefined, description: text(entry.description) })),
     currency: Object.fromEntries(Object.entries(obj(normalized.currency)).map(([key, value]) => [key, num(value)])),
