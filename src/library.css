@@ -66,15 +66,36 @@
 /* Risorse (con Riposi sotto) e Competenze affiancate; una colonna se la finestra è stretta. */
 .sheet-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }
 /* Zaino come Roll20: equipaggiato, quantità, nome, peso; dettagli nella riga richiudibile. */
-.inventory-head, .inventory-item > summary { display: grid; grid-template-columns: 1.6rem 2.6rem minmax(0, 1fr) 3rem auto; align-items: center; gap: .5rem; }
-.inventory-head { padding: 0 .25rem; color: hsl(var(--muted-foreground)); font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
-.inventory-head span:nth-child(4) { grid-column: 4; }
+.inventory-head, .inventory-item > summary { display: grid; grid-template-columns: 2.6rem 2.8rem minmax(0, 1fr) 4rem 4.25rem; align-items: center; gap: .5rem; }
+.inventory-head { padding: 0 .25rem; white-space: nowrap; color: hsl(var(--muted-foreground)); font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
+/* Intestazioni allineate come i valori: Equip., Qtà e Peso al centro, Nome a sinistra. */
+.inventory-head span:nth-child(1), .inventory-head span:nth-child(2), .inventory-head span:nth-child(4) { text-align: center; }
+.inventory-item > summary > input[type="checkbox"] { justify-self: center; margin: 0; }
 .inventory-item { border-top: 1px solid hsl(var(--border)); }
 .inventory-item > summary { padding: .5rem .25rem; cursor: pointer; list-style: none; }
 .inventory-item > summary::-webkit-details-marker { display: none; }
 .inventory-item > summary strong { overflow-wrap: anywhere; }
 .inventory-item .inventory-qty, .inventory-item .inventory-weight { text-align: center; color: hsl(var(--muted-foreground)); }
-.inventory-item .entry-icons { display: inline-flex; gap: .25rem; }
-.inventory-body { display: grid; gap: .5rem; padding: 0 .25rem .75rem 4.7rem; }
+/* Colonna pulsanti a larghezza fissa (due da 2rem): l'intestazione non ha pulsanti ma deve avere le stesse colonne. */
+.inventory-item .entry-icons { display: inline-flex; gap: .25rem; justify-self: end; }
+.inventory-body { display: grid; gap: .5rem; padding: 0 .25rem .75rem 6.2rem; }
 .inventory-body p { margin: 0; white-space: pre-wrap; line-height: 1.45; color: hsl(var(--muted-foreground)); }
 input.inventory-qty { width: 100%; min-width: 0; padding: .2rem; border: 1px solid hsl(var(--input)); border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground)); text-align: center; }
+.inventory-over { color: hsl(var(--destructive)) !important; }
+.metric-explained { cursor: help; }
+.metric-explained strong { text-decoration: underline dotted; text-underline-offset: 3px; }
+/* Monete: una casella colorata per tipo, importo modificabile come le quantità dello zaino. */
+.coin-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.coin { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border-radius: 8px; border: 1px solid hsl(var(--coin) / .7); background: hsl(var(--coin) / .22); }
+.coin span { font-size: .7rem; font-weight: 700; letter-spacing: .04em; color: hsl(var(--coin)); }
+.coin strong { font-size: 1.05rem; }
+.coin input { width: 100%; min-width: 0; padding: .2rem; border: 1px solid hsl(var(--coin) / .6); border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground)); font-weight: 700; text-align: center; }
+.coin-cp { --coin: 22 60% 52%; }
+.coin-sp { --coin: 210 10% 72%; }
+.coin-ep { --coin: 50 35% 58%; }
+.coin-gp { --coin: 45 85% 55%; }
+.coin-pp { --coin: 195 25% 82%; }
+/* Senza le freccette del campo numero il valore resta davvero centrato (le frecce della tastiera funzionano). */
+input.inventory-qty, .coin input { -moz-appearance: textfield; appearance: textfield; }
+input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-outer-spin-button,
+.coin input::-webkit-inner-spin-button, .coin input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

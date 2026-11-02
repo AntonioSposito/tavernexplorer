@@ -12,7 +12,9 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [] }));
+vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadItems: async () => [
+  { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
+] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER" }));
 const noop = () => undefined;
 const unsubscribe = () => noop;
@@ -542,7 +544,7 @@ it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
   await click("+ Nuovo oggetto");
   await type('input[aria-label="Nome oggetto"]', "Frecce");
   await type('input[aria-label="Quantità oggetto"]', "20");
-  await type('input[aria-label="Peso oggetto"]', "1");
+  await type('input[aria-label="Peso oggetto"]', "0.5");
   await dialogButton("Salva");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Leather Armor"]')!.click());
   await type('input[aria-label="Nome oggetto"]', "Armatura di cuoio");
@@ -560,4 +562,92 @@ it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
   await settle(1_700);
   saved = cloudSheet().sheet.inventory;
   expect(saved.map((item: { name: string }) => item.name)).toEqual(["Armatura di cuoio"]);
+});
+
+it("modifica le monete direttamente e mostra il carico dello zaino", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, currency: { cp: 60, sp: null, gp: 12 }, inventory: [{ name: "Frecce", count: 20, weight: 0.05, _rowid: "arrows" }, { name: "Corda", count: null, weight: 10, _rowid: "rope" }] } });
+  sheet.abilities.strength = { score: 10, mod: 0, save: 0, saveProficient: false };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  expect(host.textContent).toContain("Carico 5,5 / 75 kg");
+
+  await type('input[aria-label="Monete Argento"]', "7");
+  await type('input[aria-label="Monete Oro"]', "");
+  await settle(1_700);
+  expect(cloudSheet().sheet.currency).toEqual({ cp: 60, sp: 7, gp: 0 });
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Monete Platino"]')!.value).toBe("0");
+});
+
+it("la CA si passa al calcolo automatico dal popup e mostra da cosa è data", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { ac: 12 }, abilities: { dexterity: { score: 14, mod: 2 } }, inventory: [{ name: "Cuoio", equipped: true, modifiers: "Item Type: Light Armor, AC 11", _rowid: "leather" }] } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const metric = () => host.querySelector<HTMLButtonElement>("button.metric-explained")!;
+  expect(metric().title).toBe("CA 12\nBase 12");
+  await act(async () => metric().click());
+  await act(async () => host.querySelector<HTMLInputElement>(".ui-dialog .action-form-check input")!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  expect(metric().title).toBe("CA 13\nCuoio 11\nDES +2");
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat).toMatchObject({ acMode: "auto", acBase: 10 });
+});
+
+it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  await click("+ Nuovo oggetto");
+  await click("Importa da 5e.tools");
+  await settle();
+  await click("Shield");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Nome oggetto"]')!.value).toBe("Shield");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Modificatori oggetto"]')!.value).toBe("Item Type: Shield, AC +2");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory).toMatchObject([{ name: "Shield", count: 1, weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." }]);
+});
+
+it("dallo zaino apre Nuova azione precompilata e la crea solo al salvataggio", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [{ name: "Longsword", count: 1, properties: "1d8 Tagliente, Versatile", _rowid: "sword" }] } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Zaino");
+  await click("Crea azione");
+  expect(host.querySelector(".ui-dialog h2")?.textContent).toBe("Nuova azione");
+  expect([...host.querySelectorAll(".ui-dialog button")].some((button) => button.textContent === "Elimina")).toBe(false);
+  await dialogButton("Annulla");
+  await settle(1_700);
+  expect(cloudSheet().sheet.actions).toEqual([]);
+
+  await click("Crea azione");
+  await dialogButton("Salva");
+  await settle(1_700);
+  expect(cloudSheet().sheet.actions).toMatchObject([{ name: "Longsword", attack: { ability: "strength", proficient: true }, damages: [{ dice: "1d8", type: "Tagliente" }] }]);
+});
+
+it("riordina lo zaino e mette in cima gli equipaggiati senza cambiare l'ordine salvato", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [
+    { name: "Corda", _rowid: "rope" }, { name: "Torcia", _rowid: "torch" }, { name: "Spada", equipped: true, _rowid: "sword" },
+  ] } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const names = () => [...host.querySelectorAll(".inventory-item summary strong")].map((node) => node.textContent);
+  await click("Zaino");
+  await click("Modifica ordine");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Torcia"]')!.click());
+  await click("Fine");
+  expect(names()).toEqual(["Torcia", "Corda", "Spada"]);
+
+  await act(async () => [...host.querySelectorAll<HTMLLabelElement>("label")].find((label) => label.textContent?.includes("Equipaggiati in cima"))!.querySelector("input")!.click());
+  expect(names()).toEqual(["Spada", "Torcia", "Corda"]);
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory.map((item: { name: string }) => item.name)).toEqual(["Torcia", "Corda", "Spada"]);
 });

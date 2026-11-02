@@ -1,4 +1,4 @@
-import { import5eToolsCampaign, import5eToolsMonsters } from "./import5etools";
+import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
 import type { CampaignDocument, MonsterSheet } from "./types";
 
 // Il sito applica una challenge Cloudflare; il mirror del progetto espone gli
@@ -34,4 +34,12 @@ export async function loadAdventure(adventure: FiveToolsAdventure): Promise<Camp
   if (!/^[a-z0-9-]+$/i.test(adventure.id)) throw new Error("ID avventura 5e.tools non valido");
   const document = await request(`adventure/adventure-${adventure.id.toLowerCase()}.json`);
   return import5eToolsCampaign({ ...document, adventure: [{ id: adventure.id, name: adventure.name, source: adventure.source }] });
+}
+
+let itemsCache: Promise<FiveToolsItem[]> | null = null;
+// ~3 MB: scaricati alla prima ricerca e tenuti finché la pagina è aperta; un errore permette di riprovare.
+export function loadItems(): Promise<FiveToolsItem[]> {
+  itemsCache ??= Promise.all([request("items-base.json"), request("items.json")]).then(([base, items]) => import5eToolsItems(base, items));
+  itemsCache.catch(() => { itemsCache = null; });
+  return itemsCache;
 }

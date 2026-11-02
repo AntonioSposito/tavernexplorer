@@ -1,4 +1,4 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -55,6 +55,11 @@ export const storage = {
     characters: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []).flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []),
   },
   // Livelli di magie chiusi, come "idScheda:livello": solo comodità di questo browser.
+  // Zaino con gli oggetti equipaggiati in cima: solo comodità di questo browser, l'ordine salvato non cambia.
+  equippedFirst: {
+    get: () => read<boolean>(STORAGE_EQUIPPED_FIRST, false),
+    set: (value: boolean) => { try { write(STORAGE_EQUIPPED_FIRST, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
+  },
   closedSpellLevels: {
     get: () => read<string[]>(STORAGE_CLOSED_SPELL_LEVELS, []),
     set: (value: string[]) => { try { write(STORAGE_CLOSED_SPELL_LEVELS, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },

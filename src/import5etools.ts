@@ -141,3 +141,66 @@ export function import5eToolsCampaign(source: unknown): CampaignDocument {
   const metadata = obj(array(root.adventure)[0] ?? array(root.book)[0]);
   return { schemaVersion: 1, id: uid(), title: text(metadata.name) || text(root.name) || "Avventura importata", source: text(metadata.source), ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, chapters: data.map(toChapter), importedAt: Date.now() };
 }
+
+// --- Oggetti (items-base.json + items.json) ---
+
+export interface FiveToolsItem {
+  id: string;
+  name: string;
+  source: string;
+  detail: string;
+  // Campi pronti per il form "Nuovo oggetto" dello zaino.
+  item: { name: string; weight: number | null; properties?: string; modifiersText?: string; description?: string };
+}
+
+const ITEM_TYPES: Record<string, string> = {
+  LA: "Light Armor", MA: "Medium Armor", HA: "Heavy Armor", S: "Shield", M: "Melee Weapon", R: "Ranged Weapon", A: "Ammunition",
+  G: "Adventuring Gear", AT: "Artisan's Tools", T: "Tools", INS: "Instrument", GS: "Gaming Set", P: "Potion", RG: "Ring", RD: "Rod",
+  WD: "Wand", SC: "Scroll", SCF: "Spellcasting Focus", W: "Wondrous Item", MNT: "Mount", VEH: "Vehicle", TG: "Trade Good", FD: "Food and Drink", "$": "Treasure",
+};
+const PROPERTIES: Record<string, string> = {
+  A: "Ammunition", F: "Finesse", H: "Heavy", L: "Light", LD: "Loading", R: "Reach", RLD: "Reload", S: "Special", T: "Thrown", "2H": "Two-Handed", V: "Versatile", BF: "Burst Fire",
+};
+export const DAMAGE_TYPES: Record<string, string> = {
+  A: "Acido", B: "Contundente", C: "Freddo", F: "Fuoco", O: "Forza", L: "Fulmine", N: "Necrotico", P: "Perforante", I: "Veleno", Y: "Psichico", R: "Radioso", T: "Tuono", S: "Tagliente",
+};
+const ARMOR_ITEM_TYPES: Record<string, string> = { LA: "Light Armor", MA: "Medium Armor", HA: "Heavy Armor" };
+// Codici 5e.tools come "F|XPHB" o { uid: "F|XPHB" }: conta solo la parte prima di "|".
+const code = (value: unknown) => text(typeof value === "object" ? obj(value).uid : value).split("|")[0];
+
+function itemModifiers(row: Obj, type: string): string | undefined {
+  const parts: string[] = [];
+  if (ARMOR_ITEM_TYPES[type] && row.ac != null) parts.push(`Item Type: ${ARMOR_ITEM_TYPES[type]}`, `AC ${number(row.ac)}`);
+  if (type === "S") parts.push("Item Type: Shield", `AC +${number(row.ac, 2)}`);
+  const bonus = (key: string, label: string) => { if (row[key] != null) parts.push(`${label} ${text(row[key]).startsWith("-") ? "" : "+"}${text(row[key]).replace(/^\+/, "")}`); };
+  bonus("bonusAc", "AC"); bonus("bonusSavingThrow", "Saving Throws"); bonus("bonusSpellAttack", "Spell Attack"); bonus("bonusSpellSaveDc", "Spell DC");
+  return parts.join(", ") || undefined;
+}
+
+function itemProperties(row: Obj): string | undefined {
+  const parts = array(row.property).map(code).map((key) => PROPERTIES[key] ?? key);
+  if (row.dmg1) parts.unshift(`${text(row.dmg1)}${row.dmgType ? ` ${DAMAGE_TYPES[text(row.dmgType)] ?? text(row.dmgType)}` : ""}${row.dmg2 ? ` (${text(row.dmg2)} a due mani)` : ""}`);
+  if (row.range) parts.push(`Gittata ${text(row.range)}`);
+  array(row.mastery).map(code).forEach((mastery) => parts.push(`Mastery: ${mastery}`));
+  return parts.join(", ") || undefined;
+}
+
+// Edizione 2024 prima: gli oggetti ristampati (reprintedAs) sono nascosti, resta la versione nuova.
+// Gli oggetti "_copy" ereditano i dati da un altro: si scartano (prima versione).
+export function import5eToolsItems(baseFile: unknown, itemsFile: unknown): FiveToolsItem[] {
+  const rows = [...array(obj(baseFile).baseitem), ...array(obj(itemsFile).item)].map(obj)
+    .filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
+  return rows.map((row) => {
+    const type = code(row.type);
+    const name = text(row.name);
+    const source = text(row.source);
+    const weight = row.weight == null ? null : number(row.weight);
+    const kind = ITEM_TYPES[type] ?? (row.wondrous ? "Wondrous Item" : "");
+    const rarity = text(row.rarity);
+    return {
+      id: `${name}|${source}`, name, source,
+      detail: [source, kind, rarity && rarity !== "none" && rarity, weight != null && `${weight} lb`].filter(Boolean).join(" · "),
+      item: { name, weight, properties: itemProperties(row), modifiersText: itemModifiers(row, type), description: renderEntries(row.entries) || undefined },
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+}

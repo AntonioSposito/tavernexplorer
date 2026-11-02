@@ -133,7 +133,10 @@ export interface CharacterSheet {
     experience: string;
   };
   combat: {
+    // Manuale (default): ac è la CA scritta. Automatica: armatura equipaggiata + DES, oppure acBase + DES senza armatura.
     ac: number;
+    acMode?: "manual" | "auto";
+    acBase?: number;
     hp: { current: number; max: number; temp: number };
     speed: string;
     initiative: number;
@@ -161,6 +164,8 @@ export interface CharacterSheet {
   // Assenti nelle schede importate prima di questo campo.
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
+  // Modificatori degli oggetti equipaggiati al momento dell'import: Roll20 li ha già sommati ai valori esportati.
+  importedItemModifiers?: StatModifier[];
   currency: Record<string, number>;
   biography: string;
   importWarnings: string[];
