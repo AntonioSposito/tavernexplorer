@@ -42,7 +42,9 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 
 const settle = (ms = 50) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
 const click = async (label: string) => {
-  const button = [...host.querySelectorAll("button")].find((item) => item.textContent?.includes(label));
+  const buttons = [...host.querySelectorAll("button")];
+  // Le tab principali sono solo icone: si cercano per aria-label.
+  const button = buttons.find((item) => item.getAttribute("aria-label") === label) ?? buttons.find((item) => item.textContent?.includes(label));
   expect(button, `Pulsante ${label}`).toBeTruthy();
   await act(async () => button!.click());
 };
@@ -165,12 +167,12 @@ it("l'attacco tira anche il danno, critico se il d20 naturale è nella gamma", a
   expect([...host.querySelectorAll(".entry-icons button")].map((button) => button.getAttribute("aria-label"))).toEqual(["Mostra in chat Spada", "Modifica Spada"]);
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Mostra in chat Spada"]')!.click());
   expect(host.querySelector<HTMLDetailsElement>(".entry")?.open).toBe(false);
-  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
+  expect(host.querySelector(".app-tabs .active")?.getAttribute("aria-label")).toBe("Scheda");
   vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 18; return array; });
   await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
   await click("Normale");
   vi.restoreAllMocks();
-  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
+  expect(host.querySelector(".app-tabs .active")?.getAttribute("aria-label")).toBe("Scheda");
   await click("Messaggi");
   const card = host.querySelectorAll(".r20-card")[1];
   expect(card.querySelector("header")?.textContent).toBe("Spada");
@@ -231,7 +233,7 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Recupera slot level_2"]')!.click());
   await act(async () => hold.click());
   await click("Senza slot");
-  expect(host.querySelector(".app-tabs .active")?.textContent).toBe("Scheda");
+  expect(host.querySelector(".app-tabs .active")?.getAttribute("aria-label")).toBe("Scheda");
   await click("Messaggi");
   const [boltCard, holdCard, notice, freeCast] = [...host.querySelectorAll(".r20-card")];
   expect(holdCard.querySelector(".r20-alert")).toBeNull();

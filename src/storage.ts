@@ -1,4 +1,4 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -22,6 +22,11 @@ export const storage = {
   messages: {
     get: () => read<ChatMessage[]>(STORAGE_MESSAGES, []).slice(-200),
     set: (value: ChatMessage[]) => write(STORAGE_MESSAGES, value.slice(-200)),
+  },
+  // createdAt dell'ultimo messaggio letto: alla prima apertura la cronologia non conta come non letta.
+  messagesSeen: {
+    get: () => read<number>(STORAGE_MESSAGES_SEEN, Date.now()),
+    set: (value: number) => { try { write(STORAGE_MESSAGES_SEEN, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
   },
   monsters: {
     get: () => read<MonsterSheet[]>(STORAGE_MONSTERS, []),

@@ -6,6 +6,7 @@ export const SHEETS_CHANNEL = `${EXTENSION_ID}/sheets-changed`;
 export const GM_MESSAGE_KEY = `${EXTENSION_ID}/gm-message-public-key`;
 export const STORAGE_CHARACTERS = `${EXTENSION_ID}/characters/v1`;
 export const STORAGE_MESSAGES = `${EXTENSION_ID}/messages/v1`;
+export const STORAGE_MESSAGES_SEEN = `${EXTENSION_ID}/messages-seen/v1`;
 export const STORAGE_MONSTERS = `${EXTENSION_ID}/monsters/v1`;
 export const STORAGE_CAMPAIGNS = `${EXTENSION_ID}/campaigns/v1`;
 export const STORAGE_SHARED_INVENTORY = `${EXTENSION_ID}/shared-inventory/v1`;

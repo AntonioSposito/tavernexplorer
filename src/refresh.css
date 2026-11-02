@@ -34,6 +34,7 @@ body {
 .app-tabs button:hover, .sheet-tabs button:hover { color: hsl(var(--foreground)); background: hsl(var(--accent) / .55); }
 .app-tabs button.active, .sheet-tabs button.active { color: hsl(var(--primary)); border-bottom-color: hsl(var(--primary)); }
 .app-tabs span { background: hsl(var(--secondary)); }
+.app-tabs span.unread { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 700; }
 .paper, .entry, .inventory-row, .library-card, .message, .metric, .abilities button,
 .turn-list article, .ui-card, .remote-import, .inventory-form { background: hsl(var(--card)); border-color: hsl(var(--border)); color: hsl(var(--foreground)); }
 .hero h1, .paper h2, .stack h2, .metric strong, .spell-head strong, .turn-header strong,
@@ -76,3 +77,12 @@ body {
 /* Messaggi nella finestra principale: la lista riempie l'altezza sotto l'header e il box di scrittura sta in fondo. */
 .app-body > main:has(> .messages) { height:calc(100vh - var(--topbar-height)); display:flex; flex-direction:column; }
 .app-body > main > .messages { flex:1; height:auto; }
+.app-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.app-tabs .tab-icon { width: 34px; height: 34px; flex: none; padding: 0; border-radius: 0; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.app-tabs .tab-icon-wrap { position: relative; display: inline-flex; padding: 0; border-radius: 0; background: none; }
+.app-tabs .tab-badge { position: absolute; top: -6px; right: -12px; min-width: 18px; padding: 1px 5px; font-size: 11px; line-height: 16px; text-align: center; color: hsl(var(--foreground)); box-shadow: 0 0 0 2px hsl(var(--background)); }
+.app-tabs .tab-separator { flex: none; align-self: stretch; width: 1px; margin: 8px 4px; padding: 0; border-radius: 0; background: hsl(var(--border)); }
+.app-body > .app-tabs .tab-separator { width: auto; height: 1px; margin: 6px 10px; }
+/* Il badge sporge a destra dell'icona: spazio nel bottone e niente scroll orizzontale. */
+.app-body > .app-tabs { overflow-x: hidden; }
+.app-body > .app-tabs button { justify-content: center; padding-left: 14px; padding-right: 18px; }

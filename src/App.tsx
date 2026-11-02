@@ -86,6 +86,7 @@ export default function App() {
   const [visibility, setVisibility] = useState<Visibility>("everyone");
   const [player, setPlayer] = useState({ id: "preview", name: "Giocatore", role: "PLAYER" as "GM" | "PLAYER" });
   const [draft, setDraft] = useState("");
+  const [messagesSeenAt, setMessagesSeenAt] = useState(storage.messagesSeen.get);
   const [rollRequest, setRollRequest] = useState<{ title: string; formula: string; attack?: AttackRoll } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLInputElement>(null);
@@ -167,7 +168,7 @@ export default function App() {
   // Solo la finestra principale decide il personaggio attivo del giocatore.
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
   useEffect(() => { charactersRef.current = characters; }, [characters]);
-  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
+  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/messages-seen/")) setMessagesSeenAt(storage.messagesSeen.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
     message.authorId = player.id;
@@ -321,6 +322,8 @@ export default function App() {
   }
 
   const visibleMessages = useMemo(() => messages.filter((message) => canViewMessage(message, player.id, player.role)), [messages, player.id, player.role]);
+  const unreadMessages = tab === "messages" ? 0 : visibleMessages.filter((message) => message.createdAt > messagesSeenAt).length;
+  useEffect(() => { if (tab !== "messages") return; const latest = Math.max(messagesSeenAt, ...visibleMessages.map((message) => message.createdAt)); if (latest > messagesSeenAt) { setMessagesSeenAt(latest); storage.messagesSeen.set(latest); } }, [tab, visibleMessages, messagesSeenAt]);
 
   return <div className="app">
     {floatingView && <FloatingHandle view={floatingView}/>}
@@ -336,15 +339,14 @@ export default function App() {
 
     <div className="app-body">
     {!floatingView && <nav className="app-tabs">
-      <button className={tab === "sheet" ? "active" : ""} onClick={() => setTab("sheet")}>Scheda</button>
-      <button className={tab === "turns" ? "active" : ""} onClick={() => setTab("turns")}>Turni <span>{turns.entries.length}</span></button>
-      <button className={tab === "messages" ? "active" : ""} onClick={() => setTab("messages")}>Messaggi</button>
-      <button className={tab === "notes" ? "active" : ""} onClick={() => setTab("notes")}>Note <span>{notes.length + sharedNotes.length}</span></button>
-      {player.role === "GM" && <button className={tab === "compendium" ? "active" : ""} onClick={() => setTab("compendium")}>Bestiario</button>}
-      {player.role === "GM" && <button className={tab === "campaigns" ? "active" : ""} onClick={() => setTab("campaigns")}>Avventure</button>}
-      <button className={tab === "shared" ? "active" : ""} onClick={() => setTab("shared")}>Inventario comune</button>
-      <button className={tab === "library" ? "active" : ""} onClick={() => setTab("library")}>Libreria</button>
-      {player.role === "GM" && <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>Permessi</button>}
+      {([
+        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", notes.length + sharedNotes.length || null], ["shared", null], ["library", null],
+        // Tab solo GM in fondo, dopo un separatore.
+        ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
+      ] as const).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
+        <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
+        {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
+      </button>)}
     </nav>}
 
     <main>
