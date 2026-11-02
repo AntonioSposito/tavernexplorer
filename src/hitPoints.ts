@@ -21,6 +21,16 @@ export function adjustHitPoints(combat: Combat, field: HitPointField, delta: num
   return { ...combat, hp, deathSaves };
 }
 
+// Totale dei PF (attuali + temporanei) scritto nel turn order: scendendo è danno e consuma prima i temporanei,
+// salendo è cura dei PF attuali (i temporanei restano).
+export function setHitPointTotal(combat: Combat, total: number, effectiveMax = combat.hp.max): Combat {
+  const delta = Math.max(0, Math.trunc(total)) - (combat.hp.current + combat.hp.temp);
+  if (delta >= 0) return adjustHitPoints(combat, "current", delta, effectiveMax);
+  const fromTemp = Math.min(combat.hp.temp, -delta);
+  const reduced = adjustHitPoints(combat, "temp", -fromTemp, effectiveMax);
+  return adjustHitPoints(reduced, "current", delta + fromTemp, effectiveMax);
+}
+
 // Tiro salvezza contro la morte dal d20 naturale: 20 = torna a 1 PF e azzera i tiri, 1 = due fallimenti,
 // da 10 in su successo, sotto fallimento. I contatori si fermano a 3 (stabile o morto).
 // bonus: Death save modifier delle opzioni; 20 e 1 naturali restano speciali.

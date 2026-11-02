@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { adjustHitPoints, applyDeathSave } from "./hitPoints";
+import { adjustHitPoints, applyDeathSave, setHitPointTotal } from "./hitPoints";
 import type { CharacterSheet } from "./types";
 
 const combat = (): CharacterSheet["combat"] => ({
@@ -42,4 +42,13 @@ it("TS contro la morte: successo da 10, 1 vale due fallimenti, 20 riporta a 1 PF
   expect(applyDeathSave(down, 1).deathSaves).toEqual({ successes: 0, failures: 2 });
   expect(applyDeathSave({ ...down, deathSaves: { successes: 0, failures: 2 } }, 1).deathSaves.failures).toBe(3);
   expect(applyDeathSave({ ...down, deathSaves: { successes: 2, failures: 1 } }, 20)).toMatchObject({ hp: { current: 1 }, deathSaves: { successes: 0, failures: 0 } });
+});
+
+it("il totale dei PF del turn order consuma prima i temporanei e cura solo gli attuali", () => {
+  const hurt = { ...combat(), hp: { current: 27, max: 35, temp: 3 } };
+  expect(setHitPointTotal(hurt, 25).hp).toEqual({ current: 25, max: 35, temp: 0 });
+  expect(setHitPointTotal(hurt, 29).hp).toEqual({ current: 27, max: 35, temp: 2 });
+  expect(setHitPointTotal(hurt, 34).hp).toEqual({ current: 31, max: 35, temp: 3 });
+  expect(setHitPointTotal(hurt, 50).hp).toEqual({ current: 35, max: 35, temp: 3 });
+  expect(setHitPointTotal(hurt, -4).hp).toEqual({ current: 0, max: 35, temp: 0 });
 });

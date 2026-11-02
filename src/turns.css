@@ -19,6 +19,7 @@
 .turn-name button{border:0;background:transparent;color:inherit;padding:0}
 .turn-name button:hover{text-decoration:underline}
 .turn-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem;opacity:.8}
+.turn-stats input{width:3.2em;margin:0 .1rem;padding:0 .2rem;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;text-align:right}
 .turn-initiative{font-family:Georgia,serif;font-size:1.6rem;line-height:1;min-width:2ch;text-align:right;color:hsl(var(--primary))}
 .turn-row.current .turn-initiative{color:hsl(var(--primary-foreground))}
 .turn-initiative-input{width:3.6rem;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.35rem;text-align:right}
