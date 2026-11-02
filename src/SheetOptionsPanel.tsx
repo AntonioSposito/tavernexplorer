@@ -7,7 +7,7 @@ import { Card, Input, Select } from "./ui";
 const ABILITIES = Object.keys(ABILITY_LABELS);
 const MODES: Array<[RollMode, string]> = [["normal", "Normale"], ["advantage", "Vantaggio"], ["disadvantage", "Svantaggio"]];
 
-// Tab "Modifica (prova)": le opzioni della pagina impostazioni di Roll20 (fase A + B).
+// Tab Modifica: le opzioni della pagina impostazioni di Roll20 (fase A + B).
 // I bonus partono da 0 e si sommano ai valori importati; compaiono nei tooltip come "Opzioni".
 export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void }) {
   const options = sheet.options ?? {};

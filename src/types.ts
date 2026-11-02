@@ -175,7 +175,7 @@ export interface CharacterSheet {
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
   classes?: CharacterClass[];
-  // Opzioni della tab "Modifica (prova)", come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
+  // Opzioni della tab Modifica, come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
   options?: SheetOptions;
   // Modificatori degli oggetti equipaggiati al momento dell'import: Roll20 li ha già sommati ai valori esportati.
   importedItemModifiers?: StatModifier[];

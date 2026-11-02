@@ -109,12 +109,12 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .inventory-mods span { padding: 0 6px; border: 1px solid hsl(var(--primary) / .45); border-radius: 999px; background: hsl(var(--primary) / .1); color: hsl(var(--primary)); font-size: .68rem; line-height: 1.5; }
 .value-explained { cursor: help; }
 .value-explained strong, strong.value-explained { text-decoration: underline dotted; text-underline-offset: 3px; }
-/* Tab "Modifica (prova)": righe abilità come Roll20 (competenza, nome, bonus). */
+/* Tab Modifica: righe abilità come Roll20 (competenza, nome, bonus). */
 .options-skills { display: grid; gap: 6px; margin-bottom: .5rem; }
 .options-skills > div { display: grid; grid-template-columns: auto auto minmax(0, 1fr) 4.5rem; align-items: center; gap: 8px; }
 .options-panel .muted { margin: .25rem 0 .5rem; font-size: .8rem; }
 .options-inline { display: flex; align-items: end; padding-bottom: .5rem; }
-/* Classi in "Modifica (prova)". */
+/* Classi nella tab Modifica. */
 .class-options { display: grid; gap: .6rem; }
 .class-row { display: grid; grid-template-columns: 1fr 1fr 5rem 1fr auto; align-items: end; gap: 8px; padding-top: .5rem; border-top: 1px solid hsl(var(--border)); }
 .class-row > strong { grid-column: 1 / -1; font-size: .8rem; }

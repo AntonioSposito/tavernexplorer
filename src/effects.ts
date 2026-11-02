@@ -34,7 +34,7 @@ export function effectiveProficiency(sheet: CharacterSheet): number {
 
 const ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
 
-// Opzioni della tab "Modifica (prova)" come gruppi di modificatori con un nome (per i tooltip).
+// Opzioni della tab Modifica come gruppi di modificatori con un nome (per i tooltip).
 function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: StatModifier[] }> {
   const options = sheet.options;
   if (!options) return [];

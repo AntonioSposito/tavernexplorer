@@ -746,12 +746,12 @@ it("un tratto ha modificatori sempre attivi e crea un'azione precompilata", asyn
   expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +6\nDestrezza +0\nAllerta +5\nAltro +1");
 });
 
-it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", async () => {
+it("la tab Modifica salva le opzioni e cambia i valori della scheda", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 2 } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
   await settle();
-  await click("Modifica (prova)");
+  await click("Modifica");
   await type('input[aria-label="Modificatore iniziativa"]', "3");
   const style = host.querySelector<HTMLSelectElement>('select[aria-label="Stile iniziativa"]')!;
   await act(async () => { style.value = "advantage"; style.dispatchEvent(new Event("change", { bubbles: true })); });
@@ -761,12 +761,12 @@ it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", as
   expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +5\nDestrezza +0\nOpzioni +3\nAltro +2");
 });
 
-it("nella tab Modifica (prova) aggiunge una multiclasse e aggiorna livello e slot", async () => {
+it("nella tab Modifica aggiunge una multiclasse e aggiorna livello e slot", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", class: "Wizard", level: 1 }, combat: { proficiency_bonus: 2 }, spellcasting: { ability: "@{intelligence_mod}+", slots: { level_1: { total: 2, expended: 0 } } } }, raw: { attributes: { base_level: { current: "1" } } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
   await settle();
-  await click("Modifica (prova)");
+  await click("Modifica");
   await click("+ Multiclasse");
   const second = host.querySelector<HTMLSelectElement>('select[aria-label="2ª classe: classe"]')!;
   await act(async () => { second.value = "Cleric"; second.dispatchEvent(new Event("change", { bubbles: true })); });
@@ -776,12 +776,12 @@ it("nella tab Modifica (prova) aggiunge una multiclasse e aggiorna livello e slo
   expect(cloudSheet().sheet.spellcasting.slots).toEqual({ level_1: { total: 4, used: 0 }, level_2: { total: 2, used: 0 } });
 });
 
-it("in Modifica (prova) ogni abilità ha competenza, Maestria e bonus in una sola riga", async () => {
+it("in Modifica ogni abilità ha competenza, Maestria e bonus in una sola riga", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", level: 1 }, combat: { proficiency_bonus: 2 }, abilities: { wisdom: { score: 12, mod: 1, save: 1 } }, skills: { insight: { ability: "wisdom", bonus: 1, proficient: false } } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
   await settle();
-  await click("Modifica (prova)");
+  await click("Modifica");
   expect(host.querySelector('[aria-label="Bonus insight"]')).toBeNull();
   const expertise = () => host.querySelector<HTMLInputElement>('input[aria-label="Maestria Intuizione"]')!;
   expect(expertise().disabled).toBe(true);
