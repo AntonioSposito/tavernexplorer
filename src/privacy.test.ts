@@ -10,14 +10,17 @@ const sdk = vi.hoisted(() => ({
   role: "GM" as "GM" | "PLAYER",
   metadata: {} as Record<string, unknown>,
   players: [] as Array<{ id: string; role: "GM" | "PLAYER"; metadata: Record<string, unknown> }>,
+  send: vi.fn(),
 }));
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   isAvailable: true,
   player: { getRole: async () => sdk.role, getId: async () => "gm-1", setMetadata: async (value: Record<string, unknown>) => { Object.assign(sdk.metadata, value); } },
   party: { getPlayers: async () => sdk.players },
+  broadcast: { sendMessage: sdk.send },
 } }));
 
 import { decryptGmMessage, encryptGmMessage, publishGmMessageKey } from "./privateMessages";
+import { broadcastMessage } from "./obr";
 
 beforeEach(() => {
   Object.defineProperty(globalThis, "crypto", { configurable: true, value: webcrypto });
@@ -41,6 +44,14 @@ describe("privacy", () => {
     expect(await decryptGmMessage(envelope)).toEqual(message);
     sdk.role = "PLAYER";
     expect(await decryptGmMessage(envelope)).toBeNull();
+  });
+
+  it("un GM da solo manda \"Solo GM\" senza errore e senza broadcast; un giocatore senza GM pronto riceve l'errore", async () => {
+    sdk.send.mockClear();
+    await expect(broadcastMessage(message)).resolves.toBeUndefined();
+    expect(sdk.send).not.toHaveBeenCalled();
+    sdk.role = "PLAYER";
+    await expect(broadcastMessage(message)).rejects.toThrow("Nessun GM pronto");
   });
 
   it("preserva l'id del mostro sostituito e lascia intatti gli altri", () => {

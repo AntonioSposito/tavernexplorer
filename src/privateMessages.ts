@@ -36,8 +36,13 @@ export async function publishGmMessageKey(): Promise<void> {
   await OBR.player.setMetadata({ [GM_MESSAGE_KEY]: saved.publicKey });
 }
 
+// GM che possono decifrare. OBR.party.getPlayers() esclude chi chiama: un GM da solo non ne ha altri.
+export async function gmRecipients() {
+  return (await OBR.party.getPlayers()).filter((member) => member.role === "GM" && member.metadata[GM_MESSAGE_KEY]);
+}
+
 export async function encryptGmMessage(message: ChatMessage): Promise<Envelope> {
-  const gms = (await OBR.party.getPlayers()).filter((member) => member.role === "GM" && member.metadata[GM_MESSAGE_KEY]);
+  const gms = await gmRecipients();
   if (!gms.length) throw new Error("Nessun GM pronto a ricevere messaggi riservati. Riprova quando il GM apre l'estensione.");
   const secret = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
   const rawKey = await crypto.subtle.exportKey("raw", secret);

@@ -97,7 +97,7 @@ export default function App() {
   const [player, setPlayer] = useState({ id: "preview", name: "Giocatore", role: "PLAYER" as "GM" | "PLAYER" });
   const [draft, setDraft] = useState("");
   const [messagesSeenAt, setMessagesSeenAt] = useState(storage.messagesSeen.get);
-  const [rollRequest, setRollRequest] = useState<{ title: string; formula: string; attack?: AttackRoll } | null>(null);
+  const [rollRequest, setRollRequest] = useState<{ title: string; formula: string; attack?: AttackRoll; as?: RollAs } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<HTMLInputElement>(null);
@@ -189,12 +189,13 @@ export default function App() {
 
   // Con `attack` il messaggio include anche il danno: critico se il d20 naturale è nella gamma, nessun danno con un 1 naturale.
   // Restituisce il risultato (null se il tiro fallisce) per chi deve usarlo, es. la cura del dado vita.
-  async function executeRoll(name: string, formula: string, mode: RollMode, attack?: AttackRoll): Promise<RollResult | null> {
+  // as: tiro di un mostro, a nome del mostro e solo al GM, invece che del personaggio attivo.
+  async function executeRoll(name: string, formula: string, mode: RollMode, attack?: AttackRoll, as?: RollAs): Promise<RollResult | null> {
     try {
       const result = roll(formula, mode);
       const { card, title, body } = buildRollCard(name, formula, result, mode, attack);
-      await publish(makeMessage({ kind: "roll", author: active?.name ?? player.name, characterId: active?.id, title, body, card, formula: result.formula, total: result.total, dice: result.dice, visibility }));
-      if (active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
+      await publish(makeMessage({ kind: "roll", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title, body, card, formula: result.formula, total: result.total, dice: result.dice, visibility: as?.visibility ?? visibility }));
+      if (!as && active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
       return result;
     } catch (error) {
       if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Tiro non valido", "ERROR");
@@ -203,7 +204,7 @@ export default function App() {
   }
 
   // mode: modo preimpostato dalle opzioni della scheda (es. iniziativa con vantaggio), senza chiedere.
-  function performRoll(title: string, formula: string, attack?: AttackRoll, mode?: RollMode) { if (mode && mode !== "normal") void executeRoll(title, formula, mode, attack); else if (supportsRollMode(formula)) setRollRequest({ title, formula, attack }); else void executeRoll(title, formula, rollMode, attack); }
+  function performRoll(title: string, formula: string, attack?: AttackRoll, mode?: RollMode, as?: RollAs) { if (mode && mode !== "normal") void executeRoll(title, formula, mode, attack, as); else if (supportsRollMode(formula)) setRollRequest({ title, formula, attack, as }); else void executeRoll(title, formula, rollMode, attack, as); }
 
   // `card` arriva dalle liste della scheda con attacco, danno e TS già calcolati; senza, solo nome e descrizione.
   async function shareEntry(entry: ActionEntry | SpellEntry, card?: RollCard) {
@@ -330,7 +331,8 @@ export default function App() {
       const { formula, mode, tiebreaker } = sheet ? initiativeRoll(sheet) : { formula: `1d20${signed(entry.initiativeBonus ?? 0)}`, mode: "normal" as const, tiebreaker: 0 };
       const result = roll(formula, mode);
       if (!await changeTurns(setTurnInitiative(turns, entry.id, result.total + tiebreaker))) return;
-      await publish(makeMessage({ kind: "roll", author: player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, card: buildRollCard(`Iniziativa · ${entry.name}`, formula, result, mode).card, formula: result.formula, total: result.total, dice: result.dice, visibility }));
+      const monster = !sheet && monsters.some((item) => item.id === entry.characterId);
+      await publish(makeMessage({ kind: "roll", author: monster ? entry.name : player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, card: buildRollCard(`Iniziativa · ${entry.name}`, formula, result, mode).card, formula: result.formula, total: result.total, dice: result.dice, visibility: monster ? "gm" : visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Tiro iniziativa fallito", "ERROR"); }
   }
 
@@ -386,7 +388,7 @@ export default function App() {
     <input ref={contentRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) import5eToolsFile(file); event.target.value = ""; }}/>
     <input ref={mapRef} hidden type="file" accept="image/png,image/jpeg,image/webp,image/avif" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { const name = window.prompt("Nome della nuova scena", file.name.replace(/\.[^.]+$/, "")); if (name) { try { await uploadMapAsScene(file, name); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Caricamento fallito", "ERROR"); } } } event.target.value = ""; }}/>
     <Dialog open={importNotes !== null} title={`Note d’importazione · ${importNotes?.name ?? ""}`} description="Dati da ricontrollare. Le note restano nella tab Modifica della scheda." onClose={() => setImportNotes(null)}><div className="import-notes"><ul>{importNotes?.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul><div className="action-form-buttons"><Button onClick={() => setImportNotes(null)}>OK</Button></div></div></Dialog>
-    <Dialog open={Boolean(rollRequest)} title={rollRequest?.title ?? "Tiro"} description={rollRequest?.formula} onClose={() => setRollRequest(null)}><div className="roll-choice"><Button onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "normal", rollRequest.attack); setRollRequest(null); }}>Normale</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "advantage", rollRequest.attack); setRollRequest(null); }}>Vantaggio</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "disadvantage", rollRequest.attack); setRollRequest(null); }}>Svantaggio</Button></div></Dialog>
+    <Dialog open={Boolean(rollRequest)} title={rollRequest?.title ?? "Tiro"} description={rollRequest?.formula} onClose={() => setRollRequest(null)}><div className="roll-choice"><Button onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "normal", rollRequest.attack, rollRequest.as); setRollRequest(null); }}>Normale</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "advantage", rollRequest.attack, rollRequest.as); setRollRequest(null); }}>Vantaggio</Button><Button variant="secondary" onClick={() => { if (rollRequest) void executeRoll(rollRequest.title, rollRequest.formula, "disadvantage", rollRequest.attack, rollRequest.as); setRollRequest(null); }}>Svantaggio</Button></div></Dialog>
   </div>;
 }
 
@@ -634,8 +636,9 @@ function ContentShare({ label, onShare }: { label: string; onShare: (target: "ev
   return <div className="content-share"><span>{label} · privato su questo browser</span><Select aria-label={`Destinatari ${label}`} value={target} onChange={(event) => setTarget(event.target.value as Visibility)}><option value="self">Privato</option><option value="everyone">Tutto il party</option><option value="gm">Solo GM</option></Select><Button variant="outline" disabled={target === "self"} onClick={() => { if (target !== "self") onShare(target); }}>Invia copia</Button></div>;
 }
 
-function Bestiary({ monsters, pending, onPending, selectedId, canManage, canManageTurns, onSelect, onImport, onImported, onDelete, onRoll, onShare, onShareContent, onAddTurn, onAddNpc }: { monsters: MonsterSheet[]; pending: MonsterSheet[]; onPending: (items: MonsterSheet[]) => void; selectedId: string | null; canManage: boolean; canManageTurns: boolean; onSelect: (id: string | null) => void; onImport: () => void; onImported: (items: MonsterSheet[]) => void; onDelete: (id: string) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry) => void; onShareContent: (title: string, body: string, target: "everyone" | "gm") => void; onAddTurn: (monster: MonsterSheet) => void; onAddNpc: (monster: MonsterSheet) => void }) {
+function Bestiary({ monsters, pending, onPending, selectedId, canManage, canManageTurns, onSelect, onImport, onImported, onDelete, onRoll, onShare, onShareContent, onAddTurn, onAddNpc }: { monsters: MonsterSheet[]; pending: MonsterSheet[]; onPending: (items: MonsterSheet[]) => void; selectedId: string | null; canManage: boolean; canManageTurns: boolean; onSelect: (id: string | null) => void; onImport: () => void; onImported: (items: MonsterSheet[]) => void; onDelete: (id: string) => void; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; onShareContent: (title: string, body: string, target: "everyone" | "gm") => void; onAddTurn: (monster: MonsterSheet) => void; onAddNpc: (monster: MonsterSheet) => void }) {
   const removeSelected = () => { const selected = monsters.find((monster) => monster.id === selectedId); if (selected && canManage && window.confirm(`Eliminare ${selected.name}?`)) onDelete(selected.id); };
+  const [searching, setSearching] = useState(false);
   const [sources, setSources] = useState<FiveToolsSource[]>([]); const [sourceId, setSourceId] = useState(""); const [pickerOpen, setPickerOpen] = useState(false); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
   useEffect(() => { if (!canManage) return; listBestiarySources().then((rows) => { setSources(rows); setSourceId(rows.find((row) => row.id === "XMM")?.id ?? rows[0]?.id ?? ""); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Catalogo non disponibile")); }, [canManage]);
   async function remoteImport() { const source = sources.find((row) => row.id === sourceId); if (!source) return; setLoading(true); setError(""); try { onPending(await loadBestiarySource(source)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Importazione fallita"); } finally { setLoading(false); } }
@@ -649,9 +652,13 @@ function Bestiary({ monsters, pending, onPending, selectedId, canManage, canMana
     }
   }
   const selected = monsters.find((monster) => monster.id === selectedId);
-  if (!selected && !canManage) return <div className="stack"><Alert>Il GM ha riservato importazione ed eliminazione dei contenuti.</Alert><section className="monster-grid">{monsters.map((monster) => <button key={monster.id} onClick={() => onSelect(monster.id)}><strong>{monster.name}</strong><small>{monster.creatureType} · GS {monster.challengeRating}</small><span>CA {monster.ac} · PF {monster.hp.average}</span></button>)}</section>{monsters.length === 0 && <Empty/>}</div>;
+  // Ricerca come per i manuali: il risultato scelto apre il mostro.
+  const grid = <>{monsters.length > 0 && <div className="library-actions"><Button variant="outline" className="picker-button" onClick={() => setSearching(true)}><span>Cerca nel bestiario</span><span>⌕</span></Button></div>}
+    <CatalogDialog open={searching} title="Cerca nel bestiario" description="Cerca per nome, tipo, GS o manuale" items={monsters.map((monster) => ({ id: monster.id, label: monster.name, detail: `${monster.creatureType} · GS ${monster.challengeRating} · ${monster.source}` }))} selectedId={selectedId ?? ""} onSelect={(id) => { setSearching(false); onSelect(id); }} onClose={() => setSearching(false)}/>
+    <section className="monster-grid">{monsters.map((monster) => <button key={monster.id} onClick={() => onSelect(monster.id)}><strong>{monster.name}</strong><small>{monster.creatureType} · GS {monster.challengeRating}</small><span>CA {monster.ac} · PF {monster.hp.average}</span></button>)}</section>{monsters.length === 0 && <Empty/>}</>;
+  if (!selected && !canManage) return <div className="stack"><Alert>Il GM ha riservato importazione ed eliminazione dei contenuti.</Alert>{grid}</div>;
   if (selected) return <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => onSelect(null)}>← Bestiario</Button>{canManage && <Button variant="outline" onClick={() => onAddNpc(selected)}>Aggiungi agli NPC</Button>}{canManage && <Button variant="destructive" onClick={removeSelected}>Elimina mostro</Button>}</div><MonsterStatblock monster={selected} onRoll={onRoll} onShare={onShare}><ContentShare key={selected.id} label="Riepilogo mostro" onShare={(target) => onShareContent(selected.name, `${selected.creatureType} · GS ${selected.challengeRating} · CA ${selected.ac} · PF ${selected.hp.average} · ${selected.speed}`, target)}/><button className="primary" disabled={!canManageTurns} onClick={() => onAddTurn(selected)}>Collega al token e aggiungi ai turni</button></MonsterStatblock></div>;
-  return <div className="stack"><Card className="remote-import"><h2>Catalogo 5e.tools</h2><p>Scegli un manuale, poi seleziona i mostri da importare come schede e token.</p><Button variant="outline" className="picker-button" onClick={() => setPickerOpen(true)}><span>{sources.find((source) => source.id === sourceId)?.label ?? "Scegli una sorgente"}</span><span>⌕</span></Button><Button onClick={remoteImport} disabled={loading || !sourceId}>{loading && <Spinner/>}{loading ? "Caricamento…" : "Scegli mostri"}</Button>{error && <Alert tone="danger">{error}</Alert>}</Card><CatalogDialog open={pickerOpen} title="Scegli un manuale" description="Cerca per sigla sorgente 5e.tools" items={sources.map((source) => ({ id: source.id, label: source.label, detail: source.file }))} selectedId={sourceId} onSelect={(id) => { setSourceId(id); setPickerOpen(false); }} onClose={() => setPickerOpen(false)}/>{pending.length > 0 && <MonsterImportDialog key={pending[0].id} monsters={pending} onImport={(items) => void importSelected(items)} onClose={() => onPending([])}/>}<section className="library-actions"><Button variant="outline" onClick={onImport}>Importa file 5e.tools</Button></section><section className="monster-grid">{monsters.map((monster) => <button key={monster.id} onClick={() => onSelect(monster.id)}><strong>{monster.name}</strong><small>{monster.creatureType} · GS {monster.challengeRating}</small><span>CA {monster.ac} · PF {monster.hp.average}</span></button>)}</section>{monsters.length === 0 && <Empty/>}</div>;
+  return <div className="stack"><Card className="remote-import"><h2>Catalogo 5e.tools</h2><p>Scegli un manuale, poi seleziona i mostri da importare come schede e token.</p><Button variant="outline" className="picker-button" onClick={() => setPickerOpen(true)}><span>{sources.find((source) => source.id === sourceId)?.label ?? "Scegli una sorgente"}</span><span>⌕</span></Button><Button onClick={remoteImport} disabled={loading || !sourceId}>{loading && <Spinner/>}{loading ? "Caricamento…" : "Scegli mostri"}</Button>{error && <Alert tone="danger">{error}</Alert>}</Card><CatalogDialog open={pickerOpen} title="Scegli un manuale" description="Cerca per sigla sorgente 5e.tools" items={sources.map((source) => ({ id: source.id, label: source.label, detail: source.file }))} selectedId={sourceId} onSelect={(id) => { setSourceId(id); setPickerOpen(false); }} onClose={() => setPickerOpen(false)}/>{pending.length > 0 && <MonsterImportDialog key={pending[0].id} monsters={pending} onImport={(items) => void importSelected(items)} onClose={() => onPending([])}/>}<section className="library-actions"><Button variant="outline" onClick={onImport}>Importa file 5e.tools</Button></section>{grid}</div>;
 }
 
 function MonsterImportDialog({ monsters, onImport, onClose }: { monsters: MonsterSheet[]; onImport: (items: MonsterSheet[]) => void; onClose: () => void }) {
@@ -701,7 +708,12 @@ function Permissions({ value, onChange }: { value: PermissionSettings; onChange:
 }
 
 // Statblock in sola lettura, usato dal Bestiario e dagli NPC della Libreria. children va tra i valori e le azioni.
-function MonsterStatblock({ monster, onRoll, onShare, children }: { monster: MonsterSheet; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry) => void; children?: ReactNode }) {
+type RollAs = { author: string; visibility: Visibility };
+type PerformRoll = (title: string, formula: string, attack?: AttackRoll, mode?: RollMode, as?: RollAs) => void;
+
+// I tiri dei mostri (bestiario e NPC) vanno sempre e solo al GM, a nome del mostro.
+function MonsterStatblock({ monster, onRoll: performRoll, onShare, children }: { monster: MonsterSheet; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; children?: ReactNode }) {
+  const onRoll = (title: string, formula: string, attack?: AttackRoll) => performRoll(title, formula, attack, undefined, { author: monster.name, visibility: "gm" });
   return <><section className="hero">{monster.image && <img src={monster.image} alt=""/>}<div><h1>{monster.name}</h1><p>{monster.size} {monster.creatureType} · GS {monster.challengeRating}</p><small>{monster.source} · {getRuleset(monster.ruleset.id).label}</small></div></section><section className="combat-grid"><Metric label="CA" value={monster.ac}/><Metric label="PF medi" value={monster.hp.average}/><Metric label="Dadi vita" value={monster.hp.formula}/><Metric label="Velocità" value={monster.speed}/><Metric label="Percezione" value={monster.passivePerception}/><Metric label="GS" value={monster.challengeRating}/></section>{children}{monster.traits.length > 0 && <section><h2>Tratti</h2><EntryList entries={monster.traits} onRoll={onRoll} onShare={onShare}/></section>}<section><h2>Azioni</h2><EntryList entries={monster.actions} onRoll={onRoll} onShare={onShare}/></section>{monster.reactions.length > 0 && <section><h2>Reazioni</h2><EntryList entries={monster.reactions} onRoll={onRoll} onShare={onShare}/></section>}{monster.legendaryActions.length > 0 && <section><h2>Azioni leggendarie</h2><EntryList entries={monster.legendaryActions} onRoll={onRoll} onShare={onShare}/></section>}</>;
 }
 

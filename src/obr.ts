@@ -1,7 +1,7 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import type { ChatMessage, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
-import { decryptGmMessage, encryptGmMessage, isGmEnvelope } from "./privateMessages";
+import { decryptGmMessage, encryptGmMessage, gmRecipients, isGmEnvelope } from "./privateMessages";
 import { canManageNote, canWriteNote, readSharedNotes } from "./sharedNotes";
 import { replaceTurnEntries } from "./turns";
 import { linkedCharacterId } from "./tokenTurns";
@@ -33,6 +33,8 @@ export function onTurnStateChange(callback: (state: TurnState) => void): () => v
 // "ALL" quando invia lo script di sfondo: anche la finestra di TavernExplorer di questo browser deve riceverlo.
 export async function broadcastMessage(message: ChatMessage, destination: "REMOTE" | "ALL" = "REMOTE"): Promise<void> {
   if (!OBR.isAvailable || message.visibility === "self") return;
+  // Il GM che scrive "Solo GM" senza altri GM collegati: il messaggio resta solo nella sua chat.
+  if (message.visibility === "gm" && await OBR.player.getRole() === "GM" && !(await gmRecipients()).length) return;
   await OBR.broadcast.sendMessage(MESSAGE_CHANNEL, message.visibility === "gm" ? await encryptGmMessage(message) : message, { destination });
 }
 

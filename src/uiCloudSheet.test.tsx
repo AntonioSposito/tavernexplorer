@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_MONSTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
@@ -124,6 +124,25 @@ it("il GM crea un NPC dal bestiario e un giocatore con permesso ne vede lo statb
   expect(host.textContent).toContain("PF medi");
   expect(host.textContent).toContain("Morso");
   expect(host.textContent).not.toContain("Aggiungi agli NPC");
+});
+
+it("il bestiario si cerca con il pulsante ⌕ e i tiri dei mostri vanno solo al GM a nome del mostro", async () => {
+  const monster = (id: string, name: string, actions: unknown[]) => ({ schemaVersion: 1, id, name, source: "XMM", creatureType: "Umanoide", challengeRating: "1/2", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "CM", ac: 13, hp: { average: 15, formula: "2d8+6" }, speed: "30 ft.", abilities: { dex: 12 }, saves: {}, skills: {}, passivePerception: 10, traits: [], actions, reactions: [], legendaryActions: [], importWarnings: [] });
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([monster("wolf", "Lupo", []), monster("orc", "Orco", [{ id: "club", name: "Clava", damage: "1d6+2" }])]));
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Cerca nel bestiario");
+  await type('input[aria-label="Cerca nel catalogo"]', "orc");
+  expect([...host.querySelectorAll(".catalog-option strong")].map((item) => item.textContent)).toEqual(["Orco"]);
+  await act(async () => host.querySelector<HTMLButtonElement>(".catalog-option")!.click());
+  expect(host.querySelector(".hero h1")?.textContent).toBe("Orco");
+
+  await click("Clava");
+  await settle();
+  const messages = JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]");
+  expect(messages.at(-1)).toMatchObject({ kind: "roll", author: "Orco", visibility: "gm", title: "Clava" });
+  expect(messages.at(-1).characterId).toBeUndefined();
 });
 
 const type = async (selector: string, value: string) => {

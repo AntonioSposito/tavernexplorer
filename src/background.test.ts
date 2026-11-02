@@ -28,8 +28,8 @@ vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   party: { getPlayers: async () => [{ connectionId: "conn-gm", role: "GM" }, { connectionId: "conn-player", role: "PLAYER" }] },
 } }));
 
-// La cifratura vera richiede la chiave pubblicata dal GM; qui conta solo che il tiro del mostro passi da lì.
-vi.mock("./privateMessages", () => ({ encryptGmMessage: async (message: unknown) => ({ type: "gm-encrypted-v1", message }), decryptGmMessage: async () => null, isGmEnvelope: () => false, publishGmMessageKey: async () => undefined }));
+// GM da solo nella stanza: nessun altro GM a cui cifrare il tiro del mostro.
+vi.mock("./privateMessages", () => ({ gmRecipients: async () => [], encryptGmMessage: async () => { throw new Error("Nessun GM pronto"); }, decryptGmMessage: async () => null, isGmEnvelope: () => false, publishGmMessageKey: async () => undefined }));
 
 beforeAll(async () => { await import("./background"); await mock.ready?.(); });
 beforeEach(() => { mock.updateItems.mockClear(); mock.open.mockClear(); mock.setMetadata.mockClear(); mock.notify.mockClear(); mock.send.mockClear(); mock.role = "PLAYER"; localStorage.clear(); });
@@ -90,9 +90,8 @@ it("un token collegato a un mostro del bestiario tira da solo e manda il tiro so
   await menu.onClick({ items: [{ id: "token-3", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: "goblin" } } }] }, "button-1");
   expect(mock.open).not.toHaveBeenCalled();
   expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-3", characterId: "goblin", name: "Goblin", initiativeBonus: 2 }]);
-  expect(mock.send).toHaveBeenCalledTimes(1);
-  expect(mock.send.mock.calls[0][1]).toMatchObject({ type: "gm-encrypted-v1" });
-  expect(mock.send.mock.calls[0][2]).toEqual({ destination: "ALL" });
+  // Nessun broadcast: la chat del GM lo legge dalla cronologia salvata.
+  expect(mock.send).not.toHaveBeenCalled();
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES)!)).toMatchObject([{ author: "Goblin", visibility: "gm" }]);
 });
 
