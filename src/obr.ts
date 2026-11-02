@@ -30,9 +30,10 @@ export function onTurnStateChange(callback: (state: TurnState) => void): () => v
   });
 }
 
-export async function broadcastMessage(message: ChatMessage): Promise<void> {
+// "ALL" quando invia lo script di sfondo: anche la finestra di TavernExplorer di questo browser deve riceverlo.
+export async function broadcastMessage(message: ChatMessage, destination: "REMOTE" | "ALL" = "REMOTE"): Promise<void> {
   if (!OBR.isAvailable || message.visibility === "self") return;
-  await OBR.broadcast.sendMessage(MESSAGE_CHANNEL, message.visibility === "gm" ? await encryptGmMessage(message) : message, { destination: "REMOTE" });
+  await OBR.broadcast.sendMessage(MESSAGE_CHANNEL, message.visibility === "gm" ? await encryptGmMessage(message) : message, { destination });
 }
 
 // Avviso senza dati: chi lo riceve rilegge la libreria cloud. "ALL" include i pannelli flottanti di questo browser.

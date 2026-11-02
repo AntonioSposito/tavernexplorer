@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { TokenInitiativePicker } from "./TokenInitiativePicker";
 import "./styles.css";
 import "./extended.css";
 import "./theme.css";
@@ -25,4 +26,6 @@ if (import.meta.env.DEV) {
   void import("./dev.css");
 }
 
-createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);
+// Il popover del turn order per i token senza scheda carica solo il suo modulo, non l'app intera.
+const page = new URLSearchParams(window.location.search).has("initiative") ? <TokenInitiativePicker /> : <App />;
+createRoot(document.getElementById("root")!).render(<StrictMode>{page}</StrictMode>);

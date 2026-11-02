@@ -7,10 +7,12 @@ interface PartyMember { id: string; name: string; role: "GM" | "PLAYER" }
 interface AssignmentPanelProps {
   // ownerId: giocatore connesso che riceve i token collegati alla scheda.
   sheets: Array<{ id: string; name: string; ownerId?: string }>;
+  // Mostri del bestiario del GM: il token si collega senza cambiare proprietario.
+  monsters: Array<{ id: string; name: string; challengeRating: string }>;
   members: PartyMember[];
 }
 
-export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
+export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelProps) {
   const [tokens, setTokens] = useState<CharacterToken[]>([]);
   const [sceneReady, setSceneReady] = useState(false);
   const [ownerOnly, setOwnerOnly] = useState(false);
@@ -57,7 +59,7 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
     }
   };
 
-  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name;
+  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;
   const visibleTokens = tokens.filter((token) => `${token.tokenName} ${sheetName(token.characterId ?? "") ?? ""}`.toLocaleLowerCase("it").includes(search.toLocaleLowerCase("it")));
 
   return <Card className="assign-panel"><details className="assign-details">
@@ -76,11 +78,13 @@ export function AssignmentPanel({ sheets, members }: AssignmentPanelProps) {
           <div className="assign-token-actions">
             <label><small>Scheda</small><Select aria-label={`Scheda per ${token.tokenName}`} value={token.characterId ?? ""} disabled={busy} onChange={(event) => {
               const characterId = event.target.value || null;
-              void run(() => setTokenCharacter(token.tokenId, characterId, sheets.find((sheet) => sheet.id === characterId)?.ownerId), characterId ? `${token.tokenName} collegato a ${sheetName(characterId)} e assegnato al proprietario della scheda.` : `${token.tokenName} scollegato.`);
+              const sheet = sheets.find((item) => item.id === characterId);
+              void run(() => setTokenCharacter(token.tokenId, characterId, sheet?.ownerId), !characterId ? `${token.tokenName} scollegato.` : sheet ? `${token.tokenName} collegato a ${sheet.name} e assegnato al proprietario della scheda.` : `${token.tokenName} collegato a ${sheetName(characterId)}.`);
             }}>
               <option value="">Nessuna scheda</option>
               {token.characterId && !sheetName(token.characterId) && <option value={token.characterId}>Scheda non disponibile</option>}
-              {sheets.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}
+              <optgroup label="Personaggi">{sheets.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}</optgroup>
+              {monsters.length > 0 && <optgroup label="Bestiario">{monsters.map((monster) => <option key={monster.id} value={monster.id}>{monster.name} · GS {monster.challengeRating}</option>)}</optgroup>}
             </Select></label>
             <label><small>Proprietario token</small><Select aria-label={`Proprietario token ${token.tokenName}`} value={token.ownerId} disabled={busy} onChange={(event) => {
               const ownerId = event.target.value;

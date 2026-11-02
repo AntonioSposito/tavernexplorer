@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import { importRoll20 } from "./importer";
 
 const mock = vi.hoisted(() => ({
   ready: null as null | (() => Promise<void>),
@@ -10,23 +12,27 @@ const mock = vi.hoisted(() => ({
   setMetadata: vi.fn(),
   notify: vi.fn(),
   broadcasts: new Map<string, (event: { data: unknown; connectionId: string }) => void>(),
+  send: vi.fn(),
 }));
 
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   isAvailable: true,
   onReady: (callback: () => Promise<void>) => { mock.ready = callback; },
   contextMenu: { create: async (menu: typeof mock.menus[number]) => { mock.menus.push(menu); } },
-  player: { getRole: async () => mock.role, getMetadata: async () => ({}) },
-  room: { getMetadata: async () => ({}), setMetadata: mock.setMetadata, onMetadataChange: () => () => {} },
+  player: { getRole: async () => mock.role, getMetadata: async () => ({}), getId: async () => "gm-id", getName: async () => "Master" },
+  room: { id: "r1", getMetadata: async () => ({}), setMetadata: mock.setMetadata, onMetadataChange: () => () => {} },
   scene: { isReady: async () => false, onReadyChange: () => () => {}, items: { updateItems: mock.updateItems, onChange: () => () => {} } },
   notification: { show: mock.notify },
   popover: { open: mock.open },
-  broadcast: { onMessage: (channel: string, callback: (event: { data: unknown; connectionId: string }) => void) => { mock.broadcasts.set(channel, callback); return () => {}; } },
+  broadcast: { sendMessage: mock.send, onMessage: (channel: string, callback: (event: { data: unknown; connectionId: string }) => void) => { mock.broadcasts.set(channel, callback); return () => {}; } },
   party: { getPlayers: async () => [{ connectionId: "conn-gm", role: "GM" }, { connectionId: "conn-player", role: "PLAYER" }] },
 } }));
 
+// La cifratura vera richiede la chiave pubblicata dal GM; qui conta solo che il tiro del mostro passi da lì.
+vi.mock("./privateMessages", () => ({ encryptGmMessage: async (message: unknown) => ({ type: "gm-encrypted-v1", message }), decryptGmMessage: async () => null, isGmEnvelope: () => false, publishGmMessageKey: async () => undefined }));
+
 beforeAll(async () => { await import("./background"); await mock.ready?.(); });
-beforeEach(() => { mock.updateItems.mockClear(); mock.open.mockClear(); mock.setMetadata.mockClear(); mock.notify.mockClear(); mock.role = "PLAYER"; });
+beforeEach(() => { mock.updateItems.mockClear(); mock.open.mockClear(); mock.setMetadata.mockClear(); mock.notify.mockClear(); mock.send.mockClear(); mock.role = "PLAYER"; localStorage.clear(); });
 
 it("apre il token senza collegarlo di nascosto alla scheda attiva", async () => {
   const menu = mock.menus.find((item) => item.id.endsWith("/token-menu"))!;
@@ -40,6 +46,45 @@ it("blocca il menu iniziativa per un giocatore senza permesso", async () => {
   await menu.onClick({ items: [{ id: "token-1", name: "Lupo", metadata: {} }] }, "button-1");
   expect(mock.setMetadata).not.toHaveBeenCalled();
   expect(mock.notify).toHaveBeenCalled();
+});
+
+it("aggiungendo un token collegato tira l'iniziativa e la mostra in chat come dalla scheda", async () => {
+  mock.role = "GM";
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
+  localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet }]));
+  const menu = mock.menus.find((item) => item.id.endsWith("/initiative-menu"))!;
+  await menu.onClick({ items: [{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] }, "button-1");
+  const turns = mock.setMetadata.mock.calls[0][0][TURN_META_KEY];
+  expect(turns.entries).toMatchObject([{ tokenId: "token-1", characterId: sheet.id, name: "Eroe" }]);
+  const message = mock.send.mock.calls[0][1];
+  expect(mock.send.mock.calls[0][2]).toEqual({ destination: "ALL" });
+  expect(message).toMatchObject({ kind: "roll", author: "Eroe", characterId: sheet.id, title: "Iniziativa", visibility: "everyone", total: turns.entries[0].initiative });
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES)!)).toMatchObject([{ id: message.id }]);
+});
+
+it("per i token senza scheda il GM sceglie la scheda nel popover invece di scrivere il valore", async () => {
+  mock.role = "GM";
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet }]));
+  const prompt = vi.spyOn(window, "prompt");
+  const menu = mock.menus.find((item) => item.id.endsWith("/initiative-menu"))!;
+  await menu.onClick({ items: [{ id: "token-2", name: "Goblin", metadata: {} }] }, "button-1");
+  expect(prompt).not.toHaveBeenCalled();
+  expect(mock.open).toHaveBeenCalledWith(expect.objectContaining({ id: "it.tavernexplorer/initiative-picker", url: "/?initiative=token-2", anchorElementId: "button-1" }));
+  prompt.mockRestore();
+});
+
+it("un token collegato a un mostro del bestiario tira da solo e manda il tiro solo al GM", async () => {
+  mock.role = "GM";
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([{ id: "goblin", name: "Goblin", challengeRating: "1/4", abilities: { dex: 14 } }]));
+  const menu = mock.menus.find((item) => item.id.endsWith("/initiative-menu"))!;
+  await menu.onClick({ items: [{ id: "token-3", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: "goblin" } } }] }, "button-1");
+  expect(mock.open).not.toHaveBeenCalled();
+  expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-3", characterId: "goblin", name: "Goblin", initiativeBonus: 2 }]);
+  expect(mock.send).toHaveBeenCalledTimes(1);
+  expect(mock.send.mock.calls[0][1]).toMatchObject({ type: "gm-encrypted-v1" });
+  expect(mock.send.mock.calls[0][2]).toEqual({ destination: "ALL" });
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES)!)).toMatchObject([{ author: "Goblin", visibility: "gm" }]);
 });
 
 it("apre il turn order quando lo chiede il GM", async () => {
