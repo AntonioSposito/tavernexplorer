@@ -13,6 +13,8 @@ import { AssignmentPanel } from "./AssignmentPanel";
 import { LibraryPanel } from "./LibraryPanel";
 import { isSameCharacter, mergeReimport } from "./reimport";
 import { ModifierEditor } from "./ModifierEditor";
+import { ChatIcon, EditIcon } from "./icons";
+import { ProficiencyPanel } from "./ProficiencyPanel";
 import { ResourcePanel } from "./ResourcePanel";
 import { effectiveSheet, modifierTotal } from "./effects";
 import { resolveAction, type ResolvedAction } from "./actions";
@@ -395,7 +397,7 @@ function ResizeHandle({ panel }: { panel?: AppTab }) {
   return <div className="resize-handle" title="Trascina per ridimensionare" aria-label="Ridimensiona finestra" onPointerDown={(event) => { drag.current = { x: event.screenX, y: event.screenY, width: window.innerWidth, height: window.innerHeight }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = size(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => apply(next)); }} onPointerUp={(event) => { const next = size(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); apply(next, true); }}/>;
 }
 
-function SheetView({ sheet, editable, onRollValue, sheetTab, setSheetTab, rollMode, setRollMode, visibility, setVisibility, onRoll, onShare, onUpdate, onRest, onNotice }: { sheet: CharacterSheet; editable: boolean; sheetTab: SheetTab; setSheetTab: (tab: SheetTab) => void; rollMode: RollMode; setRollMode: (mode: RollMode) => void; visibility: Visibility; setVisibility: (value: Visibility) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRest: (summary: string) => void; onNotice: (title: string, alert: string) => void; onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null> }) {
+function SheetView({ sheet, editable, onRollValue, sheetTab, setSheetTab, rollMode, setRollMode, visibility, setVisibility, onRoll, onShare, onUpdate, onRest, onNotice }: { sheet: CharacterSheet; editable: boolean; sheetTab: SheetTab; setSheetTab: (tab: SheetTab) => void; rollMode: RollMode; setRollMode: (mode: RollMode) => void; visibility: Visibility; setVisibility: (value: Visibility) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry | SpellEntry, card?: RollCard) => void; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRest: (summary: string) => void; onNotice: (title: string, alert: string) => void; onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null> }) {
   const ruleset = getRuleset(sheet.ruleset.id);
   const view = effectiveSheet(sheet);
   const [editingAction, setEditingAction] = useState<ActionEntry | "new" | null>(null);
@@ -418,7 +420,7 @@ function SheetView({ sheet, editable, onRollValue, sheetTab, setSheetTab, rollMo
     <nav className="sheet-tabs">{(["main", "actions", "spells", "inventory", "traits", "bio", ...editable ? ["edit"] : []] as SheetTab[]).map((item) => <button key={item} className={sheetTab === item ? "active" : ""} onClick={() => setSheetTab(item)}>{SHEET_TAB_LABELS[item]}</button>)}</nav>
     {!editable && <p className="party-owner">Sola lettura</p>}
     <div className={editable ? undefined : "readonly-sheet"}>
-    {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onRollValue={onRollValue} onUpdate={onUpdate} editable={editable}/><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/></div>}
+    {sheetTab === "main" && <div className="stack"><MainSheet sheet={view} onRoll={onRoll} onRollValue={onRollValue} onUpdate={onUpdate} editable={editable}/><div className="sheet-columns"><ResourcePanel sheet={sheet} onUpdate={onUpdate} onRest={onRest}/><ProficiencyPanel sheet={view} onUpdate={onUpdate} onRoll={onRoll} onShare={onShare} editable={editable}/></div></div>}
     {sheetTab === "actions" && <div className="stack">{editable && <div className="library-actions">{!reordering && <Button onClick={() => setEditingAction("new")}>+ Nuova azione</Button>}{sheet.actions.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}{editable && reordering ? <ol className="order-list">{sheet.actions.map((entry, index) => <li key={entry.id}><span>{entry.name}</span><Button variant="outline" aria-label={`Sposta su ${entry.name}`} disabled={index === 0} onClick={() => moveAction(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${entry.name}`} disabled={index === sheet.actions.length - 1} onClick={() => moveAction(index, 1)}>↓</Button></li>)}</ol> : <EntryList entries={sheet.actions} sheet={view} onRoll={onRoll} onShare={onShare} onEdit={editable ? setEditingAction : undefined} attackModifier={modifierTotal(sheet, "attack")} damageModifier={modifierTotal(sheet, "damage")}/>}</div>}
     {sheetTab === "spells" && <Spells sheet={view} editable={editable} onNotice={onNotice} onRoll={onRoll} onShare={onShare} onUpdate={onUpdate} attackModifier={modifierTotal(sheet, "spellAttack")} damageModifier={modifierTotal(sheet, "damage")}/>}
     {sheetTab === "inventory" && <Inventory sheet={sheet} onUpdate={onUpdate}/>}
@@ -457,8 +459,6 @@ function MainSheet({ sheet, onRoll, onRollValue, onUpdate, editable }: { sheet: 
 
 function Metric({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) { const content = <><strong>{value}</strong><small>{label}</small></>; return onClick ? <button className="metric" onClick={onClick}>{content}</button> : <div className="metric">{content}</div>; }
 
-const ChatIcon = () => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
-const EditIcon = () => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
 
 // Con `sheet` le azioni sono calcolate dalla scheda (form attacchi); senza, si usano i valori fissi (mostri, tratti).
 function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onTogglePrepared, attackModifier = 0, damageModifier = 0 }: { entries: ActionEntry[]; sheet?: CharacterSheet; onRoll: (title: string, formula: string, attack?: AttackRoll) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; onEdit?: (entry: ActionEntry) => void; onCast?: (spell: SpellEntry, run: (castLevel: number | null) => void) => void; onTogglePrepared?: (spell: SpellEntry) => void; attackModifier?: number; damageModifier?: number }) {

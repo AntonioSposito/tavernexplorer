@@ -1,5 +1,6 @@
 import { DEFAULT_RULESET } from "./rulesets";
-import type { AbilityStat, ActionEntry, CharacterSheet, Roll20Export, SpellEntry } from "./types";
+import { ABILITY_SHORT } from "./constants";
+import type { AbilityStat, ActionEntry, CharacterSheet, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency } from "./types";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj => (value && typeof value === "object" ? (value as Obj) : {});
@@ -30,6 +31,43 @@ function parseDamage(description: string): string | undefined {
 function cleanDamage(value: unknown): string | undefined {
   const damage = text(value).replace(/@\{[^}]+}/g, "0").replace(/\b(forza|fuoco|fulmine|tuono|radiazione|psichici?)\b/gi, "").trim();
   return /\d+d\d+/i.test(damage) ? damage.replace(/\s+/g, "") : undefined;
+}
+
+const PROFICIENCY_TYPES: Record<string, ProficiencyEntry["type"]> = { LANGUAGE: "LANGUAGE", LINGUAGGIO: "LANGUAGE", LINGUA: "LANGUAGE", WEAPON: "WEAPON", ARMA: "WEAPON", ARMOR: "ARMOR", ARMATURA: "ARMOR" };
+
+// L'exporter divide ogni riga in due: il nome su "<rowid>" e il tipo su "<rowid>_prof".
+// Senza tipo vale il default Roll20, LANGUAGE.
+function importProficiencies(value: unknown): ProficiencyEntry[] {
+  const rows = arr(value);
+  const types = new Map(rows.filter((row) => text(row.type)).map((row) => [text(row._rowid).replace(/_prof$/, ""), text(row.type).toUpperCase()]));
+  return rows.filter((row) => text(row.name).trim()).map((row) => {
+    const id = text(row._rowid, uid());
+    const type = types.get(id) ?? (text(row.type).toUpperCase() || "LANGUAGE");
+    return { id, name: text(row.name).trim(), type: PROFICIENCY_TYPES[type] ?? "OTHER" };
+  });
+}
+
+// Livello di competenza dal campo grezzo toolbonus_base: "(@{pb})", "(@{pb}*2)", "(floor(@{pb}/2))".
+function toolProficiency(base: string): ToolProficiency {
+  if (base.includes("*2")) return "expertise";
+  if (base.includes("/2")) return "jack";
+  return "proficient";
+}
+
+// normalized.tools ha solo il bonus totale; il livello di competenza è nelle righe raw.
+// MODS = totale − caratteristica − competenza. Con caratteristica "QUERY" il bonus è una query che termina con "+mod+competenza".
+function importTools(value: unknown, raw: unknown, abilities: Record<string, AbilityStat>, pb: number): ToolEntry[] {
+  const rawRows = new Map(arr(obj(obj(raw).repeating).repeating_tool).map((row) => [text(row._rowid), row]));
+  return arr(value).filter((row) => text(row.name).trim()).map((row) => {
+    const id = text(row._rowid, uid());
+    const ability = text(row.ability).toLowerCase();
+    const proficiency = toolProficiency(text(rawRows.get(id)?.toolbonus_base));
+    const profValue = proficiency === "expertise" ? pb * 2 : proficiency === "jack" ? Math.floor(pb / 2) : pb;
+    const bonus = text(row.bonus);
+    const total = /^[+-]?\d+$/.test(bonus.trim()) ? Number(bonus) : (bonus.match(/[+-]\d+/g) ?? []).map(Number).reduce((sum, item) => sum + item, 0);
+    const known = ability in ABILITY_SHORT;
+    return { id, name: text(row.name).trim(), ability: known ? ability : "", proficiency, mods: total - profValue - (known ? abilities[ability]?.mod ?? 0 : 0) };
+  });
 }
 
 function importAbilities(value: unknown): Record<string, AbilityStat> {
@@ -112,11 +150,13 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
     spellcasting: { ability: text(spellcasting.ability), saveDc: num(spellcasting.save_dc), attackBonus: num(spellcasting.attack_bonus), slots },
     actions, spells: [],
     inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined })),
+    proficiencies: importProficiencies(normalized.proficiencies),
     traits: arr(normalized.traits).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), source: text(entry.source) || undefined, description: text(entry.description) })),
     currency: Object.fromEntries(Object.entries(obj(normalized.currency)).map(([key, value]) => [key, num(value)])),
     biography: decodeLegacy(text(character.bio_text) || text(character.bio_html)), importWarnings: warnings,
   };
   sheet.spells = importSpells(spellcasting, actions, warnings);
   sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet));
+  sheet.tools = importTools(normalized.tools, source.raw, sheet.abilities, sheet.combat.proficiencyBonus);
   return sheet;
 }

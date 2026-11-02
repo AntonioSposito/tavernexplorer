@@ -28,8 +28,8 @@
 .order-list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Riga azione: il nome tira, le icone condividono e modificano senza aprire il dettaglio. */
-.entry summary .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
-.entry summary .entry-use:hover { text-decoration-style: solid; }
+.entry summary .entry-use, .proficiencies .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
+.entry summary .entry-use:hover, .proficiencies .entry-use:hover { text-decoration-style: solid; }
 .entry summary .entry-values { margin-left: auto; color: #e7b467; }
 .entry summary .entry-icons { display: flex; gap: .25rem; }
 .entry-icons button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
@@ -52,3 +52,16 @@
 .entry-icons .prepared-toggle .dot { width: 11px; height: 11px; border: 2px solid hsl(var(--muted-foreground)); border-radius: 50%; background: transparent; }
 .entry-icons .prepared-toggle.on .dot { border-color: hsl(var(--primary)); background: hsl(var(--primary)); }
 .entry-icons .prepared-toggle:disabled { opacity: 1; cursor: default; }
+.proficiencies dl { display: grid; margin: 0; }
+/* Divisore tra categorie come le righe di Risorse. */
+.proficiencies dl > div { padding: .65rem 0; border-top: 1px solid hsl(var(--border)); }
+.proficiencies dt { color: hsl(var(--muted-foreground)); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.proficiencies dd { margin: 2px 0 0; line-height: 1.4; }
+.proficiencies ul { margin: 0; padding-left: 0; list-style: none; }
+.proficiencies small, .proficiencies .muted { color: hsl(var(--muted-foreground)); }
+.proficiencies li { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.proficiencies .entry-icons { display: inline-flex; gap: .25rem; }
+.proficiencies li + li { margin-top: 4px; }
+.ability-query { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+/* Risorse (con Riposi sotto) e Competenze affiancate; una colonna se la finestra è stretta. */
+.sheet-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }

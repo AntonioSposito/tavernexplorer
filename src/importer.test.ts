@@ -19,6 +19,25 @@ const fixture = {
 };
 
 describe("import Roll20 ogl5e", () => {
+  it("unisce nome e tipo delle competenze divisi dall'exporter e legge gli strumenti", () => {
+    const sheet = importRoll20({ ...fixture, normalized: { ...fixture.normalized,
+      proficiencies: [
+        { name: "Comune", type: "", _rowid: "p1" }, { name: "", type: "LANGUAGE", _rowid: "p1_prof" },
+        { name: "Abissale", type: "", _rowid: "p2" },
+        { name: "Semplici", type: "", _rowid: "p3" }, { name: "", type: "ARMA", _rowid: "p3_prof" },
+        { name: "", type: "ALTRO", _rowid: "p4_prof" }, { name: "Thieves Tools", type: "", _rowid: "p4" },
+      ],
+      tools: [
+        { name: "Strumenti da scasso", ability: "DEXTERITY", bonus: "6", _rowid: "t1" },
+        { name: "Disguise Kit", ability: "QUERY", bonus: "?{Attribute?|Strength,@{strength_mod}|Charisma,@{charisma_mod}}+1+4", _rowid: "t2" },
+        { name: "Liuto", ability: "CHARISMA", bonus: "5", _rowid: "t3" },
+      ],
+    }, raw: { repeating: { repeating_tool: [{ _rowid: "t2", toolbonus_base: "(@{pb}*2)" }] } } });
+    expect(sheet.proficiencies?.map(({ name, type }) => [name, type])).toEqual([["Comune", "LANGUAGE"], ["Abissale", "LANGUAGE"], ["Semplici", "WEAPON"], ["Thieves Tools", "OTHER"]]);
+    // MODS = totale − caratteristica − competenza (Maestria da raw = 2×2, CAR +4 dal fixture).
+    expect(sheet.tools?.map(({ name, ability, proficiency, mods }) => [name, ability, proficiency, mods])).toEqual([["Strumenti da scasso", "dexterity", "proficient", 4], ["Disguise Kit", "", "expertise", 1], ["Liuto", "charisma", "proficient", -1]]);
+  });
+
   it("usa normalized come fonte e applica il profilo versionato", () => {
     const sheet = importRoll20(fixture);
     expect(sheet.name).toBe("Duston");

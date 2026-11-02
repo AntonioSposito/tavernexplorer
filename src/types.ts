@@ -154,10 +154,31 @@ export interface CharacterSheet {
   effects?: CharacterEffect[];
   counters?: ResourceCounter[];
   traits: TraitEntry[];
+  // Assenti nelle schede importate prima di questo campo.
+  proficiencies?: ProficiencyEntry[];
+  tools?: ToolEntry[];
   currency: Record<string, number>;
   biography: string;
   importWarnings: string[];
 }
+
+export interface ProficiencyEntry {
+  id: string;
+  name: string;
+  type: "LANGUAGE" | "WEAPON" | "ARMOR" | "OTHER";
+}
+
+// Come il form strumenti di Roll20: bonus = caratteristica + competenza + mod.
+export interface ToolEntry {
+  id: string;
+  name: string;
+  // Chiave di caratteristica ("dexterity") o "" se si sceglie al tiro (QUERY ATTRIBUTE).
+  ability: string;
+  proficiency: ToolProficiency;
+  mods: number;
+}
+
+export type ToolProficiency = "proficient" | "expertise" | "jack";
 
 export interface TurnEntry {
   id: string;

@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
+import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
 import { DEFAULT_RULESET } from "./rulesets";
 
@@ -383,19 +384,30 @@ it("il riposo breve chiede i dadi vita da spendere nella finestra di conferma", 
   expect(cloudSheet().sheet.combat.hp.current).toBeGreaterThan(3);
 });
 
-it("chiede conferma prima di eliminare una risorsa personale", async () => {
+it("modifica una risorsa nel popup e chiede conferma prima di eliminarla", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   sheet.counters = [{ id: "ki", name: "Ki", current: 2, max: 3, recovery: "short" }];
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
   await settle();
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Elimina Ki"]')!.click());
-  expect(host.querySelector(".ui-dialog p")?.textContent).toBe("Ki verrà rimossa dalla scheda.");
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  expect(host.querySelector('input[aria-label="Nome risorsa"]')).toBeNull();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Ki"]')!.click());
+  await type('input[aria-label="Nome risorsa"]', "Punti Ki");
+  await type('input[aria-label="Massimo risorsa"]', "1");
+  await dialogButton("Salva");
+  expect(host.querySelector(".ui-dialog")).toBeNull();
+  expect(host.textContent).toContain("1 / 1");
+
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Punti Ki"]')!.click());
+  await dialogButton("Elimina");
+  expect(host.querySelector(".ui-dialog p")?.textContent).toBe("Punti Ki verrà rimossa dalla scheda.");
   await click("Annulla");
-  expect(host.querySelector('[aria-label="Elimina Ki"]')).not.toBeNull();
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Elimina Ki"]')!.click());
-  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
-  expect(host.querySelector('[aria-label="Elimina Ki"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Modifica Punti Ki"]')).not.toBeNull();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Punti Ki"]')!.click());
+  await dialogButton("Elimina");
+  await dialogButton("Elimina");
+  expect(host.querySelector('[aria-label="Modifica Punti Ki"]')).toBeNull();
 });
 
 it("aggiunge una risorsa dal pulsante e ne cambia l'ordine", async () => {
@@ -405,7 +417,7 @@ it("aggiunge una risorsa dal pulsante e ne cambia l'ordine", async () => {
   await act(async () => root.render(<App/>));
   await settle();
   await click("+ Nuova risorsa");
-  await type('input[aria-label="Nome nuova risorsa"]', "Ira");
+  await type('input[aria-label="Nome risorsa"]', "Ira");
   await click("Aggiungi");
   await click("Modifica ordine");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Sposta su Ira"]')!.click());
@@ -436,4 +448,84 @@ it("riordina gli incantesimi dentro il loro livello; gli slot nel titolo non chi
   expect([...levelOne().querySelectorAll(".entry-use")].map((button) => button.textContent)).toEqual(["Sonno", "Armatura magica"]);
   await settle(1_700);
   expect(cloudSheet().sheet.spells.map((spell: { name: string }) => spell.name)).toEqual(["Sonno", "Luce", "Armatura magica"]);
+});
+
+it("crea, modifica ed elimina competenze e strumenti dalla tab Base", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, proficiencies: [{ name: "Comune", type: "LANGUAGE", _rowid: "common" }] } });
+  sheet.combat.proficiencyBonus = 2;
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const select = async (label: string, value: string) => {
+    const element = host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+    await act(async () => { element.value = value; element.dispatchEvent(new Event("change", { bubbles: true })); });
+  };
+
+  await click("+ Nuova competenza");
+  await type('input[aria-label="Nome competenza"]', "Strumenti da scasso");
+  await select("Tipo competenza", "TOOL");
+  await select("Caratteristica strumento", "dexterity");
+  await select("Bonus competenza strumento", "expertise");
+  await type('input[aria-label="Mod strumento"]', "1");
+  await click("Salva");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Comune"]')!.click());
+  await type('input[aria-label="Nome competenza"]', "Elfico");
+  await click("Salva");
+  await settle(1_700);
+
+  let saved = cloudSheet().sheet;
+  expect(saved.proficiencies).toEqual([{ id: "common", name: "Elfico", type: "LANGUAGE" }]);
+  expect(saved.tools).toMatchObject([{ name: "Strumenti da scasso", ability: "dexterity", proficiency: "expertise", mods: 1 }]);
+  expect(host.textContent).toContain("(DES) +5");
+  expect(host.querySelector('[aria-label="Mostra in chat Elfico"]')).not.toBeNull();
+
+  // Il nome dello strumento tira 1d20 + caratteristica + competenza + mod.
+  await click("Strumenti da scasso");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("1d20+4[PROF]+1[MOD]");
+  await click("Chiudi");
+
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Elfico"]')!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
+  await settle(1_700);
+  saved = cloudSheet().sheet;
+  expect(saved.proficiencies).toEqual([]);
+  expect(saved.tools).toHaveLength(1);
+});
+
+it("crea e modifica un buff nel popup, senza salvare se si annulla", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const dialogButton = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === label)!.click());
+  await click("Modifica");
+  await click("Aggiungi");
+  await type('input[aria-label="Nome effetto"]', "Benedizione");
+  await dialogButton("Annulla");
+  expect(host.querySelector('[aria-label="Modifica Benedizione"]')).toBeNull();
+
+  await click("Aggiungi");
+  await type('input[aria-label="Nome effetto"]', "Benedizione");
+  await dialogButton("Salva");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Benedizione"]')!.click());
+  await type('input[aria-label="Nome effetto"]', "Benedetto");
+  await dialogButton("Salva");
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects).toMatchObject([{ name: "Benedetto", active: true, modifiers: [] }]);
+});
+
+it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.combat.proficiencyBonus = 2;
+  sheet.abilities.charisma = { score: 16, mod: 3, save: 3, saveProficient: false };
+  // Formato salvato prima di proficiency/mods: solo il bonus (competenza + mod).
+  sheet.tools = [{ id: "kit", name: "Disguise Kit", ability: "", bonus: 2 } as unknown as ToolEntry];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Disguise Kit");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("Scegli la caratteristica");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("Carisma +5");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent?.startsWith("Carisma"))!.click());
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("1d20+3[CHA]+2[PROF]");
 });
