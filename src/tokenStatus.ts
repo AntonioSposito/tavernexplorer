@@ -1,10 +1,11 @@
 import OBR, { buildLabel, buildPath, buildShape, buildText, Command, isLabel, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
 import { armorClass, effectiveSheet } from "./effects";
-import { getTurnState, onSheetsChanged } from "./obr";
+import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
 import { linkedCharacterId } from "./tokenTurns";
-import type { CloudSheet, MonsterSheet, TurnEntry } from "./types";
+import { fillTurnStats } from "./turnStats";
+import type { CloudSheet, MonsterSheet, TurnEntry, TurnState } from "./types";
 
 // Etichetta sopra il token: le condizioni. I PF sono nella barra sotto il token.
 export function tokenStatusText(turn: TurnEntry | undefined, role: "GM" | "PLAYER"): string | null {
@@ -17,13 +18,15 @@ export function tokenStatusText(turn: TurnEntry | undefined, role: "GM" | "PLAYE
 // Barra della vita e CA sotto il token, disegnate in locale da ognuno: i PG a tutti, NPC e mostri solo al GM
 // (il bestiario è solo nel browser del GM).
 export interface TokenStats { hp?: { current: number; max: number; temp: number }; ac: number }
-export function tokenStats(entry: CloudSheet | undefined, monster: MonsterSheet | undefined): TokenStats | null {
+// NPC e mostri: PF e CA dalla loro voce del turn order, se il token ci è.
+export function tokenStats(entry: CloudSheet | undefined, monster: MonsterSheet | undefined, turn?: TurnEntry): TokenStats | null {
   if (entry?.kind === "pc") {
     const view = effectiveSheet(entry.sheet);
     return { hp: view.combat.hp, ac: armorClass(entry.sheet, view.abilities.dexterity?.mod ?? 0).total };
   }
-  if (entry?.kind === "npc") return { ac: entry.sheet.ac };
-  return monster ? { ac: monster.ac } : null;
+  const statblock = entry?.kind === "npc" ? entry.sheet : monster;
+  if (!statblock) return null;
+  return { ...turn?.hp ? { hp: { ...turn.hp, temp: 0 } } : {}, ac: turn?.ac ?? statblock.ac };
 }
 
 // Colori chiari come le barre di Roll20; il testo è bianco con il bordo scuro, leggibile su ogni colore.
@@ -31,12 +34,14 @@ const hpColor = (ratio: number) => ratio > 0.5 ? "#7bd88f" : ratio > 0.25 ? "#f6
 
 // Barra in stile Roll20: larga quanto il token, poco sopra il suo bordo basso, con "PF/massimi" dentro.
 // Tocca appena il nome che Owlbear disegna sotto il token. La CA è uno scudo in alto a destra.
-// sig: cosa è disegnato; se cambia (PF, CA, dimensione del token) gli elementi si ricreano.
-function statsItems(tokenId: string, bounds: BoundingBox, stats: TokenStats, sig: string): Item[] {
+// La barra è larga quanto il token; altezza, scritte e scudo hanno misure fisse in caselle della griglia
+// (cell = DPI della scena), così un token grande non li ingrandisce.
+// sig: cosa è disegnato; se cambia (PF, CA, dimensione del token o della griglia) gli elementi si ricreano.
+function statsItems(tokenId: string, bounds: BoundingBox, stats: TokenStats, sig: string, cell: number): Item[] {
   const width = bounds.width * 0.9;
-  const height = Math.max(8, bounds.height * 0.16);
+  const height = cell * 0.16;
   const x = bounds.center.x - width / 2;
-  const y = bounds.max.y - height - bounds.height * 0.07;
+  const y = bounds.max.y - height - cell * 0.07;
   const metadata = { [TOKEN_STATS_META_KEY]: { tokenId, sig } };
   // zIndex esplicito: creati insieme, sfondo, riempimento e testo non hanno un ordine garantito.
   const z = Date.now();
@@ -56,8 +61,10 @@ function statsItems(tokenId: string, bounds: BoundingBox, stats: TokenStats, sig
       .zIndex(z + 2).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build());
   }
   // Scudo: lati dritti in alto, punta in basso; i comandi sono relativi alla posizione dello scudo.
-  const size = bounds.width * 0.32;
-  const shield = { x: bounds.max.x - size * 0.85, y: bounds.min.y - size * 0.1 };
+  const size = cell * 0.32;
+  // Centrato sul bordo del token in alto a destra (45°): resta attaccato anche ai token grandi e rotondi.
+  const edge = (bounds.width / 2) * Math.SQRT1_2;
+  const shield = { x: bounds.center.x + edge - size / 2, y: bounds.center.y - edge - size / 2 };
   items.push(buildPath().commands([
     [Command.MOVE, 0, size * 0.12], [Command.LINE, size * 0.5, 0], [Command.LINE, size, size * 0.12], [Command.LINE, size, size * 0.5],
     [Command.QUAD, size, size * 0.85, size * 0.5, size * 1.1], [Command.QUAD, 0, size * 0.85, 0, size * 0.5], [Command.CLOSE],
@@ -76,17 +83,25 @@ async function loadRoomSheets(): Promise<void> {
   if (response.ok) roomSheets = ((await response.json()) as { sheets: CloudSheet[] }).sheets.filter((entry) => !entry.deletedAt);
 }
 
-async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", hidden: boolean): Promise<void> {
+async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: TurnState): Promise<void> {
   const entries = new Map(roomSheets.filter((entry) => entry.kind === "pc" || role === "GM").map((entry) => [entry.sheet.id, entry]));
   const monsters = role === "GM" ? new Map(storage.monsters.get().map((monster) => [monster.id, monster])) : new Map<string, MonsterSheet>();
-  const wanted = hidden ? [] : tokens.flatMap((token) => {
+  // Il GM carica nel turn order PF e CA dei token collegati a mostri e NPC; la scrittura riavvia la sincronizzazione.
+  if (role === "GM") {
+    const statblocks = new Map<string, MonsterSheet>([...monsters, ...roomSheets.flatMap((entry) => entry.kind === "npc" ? [[entry.sheet.id, entry.sheet] as const] : [])]);
+    const filled = fillTurnStats(turns, tokens, statblocks);
+    if (filled) { await setTurnState(filled); return; }
+  }
+  const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
+  const wanted = turns.hideTokenStats ? [] : tokens.flatMap((token) => {
     const characterId = linkedCharacterId(token);
-    const stats = characterId ? tokenStats(entries.get(characterId), monsters.get(characterId)) : null;
+    const stats = characterId ? tokenStats(entries.get(characterId), monsters.get(characterId), turnsByToken.get(token.id)) : null;
     return stats && (role === "GM" || token.visible) ? [{ token, stats }] : [];
   });
+  const cell = await OBR.scene.grid.getDpi();
   const desired = new Map(await Promise.all(wanted.map(async ({ token, stats }) => {
     const bounds = await OBR.scene.items.getItemBounds([token.id]);
-    const sig = JSON.stringify([stats, Math.round(bounds.width), Math.round(bounds.height)]);
+    const sig = JSON.stringify([stats, Math.round(bounds.width), Math.round(bounds.height), cell]);
     return [token.id, { bounds, stats, sig }] as const;
   })));
   // Un token resta com'è solo se tutti i suoi elementi hanno la firma voluta, altrimenti si ricrea.
@@ -102,7 +117,7 @@ async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", hidden: boo
     else remove.push(...items.map((item) => item.id));
   }
   if (remove.length) await OBR.scene.local.deleteItems(remove);
-  const additions = [...desired].filter(([tokenId]) => !kept.has(tokenId)).flatMap(([tokenId, target]) => statsItems(tokenId, target.bounds, target.stats, target.sig));
+  const additions = [...desired].filter(([tokenId]) => !kept.has(tokenId)).flatMap(([tokenId, target]) => statsItems(tokenId, target.bounds, target.stats, target.sig, cell));
   if (additions.length) await OBR.scene.local.addItems(additions);
 }
 
@@ -113,7 +128,7 @@ async function syncTokenStatus(): Promise<void> {
     OBR.scene.local.getItems((item) => typeof item.metadata[TOKEN_STATUS_META_KEY] === "string"),
     getTurnState(), OBR.player.getRole(),
   ]);
-  await syncTokenStats(tokens, role, !!turns.hideTokenStats);
+  await syncTokenStats(tokens, role, turns);
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
   const desired = new Map<string, { text: string; position: { x: number; y: number } }>();
   for (const token of tokens) {

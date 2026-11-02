@@ -25,7 +25,7 @@ vi.mock("@owlbear-rodeo/sdk", async (original) => {
     room: { id: "r1", onMetadataChange: (callback: () => void) => { scene.listeners.push(callback); } },
     player: { getRole: async () => scene.role, getName: async () => "Marco" },
     scene: {
-      isReady: async () => true, onReadyChange: () => undefined,
+      isReady: async () => true, onReadyChange: () => undefined, grid: { getDpi: async () => 150 },
       items: { getItems: async (filter?: (item: unknown) => boolean) => filtered(scene.tokens, filter), getItemBounds: async () => ({ min: { x: 0, y: 0 }, max: { x: 100, y: 100 }, width: 100, height: 100, center: { x: 50, y: 50 } }), onChange: () => undefined },
       local: {
         getItems: async (filter?: (item: unknown) => boolean) => filtered(scene.local, filter),
@@ -91,6 +91,8 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
   // Sfondo, PF (8/20 → giallo sotto metà), temporanei e testo "8/20 +3" come Roll20, più scudo e CA.
   expect(stats("t-ada")).toHaveLength(6);
   expect(stats("t-ada").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["8/20 +3", "15"]);
+  // Barra larga quanto il token (100), altezza fissa in caselle (DPI 150).
+  expect(stats("t-ada").find((item) => item.type === "SHAPE")).toMatchObject({ width: 90, height: 24 });
   expect(stats("t-gob").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["13"]);
 
   scene.role = "PLAYER";

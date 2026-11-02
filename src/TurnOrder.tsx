@@ -35,14 +35,17 @@ interface TurnOrderProps {
   active: CharacterSheet | null;
   onAttach: () => void;
   onOpenForPlayers?: () => void;
+  // PF e CA di mostri e NPC: solo il GM.
+  showStats?: boolean;
 }
 
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("");
 }
 
-export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onRollInitiative, onFocusToken, active, onAttach, onOpenForPlayers }: TurnOrderProps) {
+export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onRollInitiative, onFocusToken, active, onAttach, onOpenForPlayers, showStats = false }: TurnOrderProps) {
   const [editing, setEditing] = useState(false);
+  const setHp = (entry: TurnEntry, current: number) => onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id && item.hp ? { ...item, hp: { ...item.hp, current: Math.max(0, current) } } : item) });
   const remove = (entry: TurnEntry) => onChange(replaceTurnEntries(state, state.entries.filter((item) => item.id !== entry.id)));
   return <div className="turn-tracker">
     <header className="turn-tracker-head"><span>Round {state.round}</span><span>Partecipanti: {state.entries.length}</span></header>
@@ -57,8 +60,10 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
           </span>
           <div className="turn-name">
             {entry.tokenId && onFocusToken ? <button title="Evidenzia sulla mappa" onClick={() => { if (entry.tokenId) onFocusToken(entry.tokenId); }}>{entry.name}</button> : <strong>{entry.name}</strong>}
+            {showStats && entry.hp && <small className="turn-stats">PF {entry.hp.current}/{entry.hp.max}{entry.ac != null && ` · CA ${entry.ac}`}</small>}
             {(entry.conditions?.length ?? 0) > 0 && <small>{entry.conditions?.map((condition) => condition.remainingRounds != null ? `${condition.name} (${condition.remainingRounds})` : condition.name).join(" · ")}</small>}
           </div>
+          {editing && canManage && showStats && entry.hp && <input className="turn-initiative-input" aria-label={`PF di ${entry.name}`} title="PF attuali" type="number" min="0" value={entry.hp.current} onChange={(event) => setHp(entry, Math.trunc(Number(event.target.value)) || 0)}/>}
           {editing && canManage ? <input className="turn-initiative-input" aria-label={`Iniziativa di ${entry.name}`} type="number" value={entry.initiative} onChange={(event) => onChange(setTurnInitiative(state, entry.id, Number(event.target.value) || 0))}/> : <strong className="turn-initiative">{entry.initiative}</strong>}
         </div>
         {editing && <ConditionEditor entry={entry} state={state} canManage={canManage} onChange={onChange} onRollInitiative={onRollInitiative}/>}

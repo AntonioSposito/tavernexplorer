@@ -257,6 +257,9 @@ export interface TurnEntry {
   hidden?: boolean;
   initiativeBonus?: number;
   conditions?: TurnCondition[];
+  // Solo mostri e NPC: PF attuali e CA del token (i PG li prendono dalla scheda).
+  hp?: { current: number; max: number };
+  ac?: number;
 }
 
 export interface TurnCondition {
