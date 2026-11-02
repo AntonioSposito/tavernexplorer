@@ -1,8 +1,9 @@
 import { DEFAULT_RULESET } from "./rulesets";
 import { ABILITY_SHORT } from "./constants";
+import { autoLevelMatches } from "./classSync";
 import { fixProficiencyChoice } from "./effects";
 import { itemModifierList, modifiersFromText, parseItemModifiers } from "./itemModifiers";
-import type { AbilityStat, ActionEntry, CharacterSheet, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency, TraitEntry, TraitSource } from "./types";
+import type { AbilityStat, ActionEntry, CharacterSheet, CharacterClass, ClassCaster, ProficiencyEntry, Roll20Export, SpellEntry, ToolEntry, ToolProficiency, TraitEntry, TraitSource } from "./types";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj => (value && typeof value === "object" ? (value as Obj) : {});
@@ -58,6 +59,28 @@ function itemModifierFields(value: string) {
   const unknown = parseItemModifiers(value).unknown.join(", ");
   const modifiers = modifiersFromText(value);
   return { ...modifiers.length ? { modifiers } : {}, ...unknown ? { modifiersText: unknown } : {} };
+}
+
+// Roll20 salva la caratteristica come formula: "@{intelligence_mod}+" → "intelligence", "0*" → nessuna.
+const abilityFromFormula = (value: string) => /@\{(strength|dexterity|constitution|intelligence|wisdom|charisma)_mod\}/.exec(value)?.[1] ?? (value in ABILITY_SHORT ? value : "");
+const CASTER_TYPES: Record<string, ClassCaster> = { full: "full", half: "half", third: "third", warlock: "pact", pact: "pact" };
+
+// Classi dai campi Roll20: classe principale (o "custom class"), poi multiclass1..3 se attive.
+function importClasses(raw: unknown, className: string, level: number, subclass: string): CharacterClass[] {
+  const attributes = obj(obj(raw).attributes);
+  const attr = (name: string) => text(obj(attributes[name]).current).trim();
+  const classes: CharacterClass[] = [];
+  const baseLevel = num(attr("base_level"), level);
+  if (attr("custom_class") === "1") {
+    const saves = Object.keys(ABILITY_SHORT).filter((ability) => attr(`cust_${ability}_save_prof`));
+    classes.push({ name: attr("cust_classname") || "Classe personalizzata", level: baseLevel, custom: { hitDie: num(attr("cust_hitdietype"), 8), spellAbility: abilityFromFormula(attr("cust_spellcasting_ability")) || undefined, caster: CASTER_TYPES[attr("cust_spellslots").toLowerCase()] ?? "none", saves } });
+  } else if (className.trim()) classes.push({ name: className.trim(), level: baseLevel, ...subclass.trim() ? { subclass: subclass.trim() } : {} });
+  for (const index of [1, 2, 3]) {
+    if (attr(`multiclass${index}_flag`) !== "1" || !attr(`multiclass${index}`)) continue;
+    const extra = attr(`multiclass${index}_subclass`);
+    classes.push({ name: attr(`multiclass${index}`), level: num(attr(`multiclass${index}_lvl`), 1), ...extra ? { subclass: extra } : {} });
+  }
+  return classes;
 }
 
 // SOURCE dei tratti, anche come lo salva Roll20 in italiano.
@@ -180,7 +203,7 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
     combat: { ac: num(combat.ac), hp: { current: num(hp.current), max: num(hp.max), temp: num(hp.temp) }, speed: text(combat.speed), initiative: num(combat.initiative), proficiencyBonus: num(combat.proficiency_bonus), passivePerception: num(combat.passive_perception), inspiration: bool(combat.inspiration), hitDice: { current: num(hitDice.current), max: num(hitDice.max), die: text(hitDice.die) }, deathSaves: { successes: num(deathSaves.successes), failures: num(deathSaves.failures) } },
     abilities: importAbilities(normalized.abilities),
     skills: Object.fromEntries(Object.entries(obj(normalized.skills)).map(([key, raw]) => { const skill = obj(raw); return [key, { ability: text(skill.ability), bonus: num(skill.bonus), proficient: bool(skill.proficient) }]; })),
-    spellcasting: { ability: text(spellcasting.ability), saveDc: num(spellcasting.save_dc), attackBonus: num(spellcasting.attack_bonus), slots },
+    spellcasting: { ability: abilityFromFormula(text(spellcasting.ability)), saveDc: num(spellcasting.save_dc), attackBonus: num(spellcasting.attack_bonus), slots },
     actions, spells: [],
     inventory: arr(normalized.inventory).filter((entry) => text(entry.name).trim()).map((entry) => ({ id: text(entry._rowid, uid()), name: text(entry.name).trim(), count: entry.count == null ? null : num(entry.count, 1), equipped: bool(entry.equipped), description: text(entry.description) || undefined, weight: entry.weight == null || entry.weight === "" ? null : num(entry.weight), properties: text(entry.properties) || undefined, ...itemModifierFields(text(entry.modifiers)) })),
     proficiencies: importProficiencies(normalized.proficiencies),
@@ -191,6 +214,8 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
   sheet.spells = importSpells(spellcasting, actions, warnings);
   sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet));
   fixProficiencyChoice(sheet);
+  sheet.classes = importClasses(source.raw, text(identity.class), num(identity.level, 1), text(identity.subclass));
+  if (sheet.classes.length) sheet.options = { ...sheet.options, autoLevel: autoLevelMatches(sheet) };
   sheet.importedItemModifiers = sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item));
   sheet.tools = importTools(normalized.tools, source.raw, sheet.abilities, sheet.combat.proficiencyBonus);
   return sheet;

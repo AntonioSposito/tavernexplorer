@@ -111,6 +111,18 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .value-explained strong, strong.value-explained { text-decoration: underline dotted; text-underline-offset: 3px; }
 /* Tab "Modifica (prova)": righe abilità come Roll20 (competenza, nome, bonus). */
 .options-skills { display: grid; gap: 6px; margin-bottom: .5rem; }
-.options-skills > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 4.5rem; align-items: center; gap: 8px; }
+.options-skills > div { display: grid; grid-template-columns: auto auto minmax(0, 1fr) 4.5rem; align-items: center; gap: 8px; }
 .options-panel .muted { margin: .25rem 0 .5rem; font-size: .8rem; }
 .options-inline { display: flex; align-items: end; padding-bottom: .5rem; }
+/* Classi in "Modifica (prova)". */
+.class-options { display: grid; gap: .6rem; }
+.class-row { display: grid; grid-template-columns: 1fr 1fr 5rem 1fr auto; align-items: end; gap: 8px; padding-top: .5rem; border-top: 1px solid hsl(var(--border)); }
+.class-row > strong { grid-column: 1 / -1; font-size: .8rem; }
+.class-row label, .slot-bonus label { display: grid; gap: .25rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+.custom-class { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 8px; }
+.custom-saves { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: center; font-size: .75rem; }
+.slot-bonus { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; align-items: end; }
+.slot-bonus > span { grid-column: 1 / -1; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+.class-flags { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; }
+.options-saves > div { grid-template-columns: auto minmax(0, 1fr) 4.5rem; }
+.options-saves > div:has(> span:first-child) { grid-template-columns: minmax(0, 1fr) 4.5rem 4.5rem; }

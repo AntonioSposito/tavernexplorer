@@ -152,6 +152,8 @@ export interface CharacterSheet {
     passivePerception: number;
     inspiration: boolean;
     hitDice: { current: number; max: number; die: string };
+    // "Track hit dice per class": un gruppo per tipo di dado; hitDice resta il totale.
+    hitDicePools?: Array<{ die: string; current: number; max: number }>;
     deathSaves: { successes: number; failures: number };
   };
   abilities: Record<string, AbilityStat>;
@@ -172,6 +174,7 @@ export interface CharacterSheet {
   // Assenti nelle schede importate prima di questo campo.
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
+  classes?: CharacterClass[];
   // Opzioni della tab "Modifica (prova)", come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
   options?: SheetOptions;
   // Modificatori degli oggetti equipaggiati al momento dell'import: Roll20 li ha già sommati ai valori esportati.
@@ -199,6 +202,15 @@ export interface ToolEntry {
 
 export type ToolProficiency = "proficient" | "expertise" | "jack";
 
+export type ClassCaster = "full" | "half" | "third" | "pact" | "none";
+// Una classe del personaggio (fino a 4 come Roll20). custom = "Use custom class" di Roll20.
+export interface CharacterClass {
+  name: string;
+  level: number;
+  subclass?: string;
+  custom?: { hitDie: number; spellAbility?: string; caster: ClassCaster; saves: string[] };
+}
+
 export interface SheetOptions {
   // Bonus fissi per bersaglio di modificatore ("save:wisdom", "skill:stealth", "initiative"…), più
   // "saveAll" (Global saving throw modifier) e "deathSave" (Death save modifier).
@@ -218,6 +230,17 @@ export interface SheetOptions {
   carryMultiplier?: number;
   encumbrance?: "simple" | "variant" | "off";
   ignoreUnequippedWeight?: boolean;
+  // Roll20 "Auto level calculations": cambiare le classi aggiorna livello, dadi vita, slot, TS e caratteristica da incantatore.
+  autoLevel?: boolean;
+  arcaneFighter?: boolean;
+  arcaneRogue?: boolean;
+  // Magic caster level forzato (0/assente = calcolato dalle classi).
+  casterLevel?: number;
+  // Spell slot modifiers, livelli 1–9.
+  slotBonus?: number[];
+  trackHitDicePerClass?: boolean;
+  // Un 1 naturale su un d20 si ritira una volta.
+  halflingLuck?: boolean;
 }
 
 export interface TurnEntry {

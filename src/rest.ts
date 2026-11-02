@@ -24,16 +24,24 @@ export function takeShortRest(sheet: CharacterSheet, diceToSpend: number, rollDi
   if (sheet.combat.hp.current < 1) throw new Error("Per iniziare un riposo breve servono almeno 1 PF");
   if (!Number.isInteger(diceToSpend) || diceToSpend < 0 || diceToSpend > sheet.combat.hitDice.current) throw new Error("Numero di dadi vita non disponibile");
   const faces = Number(/^d?(\d+)$/i.exec(sheet.combat.hitDice.die)?.[1]);
-  if (diceToSpend > 0 && (!Number.isInteger(faces) || faces < 2 || faces > 1000)) throw new Error("Tipo di dado vita non valido");
+  // Con i dadi vita per classe si spendono prima i dadi più grandi (i gruppi sono già in ordine decrescente).
+  const pools = structuredClone(sheet.combat.hitDicePools ?? []);
+  const spendFaces: number[] = [];
+  for (let index = 0; index < diceToSpend; index += 1) {
+    const pool = pools.find((item) => item.current > 0);
+    if (pool) { pool.current -= 1; spendFaces.push(Number(pool.die.slice(1))); } else spendFaces.push(faces);
+  }
+  if (spendFaces.some((value) => !Number.isInteger(value) || value < 2 || value > 1000)) throw new Error("Tipo di dado vita non valido");
   const rules = getRuleset(sheet.ruleset.id);
   const constitution = effectiveSheet(sheet).abilities.constitution?.mod ?? 0;
-  const rolls = Array.from({ length: diceToSpend }, () => rollDie(faces));
-  if (rolls.some((value) => !Number.isInteger(value) || value < 1 || value > faces)) throw new Error("Risultato del dado vita non valido");
+  const rolls = spendFaces.map((value) => rollDie(value));
+  if (rolls.some((value, index) => !Number.isInteger(value) || value < 1 || value > spendFaces[index])) throw new Error("Risultato del dado vita non valido");
   const recovered = rolls.reduce((sum, value) => sum + Math.max(rules.shortRestMinimumHealing, value + constitution), 0);
   const next = structuredClone(sheet);
   const maximum = Math.max(0, effectiveSheet(sheet).combat.hp.max);
   next.combat.hp.current = Math.min(maximum, next.combat.hp.current + recovered);
   next.combat.hitDice.current -= diceToSpend;
+  if (pools.length) next.combat.hitDicePools = pools;
   if (next.spellcasting.slotRecovery === "short") for (const slot of Object.values(next.spellcasting.slots)) slot.used = 0;
   const counters = restoreCounters(next.counters ?? [], "short");
   next.counters = counters.counters;
@@ -49,6 +57,7 @@ export function takeLongRest(sheet: CharacterSheet): RestResult {
   next.combat.deathSaves = { successes: 0, failures: 0 };
   const hitDice = next.combat.hitDice;
   hitDice.current = Math.min(hitDice.max, hitDice.current + getRuleset(sheet.ruleset.id).hitDiceRecoveredOnLongRest(hitDice.max));
+  for (const pool of next.combat.hitDicePools ?? []) pool.current = Math.min(pool.max, pool.current + getRuleset(sheet.ruleset.id).hitDiceRecoveredOnLongRest(pool.max));
   for (const slot of Object.values(next.spellcasting.slots)) slot.used = 0;
   const counters = restoreCounters(next.counters ?? [], "long");
   next.counters = counters.counters;

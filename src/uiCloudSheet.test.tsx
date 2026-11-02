@@ -760,3 +760,49 @@ it("la tab Modifica (prova) salva le opzioni e cambia i valori della scheda", as
   await click("Base");
   expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toBe("Iniziativa +5\nDestrezza +0\nOpzioni +3\nAltro +2");
 });
+
+it("nella tab Modifica (prova) aggiunge una multiclasse e aggiorna livello e slot", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", class: "Wizard", level: 1 }, combat: { proficiency_bonus: 2 }, spellcasting: { ability: "@{intelligence_mod}+", slots: { level_1: { total: 2, expended: 0 } } } }, raw: { attributes: { base_level: { current: "1" } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica (prova)");
+  await click("+ Multiclasse");
+  const second = host.querySelector<HTMLSelectElement>('select[aria-label="2ª classe: classe"]')!;
+  await act(async () => { second.value = "Cleric"; second.dispatchEvent(new Event("change", { bubbles: true })); });
+  await type('input[aria-label="2ª classe: livello"]', "2");
+  await settle(1_700);
+  expect(cloudSheet().sheet).toMatchObject({ classes: [{ name: "Wizard", level: 1 }, { name: "Cleric", level: 2 }], identity: { level: 3, classDisplay: "Wizard 1 / Cleric 2" } });
+  expect(cloudSheet().sheet.spellcasting.slots).toEqual({ level_1: { total: 4, used: 0 }, level_2: { total: 2, used: 0 } });
+});
+
+it("in Modifica (prova) ogni abilità ha competenza, Maestria e bonus in una sola riga", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", level: 1 }, combat: { proficiency_bonus: 2 }, abilities: { wisdom: { score: 12, mod: 1, save: 1 } }, skills: { insight: { ability: "wisdom", bonus: 1, proficient: false } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica (prova)");
+  expect(host.querySelector('[aria-label="Bonus insight"]')).toBeNull();
+  const expertise = () => host.querySelector<HTMLInputElement>('input[aria-label="Maestria Intuizione"]')!;
+  expect(expertise().disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Competenza Intuizione"]')!.click());
+  await act(async () => expertise().click());
+  await type('input[aria-label="Bonus aggiuntivo Intuizione"]', "1");
+  await settle(1_700);
+  const saved = cloudSheet().sheet;
+  expect(saved.skills.insight).toMatchObject({ proficient: true, bonus: 3 });
+  expect(saved.options).toMatchObject({ expertise: ["insight"], bonuses: { "skill:insight": 1 } });
+
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Competenza TS Saggezza"]')!.click());
+  await type('input[aria-label="Bonus aggiuntivo TS Saggezza"]', "1");
+  await settle(1_700);
+  expect(cloudSheet().sheet.abilities.wisdom).toMatchObject({ saveProficient: true, save: 3 });
+  expect(cloudSheet().sheet.options.bonuses).toMatchObject({ "save:wisdom": 1 });
+
+  expect([...host.querySelectorAll(".options-panel h2, .stack h2")].filter((node) => node.textContent === "Caratteristiche")).toHaveLength(1);
+  await type('input[aria-label="Punteggio Saggezza"]', "14");
+  await type('input[aria-label="Bonus aggiuntivo Saggezza"]', "2");
+  await settle(1_700);
+  expect(cloudSheet().sheet.abilities.wisdom).toMatchObject({ score: 14, mod: 2 });
+  expect(cloudSheet().sheet.options.bonuses).toMatchObject({ "ability:wisdom": 2 });
+}, 15_000);

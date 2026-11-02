@@ -678,3 +678,41 @@ order: 3900
 - Etichette accessibili (`aria-label`) e tooltip.
 
 **Accettazione.** Da riga chiusa si attacca/lancia e si apre il form di modifica con un clic; chi ha sola lettura non vede la matita.
+
+## Risorse collegate agli oggetti dello zaino
+
+---
+id: TE-48
+type: feature
+priority: medium
+status: todo
+order: 4000
+---
+
+**Contesto.** Le Risorse (`ResourcePanel`, `sheet.counters`) e la quantità degli oggetti dello Zaino (`InventoryEntry.count`) sono separate: frecce, dardi o pozioni vanno tenuti a mano in due posti.
+
+**Da fare.**
+- Creare una risorsa da un oggetto dello zaino (es. "Usa come risorsa" nel popup oggetto, come "Use as a resource" di Roll20), per munizioni e consumabili.
+- Collegare il contatore della risorsa all'oggetto: −/+ della risorsa cambia la quantità dell'oggetto e viceversa; il massimo resta della risorsa.
+- Valutare il collegamento dalle azioni (es. un attacco con arco consuma una freccia), come "Ammo tracking" di Roll20.
+
+**Accettazione.** Una risorsa "Frecce" creata da un oggetto scala la quantità nello zaino e la quantità modificata nello zaino si vede nella risorsa.
+
+## Segnalare all'import da Roll20 ciò che non viene importato
+
+---
+id: TE-49
+type: feature
+priority: medium
+status: todo
+order: 4100
+---
+
+**Contesto.** L'import Roll20 (`importRoll20`) legge solo alcuni campi di `normalized` e `raw`; quello che non riconosce si perde senza avviso (es. risorse di classe, campi di opzioni non gestiti, testo non riconosciuto nei modificatori degli oggetti). Le note d'importazione oggi coprono solo pochi casi.
+
+**Da fare.**
+- Confrontare l'export con ciò che è stato importato e raccogliere le parti mancanti o non riconosciute (sezioni di `normalized` ignorate, attributi `raw` con valori non predefiniti, modificatori e proprietà non interpretati).
+- Mostrarle nel popup "Note d'importazione" al momento dell'import, raggruppate per sezione, e salvarle nelle note della scheda (tab Modifica).
+- Distinguere "non importato" da "importato con approssimazione".
+
+**Accettazione.** Importando un personaggio con dati non gestiti, il popup elenca cosa manca; un personaggio senza dati extra non mostra avvisi nuovi.

@@ -55,24 +55,31 @@ export function HitDiceControl({ sheet, editable, onUpdate, onRollValue }: HitPo
   const setCurrent = (delta: number) => onUpdate((next) => { const dice = next.combat.hitDice; dice.current = Math.min(dice.max, Math.max(0, dice.current + delta)); return next; });
   // busy evita due tiri con un solo dado vita se si clicca due volte prima del salvataggio.
   const [busy, setBusy] = useState(false);
-  const spend = async () => {
+  const pools = sheet.combat.hitDicePools;
+  // poolDie: con "Track hit dice per class" si spende un dado del gruppo scelto (d10, d8…).
+  const spend = async (poolDie?: string) => {
+    const rollFaces = poolDie ? Number(poolDie.slice(1)) : faces;
     setBusy(true);
-    const result = await onRollValue("Dado vita", `1d${faces}${labeledBonus([[con, "CON"]], con)}`, { critRange: 20, label: "PF recuperati" });
+    const result = await onRollValue("Dado vita", `1d${rollFaces}${labeledBonus([[con, "CON"]], con)}`, { critRange: 20, label: "PF recuperati" });
     setBusy(false);
     if (!result) return;
     const healed = Math.max(getRuleset(sheet.ruleset.id).shortRestMinimumHealing, result.total);
     onUpdate((next) => {
       next.combat = adjustHitPoints(next.combat, "current", healed, sheet.combat.hp.max);
       next.combat.hitDice.current = Math.max(0, next.combat.hitDice.current - 1);
+      const pool = next.combat.hitDicePools?.find((item) => item.die === poolDie);
+      if (pool) pool.current = Math.max(0, pool.current - 1);
       return next;
     });
   };
   return <section className="paper hit-point-control hit-dice-control">
     <h2>Dadi vita</h2>
     <div className="hit-point-boxes">
-      <button type="button" className="hit-dice-roll" disabled={busy || !editable || !faces || current < 1} title={current < 1 ? "Nessun dado vita disponibile" : "Tira e scala un dado vita"} onClick={() => void spend()}>Dado vita ({faces ? `d${faces}` : "?"})</button>
+      {pools?.length
+        ? pools.map((pool) => <button key={pool.die} type="button" className="hit-dice-roll" disabled={busy || !editable || pool.current < 1} title={pool.current < 1 ? "Nessun dado vita di questo tipo" : "Tira e scala un dado vita"} onClick={() => void spend(pool.die)}>{pool.die} ({pool.current}/{pool.max})</button>)
+        : <button type="button" className="hit-dice-roll" disabled={busy || !editable || !faces || current < 1} title={current < 1 ? "Nessun dado vita disponibile" : "Tira e scala un dado vita"} onClick={() => void spend()}>Dado vita ({faces ? `d${faces}` : "?"})</button>}
       <StepperBox field="max" label="Dadi vita tot" value={max} editable={false} onChange={() => undefined}/>
-      <StepperBox field="current" label="Dadi vita attuali" value={current} editable={editable} onChange={setCurrent}/>
+      <StepperBox field="current" label="Dadi vita attuali" value={current} editable={editable && !pools?.length} onChange={setCurrent}/>
     </div>
   </section>;
 }

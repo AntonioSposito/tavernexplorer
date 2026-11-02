@@ -52,18 +52,19 @@ export function supportsRollMode(formula: string): boolean {
   try { return /^1?d20([+-]\d+)*$/.test(sanitizeFormula(withoutFloor(formula).formula)); } catch { return false; }
 }
 
-// "1d20min10…": il d20 iniziale vale almeno 10 (Reliable talent di Roll20). Il minimo si toglie prima
-// del calcolo e si applica ai d20 tirati, così dadi, naturale e totale restano coerenti.
-function withoutFloor(formula: string): { formula: string; floor: number } {
-  const match = /^(\s*1?d20)min(\d+)/i.exec(formula);
-  return match ? { formula: match[1] + formula.slice(match[0].length), floor: Number(match[2]) } : { formula, floor: 0 };
+// Opzioni del d20 iniziale, tolte prima del calcolo e applicate ai d20 tirati (dadi, naturale e totale coerenti):
+// "min10" = vale almeno 10 (Reliable talent), "ro1" = un 1 si ritira una volta (Halfling luck).
+function withoutFloor(formula: string): { formula: string; floor: number; reroll: boolean; flags: string } {
+  const match = /^(\s*1?d20)((?:min\d+|ro1)+)/i.exec(formula);
+  if (!match) return { formula, floor: 0, reroll: false, flags: "" };
+  return { formula: match[1] + formula.slice(match[0].length), floor: Number(/min(\d+)/i.exec(match[2])?.[1] ?? 0), reroll: /ro1/i.test(match[2]), flags: match[2].toLowerCase() };
 }
 
 export function roll(formula: string, mode: RollMode = "normal"): RollResult {
-  const { formula: plain, floor } = withoutFloor(formula);
+  const { formula: plain, floor, reroll, flags } = withoutFloor(formula);
   const clean = sanitizeFormula(plain);
-  const min = (value: number) => Math.max(value, floor);
-  const shown = (text: string) => floor ? text.replace(/^(1?d20|2d20k[hl]1)/, `$1min${floor}`) : text;
+  const min = (value: number) => Math.max(reroll && value === 1 ? randomInt(20) : value, floor);
+  const shown = (text: string) => flags ? text.replace(/^(1?d20|2d20k[hl]1)/, `$1${flags}`) : text;
   if (mode === "normal" || !supportsRollMode(clean)) {
     const result = rollSimple(clean);
     if (!/^1?d20(?!\d)/.test(clean)) return result;
