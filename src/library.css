@@ -20,6 +20,10 @@
 .action-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(7rem,1fr));gap:.5rem;align-items:end}
 .action-form-preview{margin:0;font-size:.8rem;color:hsl(var(--primary))}
 .action-form-buttons{display:flex;justify-content:flex-end;gap:.5rem}
+.wizard-summary{display:grid;gap:.35rem;margin:0;font-size:.8rem}
+.wizard-summary>div{display:grid;grid-template-columns:minmax(6rem,auto) 1fr;gap:.5rem}
+.wizard-summary dt{color:hsl(var(--muted-foreground))}
+.wizard-summary dd{margin:0;overflow-wrap:anywhere}
 .entry-meta{margin:0 0 .35rem;font-size:.75rem;color:hsl(var(--muted-foreground))}
 
 /* Riordino azioni: una riga per azione con frecce su/giù. */

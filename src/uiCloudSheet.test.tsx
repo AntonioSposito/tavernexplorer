@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
@@ -69,6 +69,26 @@ it("carica nel cloud le schede locali e vi salva il riposo lungo", async () => {
   expect(cloudSheet().rev).toBe(2);
 });
 
+it("la Libreria si ordina in ordine alfabetico e si cerca come il bestiario", async () => {
+  for (const name of ["Zeno", "ada", "Berto"]) {
+    const sheet = importRoll20({ character: { name }, normalized: { identity: { character_name: name } } });
+    await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  }
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Libreria");
+  const names = () => [...host.querySelectorAll(".library-entry strong")].map((item) => item.textContent);
+  await click("Ordine alfabetico");
+  expect(names()).toEqual(["ada", "Berto", "Zeno"]);
+  expect(localStorage.getItem(STORAGE_LIBRARY_SORT)).toBe("true");
+
+  await click("Cerca nel party");
+  await type('input[aria-label="Cerca nel catalogo"]', "ber");
+  expect([...host.querySelectorAll(".catalog-option strong")].map((item) => item.textContent)).toEqual(["Berto"]);
+  await act(async () => host.querySelector<HTMLButtonElement>(".catalog-option")!.click());
+  expect(host.querySelector(".hero h1")?.textContent).toBe("Berto");
+});
+
 it("il GM assegna la vista dalla Libreria e il giocatore vede solo quella scheda", async () => {
   for (const name of ["Ada", "Berto"]) {
     const sheet = importRoll20({ character: { name }, normalized: { identity: { character_name: name } } });
@@ -126,7 +146,25 @@ it("il GM crea un NPC dal bestiario e un giocatore con permesso ne vede lo statb
   expect(host.textContent).not.toContain("Aggiungi agli NPC");
 });
 
-it("il bestiario si cerca con il pulsante ⌕ e i tiri dei mostri vanno solo al GM a nome del mostro", async () => {
+it("un giocatore crea un personaggio da zero, lo modifica e il punteggio aggiorna i derivati", async () => {
+  viewer.name = "Marco"; viewer.role = "PLAYER";
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Libreria");
+  await click("Nuovo personaggio");
+  await type('input[aria-label="Nome del personaggio"]', "Lia");
+  await click("Scheda vuota");
+  await settle();
+  expect(cloudSheet()).toMatchObject({ kind: "pc", acl: { view: [], edit: ["Marco"] }, sheet: { name: "Lia", identity: { level: 1 } } });
+  expect(host.querySelector(".hero h1")?.textContent).toBe("Lia");
+  await type('input[aria-label="Punteggio Destrezza"]', "14");
+  await settle(1_700);
+  expect(cloudSheet().sheet.combat.initiative).toBe(2);
+  await click("Base");
+  expect(host.querySelector<HTMLElement>(".metric-explained[title^='Iniziativa']")?.title).toMatch(/^Iniziativa \+2\n/);
+});
+
+it("il bestiario si cerca con il pulsante ⌕e i tiri dei mostri vanno solo al GM a nome del mostro", async () => {
   const monster = (id: string, name: string, actions: unknown[]) => ({ schemaVersion: 1, id, name, source: "XMM", creatureType: "Umanoide", challengeRating: "1/2", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "CM", ac: 13, hp: { average: 15, formula: "2d8+6" }, speed: "30 ft.", abilities: { dex: 12 }, saves: {}, skills: {}, passivePerception: 10, traits: [], actions, reactions: [], legendaryActions: [], importWarnings: [] });
   localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([monster("wolf", "Lupo", []), monster("orc", "Orco", [{ id: "club", name: "Clava", damage: "1d6+2" }])]));
   await act(async () => root.render(<App/>));

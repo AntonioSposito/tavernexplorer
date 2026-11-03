@@ -1,6 +1,6 @@
 import { ABILITY_LABELS, ABILITY_SHORT, SKILL_ABILITIES, SKILL_LABELS } from "./constants";
 import { ClassOptions } from "./ClassOptions";
-import { effectiveProficiency, proficiencyByLevel } from "./effects";
+import { effectiveProficiency, proficiencyByLevel, setAbilityScore } from "./effects";
 import type { CharacterSheet, RollMode, SheetOptions } from "./types";
 import { Card, Input, Select } from "./ui";
 
@@ -26,7 +26,7 @@ export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; 
     </div></Card>
     <Card><h2>Caratteristiche</h2><div className="options-skills options-saves">{ABILITIES.filter((ability) => sheet.abilities[ability]).map((ability) => <div key={ability}>
       <span>{ABILITY_LABELS[ability]}</span>
-      <Input type="number" aria-label={`Punteggio ${ABILITY_LABELS[ability]}`} value={sheet.abilities[ability].score} onChange={(event) => onUpdate((next) => { const score = Number(event.target.value) || 0; next.abilities[ability].score = score; next.abilities[ability].mod = Math.floor((score - 10) / 2); return next; })}/>
+      <Input type="number" aria-label={`Punteggio ${ABILITY_LABELS[ability]}`} value={sheet.abilities[ability].score} onChange={(event) => onUpdate((next) => { setAbilityScore(next, ability, Number(event.target.value) || 0); return next; })}/>
       <Input type="number" aria-label={`Bonus aggiuntivo ${ABILITY_LABELS[ability]}`} value={options.bonuses?.[`ability:${ability}`] ?? 0} onChange={(event) => setOptions((next) => { next.bonuses = { ...next.bonuses, [`ability:${ability}`]: Math.trunc(Number(event.target.value)) || 0 }; })}/>
     </div>)}</div><p className="muted">Punteggio base e bonus aggiuntivo (si somma al punteggio).</p></Card>
     <Card><h2>Tiri salvezza</h2>

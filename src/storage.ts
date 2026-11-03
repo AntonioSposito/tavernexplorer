@@ -1,4 +1,4 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -59,6 +59,11 @@ export const storage = {
   equippedFirst: {
     get: () => read<boolean>(STORAGE_EQUIPPED_FIRST, false),
     set: (value: boolean) => { try { write(STORAGE_EQUIPPED_FIRST, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
+  },
+  // Libreria in ordine alfabetico: solo comodità di questo browser.
+  libraryAlphabetical: {
+    get: () => read<boolean>(STORAGE_LIBRARY_SORT, false),
+    set: (value: boolean) => { try { write(STORAGE_LIBRARY_SORT, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
   },
   closedSpellLevels: {
     get: () => read<string[]>(STORAGE_CLOSED_SPELL_LEVELS, []),

@@ -94,6 +94,20 @@ export function setManualArmorClass(sheet: CharacterSheet, value: number) {
   sheet.importedItemModifiers = [...(sheet.importedItemModifiers ?? []).filter((mod) => mod.target !== "ac"), ...equippedItems(sheet).flatMap((item) => itemModifierList(item)).filter((mod) => mod.target === "ac")];
 }
 
+// Punteggio base cambiato nella tab Modifica: TS, abilità, iniziativa, Percezione passiva e magia seguono la
+// differenza di modificatore, così i bonus già compresi nei valori importati restano.
+export function setAbilityScore(sheet: CharacterSheet, ability: string, score: number) {
+  const stat = sheet.abilities[ability];
+  const delta = Math.floor((score - 10) / 2) - stat.mod;
+  stat.score = score;
+  stat.mod += delta;
+  stat.save += delta;
+  for (const skill of Object.values(sheet.skills)) if (skill.ability === ability) skill.bonus += delta;
+  if (ability === "dexterity") sheet.combat.initiative += delta;
+  if ((sheet.skills.perception?.ability ?? "wisdom") === ability) sheet.combat.passivePerception += delta;
+  if (sheet.spellcasting.ability === ability) { sheet.spellcasting.saveDc += delta; sheet.spellcasting.attackBonus += delta; }
+}
+
 // Caratteristica da cui un valore deriva: se un modificatore ne cambia il punteggio, cambia anche il valore.
 function derivedAbility(sheet: CharacterSheet, target: string): string | undefined {
   if (target.startsWith("save:")) return target.slice(5);

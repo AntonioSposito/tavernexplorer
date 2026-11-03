@@ -1,4 +1,5 @@
 import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells, type CharacterOptions } from "./fivetoolsCharacter";
 import type { CampaignDocument, MonsterSheet } from "./types";
 
 // Il sito applica una challenge Cloudflare; il mirror del progetto espone gli
@@ -34,6 +35,21 @@ export async function loadAdventure(adventure: FiveToolsAdventure): Promise<Camp
   if (!/^[a-z0-9-]+$/i.test(adventure.id)) throw new Error("ID avventura 5e.tools non valido");
   const document = await request(`adventure/adventure-${adventure.id.toLowerCase()}.json`);
   return import5eToolsCampaign({ ...document, adventure: [{ id: adventure.id, name: adventure.name, source: adventure.source }] });
+}
+
+const CLASS_FILES = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"];
+let optionsCache: Promise<CharacterOptions> | null = null;
+// ~4 MB: classi, specie, background, talenti e incantesimi del PHB 2024 per la creazione guidata, scaricati una volta.
+export function loadCharacterOptions(): Promise<CharacterOptions> {
+  optionsCache ??= Promise.all([
+    Promise.all(CLASS_FILES.map((name) => request(`class/class-${name}.json`))),
+    request("races.json"), request("backgrounds.json"), request("feats.json"), request("spells/spells-xphb.json"), request("generated/gendata-spell-source-lookup.json"),
+  ]).then(([classes, races, backgrounds, feats, spells, lookup]) => ({
+    classes: classes.flatMap((file) => parseClass(file) ?? []),
+    backgrounds: parseBackgrounds(backgrounds), species: parseSpecies(races), feats: parseOriginFeats(feats), spells: parseSpells(spells, lookup),
+  }));
+  optionsCache.catch(() => { optionsCache = null; });
+  return optionsCache;
 }
 
 let itemsCache: Promise<FiveToolsItem[]> | null = null;
