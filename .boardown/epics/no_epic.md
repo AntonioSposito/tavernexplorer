@@ -120,7 +120,7 @@ Il commit bb2e5a0 ha Action verde ma Vercel ha risposto Deployment rate limited,
 id: TE-23
 type: feature
 priority: high
-status: todo
+status: done
 order: 1500
 ---
 
@@ -337,26 +337,28 @@ order: 2500
 ---
 id: TE-34
 type: feature
-priority: medium
+priority: critical
 status: todo
-order: 2600
+order: 50
 ---
 
-**Contesto.** Il livello si cambia a mano nell'editor; `normalizeAfterImport` segnala solo un bonus di competenza incoerente. Gli slot non hanno una progressione.
+**Contesto.** Il livello si cambia a mano nella tab Modifica (classi in `ClassOptions`). Esiste già: con il calcolo automatico dei livelli (`options.autoLevel`) `applyClassChanges` in `src/classSync.ts` aggiorna livello, dadi vita (anche per classe), slot (`src/classes.ts`: completo, mezzo, terzo, patto, multiclasse), TS e caratteristica da incantatore; il bonus di competenza segue il livello (`options.proficiency: "level"` + `effectiveSheet`). Manca un flusso guidato: PF, privilegi, sottoclasse, aumenti di caratteristica e incantesimi nuovi. La creazione guidata (`CharacterWizard`, `buildCharacter`, dati 5e.tools XPHB in `fivetoolsCharacter.ts`) copre solo il livello 1.
 
 **Da fare.**
-- Dialog "Sali di livello" da `MainSheet` (solo se la scheda è modificabile):
-  1. Classe che sale (precompilata da `identity.className`; campo libero per il multiclasse).
+- Pulsante "Sali di livello" sulla scheda (solo se modificabile) che apre un popup a passi:
+  1. Classe che sale: una di quelle della scheda o una nuova (multiclasse).
   2. PF: "Valore fisso" (media del dado + 1 + mod COS, default) oppure "Tira" (`1d{die}` + COS, minimo 1). Aggiorna `hp.max` e `hp.current` dello stesso valore.
-  3. Dadi vita: `max + 1` e `current + 1`. Con dadi diversi nel multiclasse oggi c'è un solo `die`: segnalarlo come limite e non gestirlo in questa task.
-  4. Bonus di competenza da `Ruleset.proficiencyBonus` e ricalcolo dei derivati (riusare `recomputeDerived` di TE-23).
-  5. Slot: tabelle per incantatore completo, mezzo incantatore e Magia del Patto (2024) in `src/spellProgression.ts`; scelta del tipo di incantatore nel dialog; multiclasse con la regola del livello combinato.
-- Anteprima delle differenze (prima → dopo) e conferma. Messaggio di sistema "X sale al livello N".
-- Nessuna scelta di talenti o privilegi: restano manuali tramite `traits`.
+  3. Privilegi del nuovo livello dai dati 5e.tools (`classFeature`), aggiunti ai Tratti.
+  4. Sottoclasse al livello in cui la classe la sceglie (3 nel PHB 2024), con i suoi privilegi.
+  5. Aumento dei punteggi (+2 / +1 +1, massimo 20) oppure talento, ai livelli previsti.
+  6. Trucchetti e incantesimi nuovi secondo `cantripProgression` / `preparedSpellsProgression`.
+- Ricalcolo dei bonus legati al livello lasciati dalla creazione guidata (shortcut in `buildCharacter.ts`: Tough +2 PF per livello, Alert = bonus di competenza, Dwarven Toughness +1 PF per livello).
+- Anteprima delle differenze (prima → dopo) e conferma. Messaggio in chat "X sale al livello N".
+- Le scelte secondarie dei privilegi (Stile di combattimento, Suppliche, ecc.) restano testo nei Tratti, come nella creazione guidata.
 
-**Accettazione.** Mago 4 → 5 con COS +2, valore fisso: +6 PF, competenza +3, slot 4/3/2; riposo e TavernPack coerenti.
+**Accettazione.** Mago 4 → 5 con COS +2, valore fisso: +6 PF, competenza +3, slot 4/3/2, trucchetto in più; Guerriero 3 sceglie la sottoclasse; con Tough i PF crescono di 2 per livello; riposo e TavernPack coerenti.
 
-**Test.** `spellProgression.test.ts` (completo, mezzo, patto, multiclasse) e la funzione pura `levelUp(sheet, options)`.
+**Test.** Funzione pura `levelUp(sheet, choices, options)` (PF, privilegi, sottoclasse, aumenti, incantesimi, Tough/Alert) e test UI del popup.
 
 ## Sintonia e munizioni
 
