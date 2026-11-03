@@ -29,6 +29,7 @@ vi.mock("./obr", () => ({
   onPartyCharactersChange: unsubscribe, onSharedNotesChange: unsubscribe, onSheetsChanged: unsubscribe, notifySheetsChanged: noop,
   getCharacterTokens: async () => [], highlightToken: async () => undefined, setTokenCharacter: async () => undefined, setTokenOwner: async () => undefined,
   setActiveCharacter: async () => undefined, showRollOnMap: async () => undefined, broadcastMessage: async () => undefined,
+  pickOwlbearImage: async () => "https://owlbear.example/token.png",
 }));
 
 const { default: App } = await import("./App");
@@ -67,6 +68,21 @@ it("carica nel cloud le schede locali e vi salva il riposo lungo", async () => {
   expect(cloudSheet().sheet.combat.hp.current).toBe(12);
   expect(cloudSheet().sheet.combat.hitDice.current).toBe(2);
   expect(cloudSheet().rev).toBe(2);
+});
+
+it("l'immagine token si sceglie dalle immagini Owlbear e si toglie", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica");
+  await click("Scegli immagine token");
+  await settle(1_700);
+  expect(cloudSheet().sheet.avatar).toBe("https://owlbear.example/token.png");
+  expect(host.querySelector<HTMLImageElement>(".hero img")?.src).toBe("https://owlbear.example/token.png");
+  await click("Rimuovi immagine");
+  await settle(1_700);
+  expect(cloudSheet().sheet.avatar).toBeUndefined();
 });
 
 it("la Libreria si ordina in ordine alfabetico e si cerca come il bestiario", async () => {

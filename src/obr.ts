@@ -101,6 +101,13 @@ function fallbackTokenFile(name: string): File {
   return new File([svg], `${name}.svg`, { type: "image/svg+xml" });
 }
 
+// Selettore immagini di Owlbear: URL dell'immagine scelta, null se si chiude senza scegliere.
+export async function pickOwlbearImage(search?: string): Promise<string | null> {
+  if (!OBR.isAvailable) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per scegliere un'immagine");
+  const [picked] = await OBR.assets.downloadImages(false, search, "CHARACTER");
+  return picked?.image.url ?? null;
+}
+
 export async function uploadMonsterTokens(monsters: Array<{ name: string; source: string; image?: string }>): Promise<number> {
   if (!OBR.isAvailable) return 0; let uploaded = 0;
   for (let offset = 0; offset < monsters.length; offset += 20) {
