@@ -1,5 +1,5 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION, STORAGE_SHARED_INVENTORY } from "./constants";
-import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, NoteOrganization, PlayerNote, SharedInventoryItem } from "./types";
+import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
+import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -39,14 +39,6 @@ export const storage = {
   sharedInventory: {
     get: () => read<SharedInventoryItem[]>(STORAGE_SHARED_INVENTORY, []),
     set: (value: SharedInventoryItem[]) => write(STORAGE_SHARED_INVENTORY, value),
-  },
-  notes: {
-    get: () => read<PlayerNote[]>(STORAGE_NOTES, []),
-    set: (value: PlayerNote[]) => write(STORAGE_NOTES, value),
-  },
-  noteOrganization: {
-    get: () => read<NoteOrganization>(STORAGE_NOTE_ORGANIZATION, { folders: [], placements: {} }),
-    set: (value: NoteOrganization) => write(STORAGE_NOTE_ORGANIZATION, value),
   },
   // Solo cache di lettura della libreria cloud, una per stanza: la fonte di verità resta il server.
   cloudCache: {

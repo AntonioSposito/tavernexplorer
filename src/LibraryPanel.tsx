@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createBlankSheet } from "./blankSheet";
 import { CatalogDialog } from "./CatalogDialog";
 import { CharacterWizard } from "./CharacterWizard";
-import { canEditCloudSheet, EVERYONE } from "./cloudSheets";
+import { aclCandidates, canEditCloudSheet, EVERYONE } from "./cloudSheets";
 import { getRuleset } from "./rulesets";
 import { storage } from "./storage";
 import type { CharacterSheet, CloudSheet } from "./types";
@@ -35,12 +35,10 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onO
   const [searching, setSearching] = useState(false);
   const [alphabetical, setAlphabetical] = useState(storage.libraryAlphabetical.get);
   const isGm = player.role === "GM";
-  const players = members.filter((member) => member.role !== "GM");
-  // Proposte nei selettori: giocatori connessi più i nomi già usati in qualunque scheda.
-  const candidates = [...new Map([EVERYONE, ...players.map((member) => member.name), ...entries.flatMap((entry) => [...entry.acl.view, ...entry.acl.edit])].map((name) => [key(name), name])).values()];
+  const candidates = aclCandidates(entries, members);
   const inSection = entries.filter((entry) => entry.kind === section);
   const shown = alphabetical ? [...inSection].sort((a, b) => a.sheet.name.localeCompare(b.sheet.name, "it", { sensitivity: "base" })) : inSection;
-  const subtitleOf = (entry: CloudSheet) => entry.kind === "pc" ? `${entry.sheet.identity.classDisplay} · ${getRuleset(entry.sheet.ruleset.id).label}` : `${entry.sheet.creatureType} · GS ${entry.sheet.challengeRating}`;
+  const subtitleOf = (entry: CloudSheet) => entry.kind === "pc" ? `${entry.sheet.identity.classDisplay} · ${getRuleset(entry.sheet.ruleset.id).label}` : entry.kind === "npc" ? `${entry.sheet.creatureType} · GS ${entry.sheet.challengeRating}` : "";
   const open = (entry: CloudSheet) => entry.kind === "pc" ? onSelect(entry.sheet.id) : onOpenNpc(entry.sheet.id);
 
   return <div className="stack">
@@ -75,7 +73,7 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onO
   </div>;
 }
 
-function AclPicker({ title, names, candidates, onChange }: { title: string; names: string[]; candidates: string[]; onChange: (names: string[]) => void }) {
+export function AclPicker({ title, names, candidates, onChange }: { title: string; names: string[]; candidates: string[]; onChange: (names: string[]) => void }) {
   const available = candidates.filter((name) => !names.some((item) => key(item) === key(name)));
   const add = (value: string) => {
     const name = value === "__other" ? window.prompt("Nome Owlbear del giocatore")?.trim() : value;

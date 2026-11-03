@@ -11,6 +11,10 @@ const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("it") === 
 const allows = (names: string[], viewer: Viewer) => names.some((name) => name === EVERYONE || sameName(name, viewer.name));
 export const canEditCloudSheet = (entry: CloudSheet, viewer: Viewer) => viewer.role === "GM" || allows(entry.acl.edit, viewer);
 export const canViewCloudSheet = (entry: CloudSheet, viewer: Viewer) => canEditCloudSheet(entry, viewer) || allows(entry.acl.view, viewer);
+// Proposte nei selettori dei permessi: giocatori connessi più i nomi già usati in qualunque voce della libreria.
+const nameKey = (name: string) => name.trim().toLocaleLowerCase("it");
+export const aclCandidates = (entries: CloudSheet[], members: Array<{ name: string; role: "GM" | "PLAYER" }>) =>
+  [...new Map([EVERYONE, ...members.filter((member) => member.role !== "GM").map((member) => member.name), ...entries.flatMap((entry) => [...entry.acl.view, ...entry.acl.edit])].map((name) => [nameKey(name), name])).values()];
 
 interface Options {
   room: string;
@@ -42,7 +46,8 @@ export function createCloudLibrary({ room, viewer, onChange, fetch: request = fe
 
   function emit() {
     const merged = [...server.values()].map((entry) => pending.get(entry.sheet.id) ?? entry);
-    const entries = merged.filter((entry) => !entry.deletedAt && canViewCloudSheet(entry, viewer));
+    // Le cartelle del Journal arrivano a tutti: quali mostrare lo decide il contenuto visibile (come Roll20).
+    const entries = merged.filter((entry) => !entry.deletedAt && (entry.kind === "folder" || canViewCloudSheet(entry, viewer)));
     if (!offline) storage.cloudCache.set(room, entries);
     onChange({ entries, offline, conflict });
   }

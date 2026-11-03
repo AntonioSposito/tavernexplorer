@@ -1,8 +1,7 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, SHARED_NOTES_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
-import type { ChatMessage, PermissionSettings, SharedInventoryItem, SharedNote, TurnEntry, TurnState } from "./types";
+import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import type { ChatMessage, PermissionSettings, SharedInventoryItem, TurnEntry, TurnState } from "./types";
 import { decryptGmMessage, encryptGmMessage, gmRecipients, isGmEnvelope } from "./privateMessages";
-import { canManageNote, canWriteNote, readSharedNotes } from "./sharedNotes";
 import { replaceTurnEntries } from "./turns";
 import { linkedCharacterId } from "./tokenTurns";
 import { writeRoomMetadata } from "./roomMetadata";
@@ -200,42 +199,6 @@ export async function setSharedInventory(items: SharedInventoryItem[]): Promise<
 export function onSharedInventoryChange(callback: (items: SharedInventoryItem[]) => void): () => void {
   if (!OBR.isAvailable) return () => undefined;
   return OBR.room.onMetadataChange((metadata) => callback(Array.isArray(metadata[INVENTORY_META_KEY]) ? metadata[INVENTORY_META_KEY] as unknown as SharedInventoryItem[] : []));
-}
-
-export async function getSharedNotes(): Promise<SharedNote[]> {
-  if (!OBR.isAvailable) return [];
-  return readSharedNotes((await OBR.room.getMetadata())[SHARED_NOTES_META_KEY]);
-}
-
-export function onSharedNotesChange(callback: (notes: SharedNote[]) => void): () => void {
-  if (!OBR.isAvailable) return () => undefined;
-  return OBR.room.onMetadataChange((metadata) => callback(readSharedNotes(metadata[SHARED_NOTES_META_KEY])));
-}
-
-export async function saveSharedNote(note: SharedNote): Promise<void> {
-  if (!OBR.isAvailable) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per condividere le note");
-  const player = await getPlayerInfo();
-  const existing = await getSharedNotes();
-  const previous = existing.find((item) => item.id === note.id);
-  if (previous && !canWriteNote(previous, player.id, player.role)) throw new Error("Non hai il permesso di modificare questa nota");
-  if (previous && previous.updatedAt !== note.updatedAt) throw new Error("La nota è stata aggiornata da un altro giocatore. Ricaricala prima di salvare.");
-  if (!previous && note.ownerId !== player.id) throw new Error("Puoi pubblicare solo le tue note");
-  if (previous && (previous.ownerId !== note.ownerId || previous.ownerName !== note.ownerName ||
-      previous.writePermission !== note.writePermission && !canManageNote(previous, player.id))) {
-    throw new Error("Solo l'autore può cambiare i permessi della nota");
-  }
-  const next = [...existing.filter((item) => item.id !== note.id), { ...note, updatedAt: Math.max(Date.now(), (previous?.updatedAt ?? 0) + 1) }];
-  await writeRoomMetadata({ [SHARED_NOTES_META_KEY]: next });
-}
-
-export async function deleteSharedNote(noteId: string): Promise<void> {
-  if (!OBR.isAvailable) return;
-  const player = await getPlayerInfo();
-  const existing = await getSharedNotes();
-  const note = existing.find((item) => item.id === noteId);
-  if (!note) return;
-  if (!canManageNote(note, player.id)) throw new Error("Solo l'autore può rimuovere la condivisione");
-  await writeRoomMetadata({ [SHARED_NOTES_META_KEY]: existing.filter((item) => item.id !== noteId) });
 }
 
 export async function getPermissions(): Promise<PermissionSettings> {

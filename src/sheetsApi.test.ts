@@ -54,3 +54,14 @@ it("accetta PG e NPC solo con il formato giusto", async () => {
   const { sheets } = await (await GET(new Request("http://test/api/sheets?room=r1"))).json();
   expect(sheets[0]).toMatchObject({ kind: "npc", rev: 1, sheet: { name: "Goblin" } });
 });
+
+it("accetta note e cartelle del Journal con riferimenti validi", async () => {
+  const note = { schemaVersion: 1, id: "n1", name: "Indizi", body: "La chiave è nel pozzo.", folderId: "f1" };
+  const folder = { schemaVersion: 1, id: "f1", name: "Avventura", parentId: "f0" };
+  expect((await put(0, entry({ kind: "note", sheet: note }))).status).toBe(200);
+  expect((await put(0, entry({ kind: "folder", sheet: folder }))).status).toBe(200);
+  expect((await put(0, entry({ kind: "folder", sheet: { schemaVersion: 1, id: "f2", name: "Radice" } }))).status).toBe(200);
+  expect((await put(0, entry({ kind: "note", sheet: { ...note, id: "n2", body: 3 } }))).status).toBe(400);
+  expect((await put(0, entry({ kind: "note", sheet: { ...note, id: "n3", folderId: "../x" } }))).status).toBe(400);
+  expect((await put(0, entry({ kind: "folder", sheet: { ...folder, id: "f3", parentId: 7 } }))).status).toBe(400);
+});

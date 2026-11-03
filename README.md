@@ -74,7 +74,7 @@ vercel dev
 - Bestiario, avventure e ultimi 200 messaggi: storage locale del browser.
 - Owlbear documenta **200 MB di spazio cloud nel piano gratuito** per i dati
   dell'account ([piani e cloud storage](https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage)).
-  È distinto dai metadata della stanza usati qui per sincronizzare note,
+  È distinto dai metadata della stanza usati qui per sincronizzare
   inventario e turni. L'[API room](https://docs.owlbear.rodeo/extensions/apis/room/#setmetadata)
   documenta per quei metadata un limite totale inferiore a **16 kB**.
 - I metadata condivisi della stanza sono controllati prima di ogni scrittura:
@@ -86,13 +86,12 @@ vercel dev
   annotare condizioni con durata in round. Le condizioni scadono all'inizio
   del turno del combattente dopo il numero di round indicato.
 - Inventario comune: metadata della stanza Owlbear, con copia locale di sicurezza.
-- Note: private per impostazione predefinita nel browser, oppure pubblicate nella
-  stanza per la lettura del party. Per ogni nota condivisa l'autore sceglie se
-  consentire la scrittura solo a sé, anche al GM, o a tutto il party. Può
-  riportare la nota in privato. Una copia riservata al GM si invia come messaggio
-  cifrato; non è una nota collaborativa persistente. Le cartelle organizzano
-  note private e condivise per ciascun browser: si possono creare, rinominare,
-  eliminare e assegnare alle note senza cambiare i permessi condivisi.
+- Note (Journal, come su Roll20): note e cartelle salvate nella libreria cloud
+  della stanza. Solo il GM crea note e cartelle e le organizza, anche
+  trascinandole; per ogni nota sceglie chi può vederla e chi modificarla. Una
+  nota nuova la vede solo il GM. I giocatori vedono solo le note concesse e le
+  cartelle che le contengono. Eliminando una cartella il suo contenuto sale di
+  un livello. Ogni nota si può mostrare in chat.
 - Libreria: due sezioni, **Party** (schede dei personaggi) e **NPC** (statblock
   aggiunti dal Bestiario con «Aggiungi agli NPC»). Solo il GM importa schede
   (export Roll20 o TavernPack) e crea NPC; reimportare lo stesso personaggio
@@ -147,9 +146,6 @@ vercel dev
   token `CHARACTER` con nome `beasts/<nome>`. Quando il mirror non espone
   l'immagine viene generato un token di riserva con le iniziali del mostro.
 - Nuovi messaggi e risultati: broadcast effimero Owlbear.
-- Note dei giocatori: ogni nota viene salvata localmente, inclusa nel TavernPack
-  e puo' essere inviata individualmente al party o al GM. L'invio crea una copia
-  nel registro messaggi; la nota originale resta modificabile solo nel browser.
 
 **Privacy:** bestiario e avventure restano nel browser che li ha importati; non
 sono sincronizzati con gli altri partecipanti. I messaggi “Solo io” restano
@@ -186,8 +182,8 @@ e ordine dei turni per i giocatori. Bestiario e Avventure sono visibili solo al 
 
 Da **Libreria → Esporta tutto** si scarica un file versionato conforme a
 `public/tavernpack.schema.json`: personaggi, mostri, avventure, inventario
-comune, note private e cartelle personali, messaggi e stato dei turni. Le note condivise restano nei
-metadata della stanza e non sono incluse nel file. Lo stesso pulsante d'importazione accetta
+comune, messaggi e stato dei turni. Le note del Journal restano nella libreria
+cloud e non sono incluse nel file. Lo stesso pulsante d'importazione accetta
 sia export Roll20 sia TavernPack.
 
 ## Tiri di dado
@@ -231,16 +227,15 @@ su `main`.
   ci sono schede modificabili.
 - Il permesso «Può modificare» sugli NPC non ha ancora effetto: manca un
   editor degli statblock.
-- Le note condivise sono leggibili da tutti i partecipanti della stanza. Per
-  dati riservati al GM usare l'invio cifrato della copia. I permessi di scrittura
-  sono controllati dall'interfaccia, secondo i limiti dei metadata Owlbear.
+- I permessi delle note del Journal, come quelli delle schede, sono applicati
+  dall'interfaccia: chi conosce la stanza può leggerle via API.
 - I permessi di modifica sono applicati dall'interfaccia. I metadata della stanza
   sono scrivibili dai client che usano l'estensione; l'[API room documentata](https://docs.owlbear.rodeo/extensions/apis/room/)
   non descrive ACL per singola chiave. Questi controlli proteggono dalle
   modifiche accidentali, non da un client ostile.
-- Note, inventario e turni restano nei metadata della stanza: l'API room
+- Inventario e turni restano nei metadata della stanza: l'API room
   documenta `getMetadata` e `setMetadata`, senza un'operazione di confronto e
-  scrittura atomica. Le schede usano invece la libreria cloud, che scrive solo
+  scrittura atomica. Schede e note usano invece la libreria cloud, che scrive solo
   se la revisione attesa coincide. ACL applicate dal server richiedono
   un'identità verificabile dei giocatori (TE-20).
 - L'[API viewport](https://docs.owlbear.rodeo/extensions/apis/viewport/) consente

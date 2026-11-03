@@ -6,7 +6,7 @@ import { import5eToolsCampaign, import5eToolsMonsters } from "./import5etools";
 import { mergeMonsters } from "./monsterImport";
 import { canViewMessage } from "./messageVisibility";
 import { publishGmMessageKey } from "./privateMessages";
-import { Notes } from "./Notes";
+import { Journal } from "./Journal";
 import { EffectsEditor } from "./EffectsEditor";
 import { DeathSaveControl, HitDiceControl, HitPointControl } from "./HitPointControl";
 import { AssignmentPanel } from "./AssignmentPanel";
@@ -39,9 +39,9 @@ import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavern
 import { Alert, Badge, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
 import {
   DEFAULT_PERMISSIONS, OBR, addSelectedTokenToTurns, broadcastMessage, getPermissions, getPlayerInfo, getTurnState,
-  getSharedInventory, deleteSharedNote, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, getSharedNotes, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onSharedNotesChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, pickOwlbearImage, openPanelForPlayers, resizeFloatingPanel, type PanelSize, saveSharedNote, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
+  getSharedInventory, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, pickOwlbearImage, openPanelForPlayers, resizeFloatingPanel, type PanelSize, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
-import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, NoteOrganization, PermissionSettings, PlayerNote, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SharedNote, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
+import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
 const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
 const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", campaigns: "Avventure", shared: "Inventario comune", library: "Libreria", settings: "Permessi" };
@@ -75,9 +75,6 @@ export default function App() {
   const pcStats = useMemo(() => Object.fromEntries(characters.map((sheet) => { const view = effectiveSheet(sheet); return [sheet.id, { current: view.combat.hp.current, max: view.combat.hp.max, temp: view.combat.hp.temp, ac: armorClass(sheet, view.abilities.dexterity?.mod ?? 0).total }]; })), [characters]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(storage.messages.get());
-  const [notes, setNotes] = useState<PlayerNote[]>(storage.notes.get());
-  const [noteOrganization, setNoteOrganization] = useState<NoteOrganization>(storage.noteOrganization.get());
-  const [sharedNotes, setSharedNotes] = useState<SharedNote[]>([]);
   const [monsters, setMonsters] = useState<MonsterSheet[]>(storage.monsters.get());
   const [campaigns, setCampaigns] = useState<CampaignDocument[]>(storage.campaigns.get());
   const [sharedInventory, setSharedInventoryState] = useState<SharedInventoryItem[]>(storage.sharedInventory.get());
@@ -144,7 +141,6 @@ export default function App() {
       getTurnState().then(setTurns);
       getSharedInventory().then((items) => { if (items.length) { setSharedInventoryState(items); storage.sharedInventory.set(items); } });
       getPermissions().then(setPermissionState);
-      getSharedNotes().then(setSharedNotes);
       getPartyMembers().then(setPartyMembers);
       const tokenId = new URLSearchParams(window.location.search).get("token");
       if (tokenId) void OBR.scene.items.getItems([tokenId]).then(async (items) => {
@@ -165,9 +161,8 @@ export default function App() {
       });
       const stopInventory = onSharedInventoryChange((items) => { setSharedInventoryState(items); storage.sharedInventory.set(items); });
       const stopPermissions = onPermissionsChange(setPermissionState);
-      const stopNotes = onSharedNotesChange(setSharedNotes);
       const stopMembers = OBR.party.onChange((members) => setPartyMembers(members.map((member) => ({ id: member.id, name: member.name, role: member.role }))));
-      cleanup = () => { stopTurns(); stopMessages(); stopInventory(); stopPermissions(); stopNotes(); stopMembers(); stopLibrary(); };
+      cleanup = () => { stopTurns(); stopMessages(); stopInventory(); stopPermissions(); stopMembers(); stopLibrary(); };
     });
     return () => { disposed = true; cleanup(); };
   }, [floatingView]);
@@ -181,7 +176,7 @@ export default function App() {
   // Solo la finestra principale decide il personaggio attivo del giocatore.
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
   useEffect(() => { charactersRef.current = characters; }, [characters]);
-  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/messages-seen/")) setMessagesSeenAt(storage.messagesSeen.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); if (event.key?.includes("/notes/")) setNotes(storage.notes.get()); if (event.key?.includes("/note-organization/")) setNoteOrganization(storage.noteOrganization.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
+  useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/messages-seen/")) setMessagesSeenAt(storage.messagesSeen.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
     message.authorId = player.id;
@@ -226,8 +221,6 @@ export default function App() {
         if (skipped) setSyncNotice(`${skipped} schede del TavernPack non importate: già presenti nella libreria o riservate al GM.`);
         setMonsters(pack.data.monsters); storage.monsters.set(pack.data.monsters);
         setCampaigns(pack.data.campaigns); storage.campaigns.set(pack.data.campaigns);
-        setNotes(pack.data.notes ?? []); storage.notes.set(pack.data.notes ?? []);
-        setNoteOrganization(pack.data.noteOrganization ?? { folders: [], placements: {} }); storage.noteOrganization.set(pack.data.noteOrganization ?? { folders: [], placements: {} });
         await saveSharedInventory(pack.data.sharedInventory);
         if (pack.data.session) { saveMessages(pack.data.session.messages); await changeTurns(pack.data.session.turnState); }
         setActiveId(pack.data.characters[0]?.id ?? null); setTab("library"); return;
@@ -308,7 +301,7 @@ export default function App() {
   }
 
   function exportPack() {
-    const pack = createTavernPack({ characters, monsters, campaigns, sharedInventory, notes, noteOrganization, session: { messages, turnState: turns } });
+    const pack = createTavernPack({ characters, monsters, campaigns, sharedInventory, session: { messages, turnState: turns } });
     const blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `tavernexplorer-${new Date().toISOString().slice(0, 10)}.tavernpack.json`; link.click(); URL.revokeObjectURL(link.href);
   }
@@ -368,7 +361,7 @@ export default function App() {
     <div className="app-body">
     {!floatingView && <nav className="app-tabs">
       {([
-        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", notes.length + sharedNotes.length || null], ["shared", null], ["library", null],
+        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
         // Tab solo GM in fondo, dopo un separatore.
         ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
       ] as const).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
@@ -388,7 +381,7 @@ export default function App() {
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
       {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
-      {tab === "notes" && <Notes notes={notes} sharedNotes={sharedNotes} organization={noteOrganization} player={player} onOrganizationChange={(next) => { setNoteOrganization(next); storage.noteOrganization.set(next); }} onChange={(next) => { setNotes(next); storage.notes.set(next); }} onPublish={async (note) => runAction(async () => { const shared: SharedNote = { ...note, ownerId: player.id, ownerName: player.name, writePermission: "owner" }; await saveSharedNote(shared); setSharedNotes(await getSharedNotes()); setNotes((current) => { const next = current.filter((item) => item.id !== note.id); storage.notes.set(next); return next; }); })} onSaveShared={async (note) => runAction(async () => { await saveSharedNote(note); setSharedNotes(await getSharedNotes()); })} onDeleteShared={async (id) => runAction(async () => { if (!window.confirm("Rimuovere questa nota dalla stanza?")) return; await deleteSharedNote(id); setSharedNotes(await getSharedNotes()); })} onMakePrivate={async (note) => runAction(async () => { if (!window.confirm("Rendere privata questa nota? Gli altri non potranno più leggerla.")) return; const local = { id: note.id, title: note.title, body: note.body, updatedAt: Date.now() }; setNotes((current) => { const next = [...current.filter((item) => item.id !== local.id), local]; storage.notes.set(next); return next; }); await deleteSharedNote(note.id); setSharedNotes(await getSharedNotes()); })} onSendToGm={(note) => { void runAction(async () => { if (note.body.length > 6000) throw new Error("Nota troppo lunga per un messaggio: massimo 6000 caratteri"); await publish(makeMessage({ kind: "share", author: player.name, title: note.title || "Nota", body: note.body, visibility: "gm" })); if (!floatingView) setTab("messages"); }); }}/>}
+      {tab === "notes" && <Journal entries={library.entries} members={partyMembers} player={player} onAdd={(entry) => runAction(async () => { if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare il Journal"); await libraryRef.current.add(entry); })} onUpdate={(id, update) => { try { libraryRef.current?.update(id, update); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); } }} onRemove={(id) => runAction(async () => { await libraryRef.current?.remove(id); })} onShare={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000) || "Nessun testo.", visibility }))); }}/>}
       {tab === "library" && openNpc && <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => setOpenNpcId(null)}>← Libreria</Button></div><MonsterStatblock monster={openNpc} onRoll={performRoll} onShare={shareEntry}/></div>}
       {tab === "library" && !openNpc && <LibraryPanel entries={library.entries} activeId={activeId} members={partyMembers} player={player} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onOpenNpc={setOpenNpcId} onImport={() => fileRef.current?.click()} onCreate={(sheet) => { void createCharacter(sheet); }} onExport={exportCharacter} onExportPack={exportPack} onAclChange={(id, acl) => { try { libraryRef.current?.update(id, (entry) => ({ ...entry, acl })); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Permessi non salvati"); } }} onDelete={(id) => { void runAction(async () => { await libraryRef.current?.remove(id); }); }}/>}
       {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={player.role === "GM" || permissions.playersManageTurns} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { setMonsters(next); storage.monsters.set(next); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}

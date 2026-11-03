@@ -5,7 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import App from "./App";
-import { STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_NOTES, STORAGE_NOTE_ORGANIZATION } from "./constants";
+import { STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS } from "./constants";
 import { DEFAULT_RULESET } from "./rulesets";
 import type { MonsterSheet } from "./types";
 
@@ -40,19 +40,8 @@ const click = async (label: string) => {
   await act(async () => button!.click());
 };
 
-it("permette di creare una nota e importare un solo mostro dal picker", async () => {
+it("importa un solo mostro dal picker", async () => {
   await act(async () => root.render(<App/>));
-  await click("Note");
-  const folderInput = host.querySelector<HTMLInputElement>('input[aria-label="Nome nuova cartella"]')!;
-  await act(async () => { const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set; setter?.call(folderInput, "Indizi"); folderInput.dispatchEvent(new Event("input", { bubbles: true })); });
-  await click("Crea");
-  expect(JSON.parse(localStorage.getItem(STORAGE_NOTE_ORGANIZATION) || "{}").folders).toHaveLength(1);
-  await click("Nuova nota");
-  expect(host.querySelector('input[aria-label="Titolo nota"]')).toBeTruthy();
-  expect(JSON.parse(localStorage.getItem(STORAGE_NOTES) || "[]")).toHaveLength(1);
-  const savedNote = JSON.parse(localStorage.getItem(STORAGE_NOTES) || "[]")[0];
-  const savedOrganization = JSON.parse(localStorage.getItem(STORAGE_NOTE_ORGANIZATION) || "{}");
-  expect(savedOrganization.placements[savedNote.id]).toBe(savedOrganization.folders[0].id);
   await click("Bestiario");
   await click("Scegli mostri");
   expect(host.textContent).toContain("2 mostri disponibili");

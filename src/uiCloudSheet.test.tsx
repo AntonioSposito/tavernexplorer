@@ -24,9 +24,9 @@ vi.mock("./obr", () => ({
   getPlayerInfo: async () => ({ id: viewer.name, ...viewer }),
   getTurnState: async () => ({ round: 1, activeIndex: 0, entries: [] }),
   getSharedInventory: async () => [], getPermissions: async () => ({ playersEditInventory: true, playersImportContent: false, playersManageTurns: false }),
-  getPartyCharacters: async () => [], getSharedNotes: async () => [], getPartyMembers: async () => [{ id: "marco", name: "Marco", role: "PLAYER" }], getTokenImages: async () => ({}),
+  getPartyCharacters: async () => [], getPartyMembers: async () => [{ id: "marco", name: "Marco", role: "PLAYER" }], getTokenImages: async () => ({}),
   onTurnStateChange: unsubscribe, onBroadcastMessage: unsubscribe, onSharedInventoryChange: unsubscribe, onPermissionsChange: unsubscribe,
-  onPartyCharactersChange: unsubscribe, onSharedNotesChange: unsubscribe, onSheetsChanged: unsubscribe, notifySheetsChanged: noop,
+  onPartyCharactersChange: unsubscribe, onSheetsChanged: unsubscribe, notifySheetsChanged: noop,
   getCharacterTokens: async () => [], highlightToken: async () => undefined, setTokenCharacter: async () => undefined, setTokenOwner: async () => undefined,
   setActiveCharacter: async () => undefined, showRollOnMap: async () => undefined, broadcastMessage: async () => undefined,
   pickOwlbearImage: async () => "https://owlbear.example/token.png",
@@ -930,3 +930,68 @@ it("in Modifica ogni abilità ha competenza, Maestria e bonus in una sola riga",
   expect(cloudSheet().sheet.abilities.wisdom).toMatchObject({ score: 14, mod: 2 });
   expect(cloudSheet().sheet.options.bonuses).toMatchObject({ "ability:wisdom": 2 });
 }, 15_000);
+
+const choose = async (label: string, value: string) => {
+  const select = [...host.querySelectorAll("select")].find((item) => item.getAttribute("aria-label") === label);
+  expect(select, label).toBeTruthy();
+  await act(async () => { select!.value = value; select!.dispatchEvent(new Event("change", { bubbles: true })); });
+};
+const cloudEntries = () => [...(store.get("te:room:r1:sheets")?.values() ?? [])].map((value) => JSON.parse(value));
+
+it("Journal: il GM crea cartelle e note con i permessi, il giocatore vede solo ciò che gli è concesso", async () => {
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Note");
+  await click("Nuova cartella");
+  await type('input[aria-label="Nome della cartella"]', "Avventura");
+  await click("Salva");
+  await settle();
+  const folder = cloudEntries().find((entry) => entry.kind === "folder");
+  expect(folder).toMatchObject({ sheet: { name: "Avventura" }, acl: { view: [], edit: [] } });
+
+  await click("Nuova nota");
+  await type('input[aria-label="Titolo della nota"]', "Indizio");
+  await act(async () => { const area = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Testo della nota"]')!; Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(area, "La chiave è nel pozzo."); area.dispatchEvent(new Event("input", { bubbles: true })); });
+  await choose("Cartella", folder.sheet.id);
+  await choose("Può vedere: aggiungi giocatore", "Marco");
+  await click("Salva");
+  await settle();
+  await click("Nuova nota");
+  await type('input[aria-label="Titolo della nota"]', "Piano segreto");
+  await click("Salva");
+  await settle();
+  expect(cloudEntries().filter((entry) => entry.kind === "note").map((entry) => [entry.sheet.name, entry.sheet.folderId ?? null, entry.acl.view])).toEqual([["Indizio", folder.sheet.id, ["Marco"]], ["Piano segreto", null, []]]);
+
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = "Marco"; viewer.role = "PLAYER";
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Note");
+  expect(host.querySelector(".journal-folder strong")?.textContent).toBe("Avventura");
+  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Indizio"]);
+  expect(host.textContent).not.toContain("Nuova nota");
+  expect(host.querySelector('button[aria-label="Modifica Indizio"]')).toBeNull();
+  await click("Indizio");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("La chiave è nel pozzo.");
+});
+
+it("Journal: eliminando una cartella il suo contenuto sale di un livello", async () => {
+  const put = (entry: unknown) => apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry }) });
+  const acl = { view: [], edit: [] };
+  await put({ kind: "folder", sheet: { schemaVersion: 1, id: "outer", name: "Fuori" }, acl, updatedBy: "GM" });
+  await put({ kind: "folder", sheet: { schemaVersion: 1, id: "inner", name: "Dentro", parentId: "outer" }, acl, updatedBy: "GM" });
+  await put({ kind: "note", sheet: { schemaVersion: 1, id: "n1", name: "Nota", body: "", folderId: "inner" }, acl, updatedBy: "GM" });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Note");
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  await click("Modifica Dentro");
+  await click("Elimina");
+  await settle(1_700);
+  const byId = Object.fromEntries(cloudEntries().map((entry) => [entry.sheet.id, entry]));
+  expect(byId.inner.deletedAt).toEqual(expect.any(Number));
+  expect(byId.n1.sheet.folderId).toBe("outer");
+  expect([...host.querySelectorAll(".journal-folder strong")].map((item) => item.textContent)).toEqual(["Fuori"]);
+  vi.restoreAllMocks();
+});

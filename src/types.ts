@@ -352,16 +352,20 @@ export interface CampaignChapter {
   images: Array<{ title: string; url: string; kind: "map" | "mapPlayer" | "image" }>;
 }
 
+// Journal come su Roll20: note in cartelle, salvate nel cloud della stanza. Solo il GM crea e organizza.
+export interface JournalNote { schemaVersion: 1; id: string; name: string; body: string; folderId?: string }
+export interface JournalFolder { schemaVersion: 1; id: string; name: string; parentId?: string }
+
 // Scheda condivisa nella room: visibile a tutti, scrivibile da owner, GM e delegati.
 // Copia di una scheda salvata nel cloud per una stanza.
-// Libreria cloud: "pc" = personaggi del party, "npc" = statblock dal bestiario.
+// Libreria cloud: "pc" = personaggi del party, "npc" = statblock dal bestiario, "note"/"folder" = Journal.
 export type CloudSheet = {
   rev: number;
   updatedAt: number;
   updatedBy: string;
   deletedAt?: number;
   acl: { view: string[]; edit: string[] };
-} & ({ kind: "pc"; sheet: CharacterSheet } | { kind: "npc"; sheet: MonsterSheet });
+} & ({ kind: "pc"; sheet: CharacterSheet } | { kind: "npc"; sheet: MonsterSheet } | { kind: "note"; sheet: JournalNote } | { kind: "folder"; sheet: JournalFolder });
 
 export interface CampaignDocument {
   schemaVersion: 1;
@@ -382,25 +386,6 @@ export interface SharedInventoryItem {
   updatedAt: number;
 }
 
-export interface PlayerNote {
-  id: string;
-  title: string;
-  body: string;
-  updatedAt: number;
-}
-
-export interface NoteOrganization {
-  folders: Array<{ id: string; name: string }>;
-  placements: Record<string, string>;
-}
-
-export type NoteWritePermission = "owner" | "owner-gm" | "party";
-export interface SharedNote extends PlayerNote {
-  ownerId: string;
-  ownerName: string;
-  writePermission: NoteWritePermission;
-}
-
 export interface TavernPack {
   $schema: "https://tavernexplorer.vercel.app/tavernpack.schema.json";
   format: "tavernpack";
@@ -412,8 +397,6 @@ export interface TavernPack {
     monsters: MonsterSheet[];
     campaigns: CampaignDocument[];
     sharedInventory: SharedInventoryItem[];
-    notes?: PlayerNote[];
-    noteOrganization?: NoteOrganization;
     session?: { messages: ChatMessage[]; turnState: TurnState };
   };
 }

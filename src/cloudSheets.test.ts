@@ -122,3 +122,17 @@ it("avvisa gli altri dopo ogni salvataggio e rilegge solo quando arriva un avvis
   await vi.advanceTimersByTimeAsync(0);
   expect(calls).toEqual([]);
 });
+
+it("le cartelle del Journal arrivano a tutti, le note solo a chi le può vedere", async () => {
+  const gm = open("GM", "GM");
+  gm.library.start();
+  await vi.advanceTimersByTimeAsync(0);
+  await gm.library.add({ kind: "folder", sheet: { schemaVersion: 1, id: "f1", name: "Segreti" }, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: "GM" });
+  await gm.library.add({ kind: "note", sheet: { schemaVersion: 1, id: "n1", name: "Piano", body: "…", folderId: "f1" }, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: "GM" });
+  await gm.library.add({ kind: "note", sheet: { schemaVersion: 1, id: "n2", name: "Mappa", body: "…" }, acl: { view: ["Marco"], edit: [] }, rev: 0, updatedAt: 0, updatedBy: "GM" });
+  const marco = open("Marco", "PLAYER");
+  marco.library.start();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(marco.state.entries.map((entry) => entry.sheet.id).sort()).toEqual(["f1", "n2"]);
+  expect(() => marco.library.update("f1", (entry) => entry)).toThrow("permesso");
+});

@@ -13,7 +13,6 @@ import "./assignment.css";
 import "./hitPoints.css";
 import "./floating.css";
 import "./refresh.css";
-import "./notes.css";
 import "./effects.css";
 import "./resources.css";
 import "./turns.css";

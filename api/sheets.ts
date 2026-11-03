@@ -1,12 +1,13 @@
 import { Redis } from "@upstash/redis";
-import type { CharacterSheet, CloudSheet, MonsterSheet } from "../src/types";
+import type { CharacterSheet, CloudSheet, JournalFolder, JournalNote, MonsterSheet } from "../src/types";
 
 // Le schede di una stanza stanno in un hash: campo = id scheda, valore = CloudSheet.
 // L'ID della stanza Owlbear fa da chiave condivisa: chi non lo conosce non legge nulla.
 // I permessi (acl) li applica solo il client: chi conosce la stanza può leggere e scrivere tutto.
 const redis = Redis.fromEnv();
 const ID = /^[A-Za-z0-9_-]{1,100}$/;
-const MAX_SHEETS = 200;
+// Schede, NPC, note e cartelle del Journal insieme.
+const MAX_SHEETS = 500;
 const MAX_SHEET_BYTES = 200_000;
 const MAX_NAMES = 50;
 
@@ -28,13 +29,17 @@ const validNames = (value: unknown): value is string[] => Array.isArray(value) &
 
 type Entry = Pick<CloudSheet, "kind" | "sheet" | "acl" | "updatedBy">;
 
-// Controllo strutturale minimo: PG riconoscibili da identity, NPC da challengeRating.
+const optionalId = (value: unknown) => value === undefined || typeof value === "string" && ID.test(value);
+
+// Controllo strutturale minimo: PG riconoscibili da identity, NPC da challengeRating, note da body, cartelle dal genitore.
 function validEntry(value: unknown): value is Entry {
   const entry = value as CloudSheet | null;
   if (!entry || typeof entry !== "object" || !validName(entry.updatedBy)) return false;
   if (!entry.acl || !validNames(entry.acl.view) || !validNames(entry.acl.edit)) return false;
-  const sheet = entry.sheet as Partial<CharacterSheet & MonsterSheet> | null;
+  const sheet = entry.sheet as Partial<CharacterSheet & MonsterSheet & JournalNote & JournalFolder> | null;
   if (!sheet || sheet.schemaVersion !== 1 || typeof sheet.id !== "string" || !ID.test(sheet.id) || typeof sheet.name !== "string") return false;
+  if (entry.kind === "note") return typeof sheet.body === "string" && optionalId(sheet.folderId);
+  if (entry.kind === "folder") return optionalId(sheet.parentId);
   return entry.kind === "pc" ? !!sheet.identity && typeof sheet.identity === "object"
     : entry.kind === "npc" && typeof sheet.challengeRating === "string";
 }
