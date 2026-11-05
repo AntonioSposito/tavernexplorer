@@ -78,6 +78,57 @@ it("dopo password e nome mostra solo le schede del giocatore, senza tab Owlbear,
   expect(JSON.parse(localStorage.getItem(STORAGE_PHONE_SESSION)!)).toEqual({ room: "r1", name: "Marco" });
 });
 
+const chatMessage = (id: string, visibility: string, body: string) => apiFetch("/api/messages", { method: "POST", body: JSON.stringify({ room: "r1", message: { id, kind: "text", author: "Ada", authorId: "ada", body, visibility, createdAt: 1 } }) });
+const openChat = async () => {
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Messaggi"]')!.click());
+  return [...host.querySelectorAll(".message")].map((message) => message.textContent);
+};
+
+it("con la password GM entra come GM senza scegliere il nome e legge i messaggi Solo GM dal cloud", async () => {
+  vi.stubEnv("PHONE_GM_PASSWORD", "segreta");
+  await chatMessage("pub", "everyone", "per tutti");
+  await chatMessage("gm", "gm", "solo per te");
+  await act(async () => root.render(<PhoneApp/>));
+  await type('input[type="password"]', "segreta");
+  await submit();
+  const chat = await openChat();
+  expect(chat).toEqual([expect.stringContaining("per tutti"), expect.stringContaining("solo per te")]);
+  expect(host.querySelector('[aria-label="Bestiario"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Permessi"]')).toBeNull();
+  expect(JSON.parse(localStorage.getItem(STORAGE_PHONE_SESSION)!)).toMatchObject({ room: "r1", name: "GM", gmToken: expect.stringMatching(/^[0-9a-f]{64}$/) });
+});
+
+it("un giocatore che si finge GM nella sessione locale non riceve i messaggi Solo GM", async () => {
+  vi.stubEnv("PHONE_GM_PASSWORD", "segreta");
+  await chatMessage("pub", "everyone", "per tutti");
+  await chatMessage("gm", "gm", "solo per te");
+  localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "GM", gmToken: "0".repeat(64) }));
+  await act(async () => root.render(<PhoneApp/>));
+  expect(await openChat()).toEqual([expect.stringContaining("per tutti")]);
+});
+
+it("il telefono riceve la chat e i suoi messaggi finiscono nel cloud, tranne Solo io", async () => {
+  localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "Marco" }));
+  await chatMessage("pub", "everyone", "dal tavolo");
+  await act(async () => root.render(<PhoneApp/>));
+  expect(await openChat()).toEqual([expect.stringContaining("dal tavolo")]);
+  const send = async (body: string, visibility: string) => {
+    await type('select[aria-label="Destinatari"]', visibility);
+    const box = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Nuovo messaggio"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(box, body);
+      box.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Invia")!.click());
+  };
+  await send("ciao a tutti", "everyone");
+  await send("appunto mio", "self");
+  const { messages } = await (await apiFetch("/api/messages?room=r1")).json() as { messages: Array<{ body: string }> };
+  expect(messages.map((message) => message.body)).toEqual(["dal tavolo", "ciao a tutti"]);
+  expect(host.querySelector(".ui-alert-danger")).toBeNull();
+});
+
 it("Cambia giocatore riporta al login", async () => {
   localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "Marco" }));
   await act(async () => root.render(<PhoneApp/>));

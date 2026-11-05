@@ -71,7 +71,8 @@ vercel dev
   una cache di lettura: se il server non risponde le schede restano visibili in
   sola lettura. All'apertura le schede salvate localmente dalle versioni
   precedenti vengono caricate nel cloud una volta sola e poi rimosse dal browser.
-- Bestiario, avventure e ultimi 200 messaggi: storage locale del browser.
+- Bestiario e avventure: storage locale del browser. Ultimi 200 messaggi: storage
+  locale e cloud della stanza (i messaggi “Solo io” restano locali).
 - Owlbear documenta **200 MB di spazio cloud nel piano gratuito** per i dati
   dell'account ([piani e cloud storage](https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage)).
   È distinto dai metadata della stanza usati qui per sincronizzare
@@ -145,12 +146,15 @@ vercel dev
   uno o piu' mostri. Solo quelli selezionati vengono salvati e caricati come
   token `CHARACTER` con nome `beasts/<nome>`. Quando il mirror non espone
   l'immagine viene generato un token di riserva con le iniziali del mostro.
-- Nuovi messaggi e risultati: broadcast effimero Owlbear.
+- Nuovi messaggi e risultati: broadcast effimero Owlbear e `/api/messages`
+  (Redis), riletto ogni 15 secondi da telefono e Owlbear.
 
 **Privacy:** bestiario e avventure restano nel browser che li ha importati; non
 sono sincronizzati con gli altri partecipanti. I messaggi “Solo io” restano
-locali. I nuovi messaggi “Solo GM” sono cifrati nel browser prima del broadcast
-Owlbear. Il GM deve aver aperto l'estensione per pubblicare la sua chiave
+locali. I messaggi “Tutti” nel cloud sono leggibili da chi conosce l'ID stanza,
+come le schede. I messaggi “Solo GM” stanno su Redis **in chiaro** e il server li
+restituisce solo con il token ottenuto da `PHONE_GM_PASSWORD`. Sono cifrati solo
+nel broadcast Owlbear. Il GM deve aver aperto l'estensione per pubblicare la sua chiave
 pubblica. La chiave privata resta nel browser del GM; se quel browser viene
 azzerato, i nuovi messaggi useranno una nuova chiave. Le vecchie copie locali
 dei messaggi inviati con versioni precedenti non vengono cifrate retroattivamente.

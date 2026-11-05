@@ -33,6 +33,8 @@ import { initiativeRoll } from "./initiative";
 import { setTurnInitiative, stepTurn } from "./turns";
 import { listAdventures, listBestiarySources, loadAdventure, loadBestiarySource, loadSpells, type FiveToolsAdventure, type FiveToolsSource } from "./fivetoolsApi";
 import type { SpellOption } from "./fivetoolsCharacter";
+import { fetchCloudMessages, mergeMessages, postCloudMessage } from "./cloudMessages";
+import { GmChatLink } from "./GmChatLink";
 import { DEFAULT_RULESET, getRuleset } from "./rulesets";
 import { canEditCloudSheet, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
 import { storage, type PhoneSession } from "./storage";
@@ -47,6 +49,7 @@ import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, Ca
 const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
 // Senza gli avvisi broadcast di Owlbear il telefono rilegge le schede più spesso.
 const PHONE_POLL_MS = 15_000;
+const CHAT_POLL_MS = 15_000;
 const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", campaigns: "Avventure", shared: "Inventario comune", library: "Libreria", settings: "Permessi" };
 type SheetTab = "main" | "actions" | "spells" | "inventory" | "traits" | "bio" | "options";
 const SHEET_TAB_LABELS: Record<SheetTab, string> = { main: "Base", actions: "Azioni", spells: "Magia", inventory: "Zaino", traits: "Tratti", bio: "Bio", options: "Modifica" };
@@ -78,6 +81,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   const pcStats = useMemo(() => Object.fromEntries(characters.map((sheet) => { const view = effectiveSheet(sheet); return [sheet.id, { current: view.combat.hp.current, max: view.combat.hp.max, temp: view.combat.hp.temp, ac: armorClass(sheet, view.abilities.dexterity?.mod ?? 0).total }]; })), [characters]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(storage.messages.get());
+  const [gmToken, setGmToken] = useState(() => phone?.gmToken ?? storage.gmToken.get());
   const [monsters, setMonsters] = useState<MonsterSheet[]>(storage.monsters.get());
   const [campaigns, setCampaigns] = useState<CampaignDocument[]>(storage.campaigns.get());
   const [sharedInventory, setSharedInventoryState] = useState<SharedInventoryItem[]>(storage.sharedInventory.get());
@@ -127,7 +131,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
 
   useEffect(() => {
     if (phone) {
-      const info = { id: `phone:${phone.name}`, name: phone.name, role: "PLAYER" as const };
+      // Il ruolo qui decide solo l'interfaccia: i "Solo GM" li protegge il token, controllato dal server.
+      const info = { id: `phone:${phone.name}`, name: phone.name, role: phone.gmToken ? "GM" as const : "PLAYER" as const };
       setPlayer(info);
       const cloud = createCloudLibrary({ room: phone.room, viewer: info, onChange: setLibrary, pollMs: PHONE_POLL_MS });
       libraryRef.current = cloud;
@@ -178,6 +183,22 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     return () => { disposed = true; cleanup(); };
   }, [floatingView, phone]);
 
+  // Owlbear non raggiunge il telefono: la chat si rilegge dal cloud (solo la finestra principale; i pannelli la seguono da storage).
+  const chatRoom = () => phone?.room ?? (OBR.isReady ? OBR.room.id : null);
+  useEffect(() => {
+    const room = chatRoom();
+    if (!room || floatingView) return;
+    const refresh = () => { if (!document.hidden) void fetchCloudMessages(room, gmToken).then((incoming) => setMessages((current) => {
+      const next = mergeMessages(current, incoming.filter((message) => canViewMessage(message, player.id, player.role)));
+      if (next !== current) storage.messages.set(next);
+      return next;
+    })).catch(() => undefined); };
+    refresh();
+    const timer = setInterval(refresh, CHAT_POLL_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chatRoom dipende da phone e da OBR pronto, che arriva con player
+  }, [phone, floatingView, gmToken, player.id, player.role]);
+
   // La scheda attiva deve restare tra quelle visibili.
   useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
   // Bestiario, avventure e permessi sono riservati al GM: chi non lo è torna alla scheda.
@@ -194,6 +215,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     message.playerName = player.name;
     await broadcastMessage(message);
     setMessages((current) => { const next = [...current.filter((item) => item.id !== message.id), message].slice(-200); storage.messages.set(next); return next; });
+    const room = chatRoom();
+    if (room) await postCloudMessage(room, message).catch(() => setSyncNotice("Messaggio non salvato nel cloud: chi è sull'altra app non lo vede"));
   }
 
   // Con `attack` il messaggio include anche il danno: critico se il d20 naturale è nella gamma, nessun danno con un 1 naturale.
@@ -374,7 +397,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {([
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
         // Tab solo GM in fondo, dopo un separatore.
-        ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
+        ...(player.role === "GM" && !phone ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
       ] as const).filter(([id]) => !phone || (id !== "turns" && id !== "shared")).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
         <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
         {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
@@ -392,7 +415,6 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {!OBR.isAvailable && !phone && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
       {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
-      {tab === "messages" && phone && <Alert>Da telefono tiri e messaggi restano su questo dispositivo: non arrivano in Owlbear.</Alert>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
       {tab === "notes" && <Journal entries={library.entries} members={partyMembers} player={player} onAdd={(entry) => runAction(async () => { if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare il Journal"); await libraryRef.current.add(entry); })} onUpdate={(id, update) => { try { libraryRef.current?.update(id, update); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); } }} onRemove={(id) => runAction(async () => { await libraryRef.current?.remove(id); })} onShare={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000) || "Nessun testo.", visibility }))); }}/>}
       {tab === "library" && openNpc && <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => setOpenNpcId(null)}>← Libreria</Button></div><MonsterStatblock monster={openNpc} onRoll={performRoll} onShare={shareEntry}/></div>}
@@ -400,7 +422,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={player.role === "GM" || permissions.playersManageTurns} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { setMonsters(next); storage.monsters.set(next); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
-      {tab === "settings" && player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso da telefono</h2><p>Su Vercel imposta PHONE_ROOM con questo ID stanza e PHONE_PASSWORD con la password per i giocatori.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/></Card>}
+      {tab === "settings" && player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso da telefono</h2><p>Su Vercel imposta PHONE_ROOM con questo ID stanza, PHONE_PASSWORD con la password per i giocatori e PHONE_GM_PASSWORD con quella del GM.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/><GmChatLink room={OBR.room.id} linked={!!gmToken} onLink={(token) => { storage.gmToken.set(token); setGmToken(token); }}/></Card>}
       {tab === "settings" && player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await setPermissions(next); setPermissionState(next); }); }}/>}
     </main>
     </div>

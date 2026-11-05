@@ -1,4 +1,4 @@
-import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_GM_TOKEN, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -14,9 +14,13 @@ function write<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-export interface PhoneSession { room: string; name: string }
+export interface PhoneSession { room: string; name: string; gmToken?: string }
 
 export const storage = {
+  gmToken: {
+    get: () => read<string | null>(STORAGE_GM_TOKEN, null),
+    set: (value: string) => write(STORAGE_GM_TOKEN, value),
+  },
   phoneTabsOnTop: {
     get: () => read<boolean>(STORAGE_PHONE_TABS_ON_TOP, false),
     set: (value: boolean) => { try { write(STORAGE_PHONE_TABS_ON_TOP, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },

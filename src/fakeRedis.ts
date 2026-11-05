@@ -8,6 +8,9 @@ export const fakeRedisModule = {
     hvals: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     incr: async (key: string) => { const next = Number(hash(key).get("count") ?? 0) + 1; hash(key).set("count", String(next)); return next; },
     expire: async () => 1,
+    rpush: async (key: string, value: string) => { const list = hash(key); list.set(String(list.size), value); return list.size; },
+    ltrim: async (key: string, start: number) => { const list = hash(key); const values = [...list.values()].slice(start); list.clear(); values.forEach((value, index) => list.set(String(index), value)); return "OK"; },
+    lrange: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     del: async (key: string) => Number(store.delete(key)),
     hlen: async (key: string) => hash(key).size,
     hget: async (key: string, field: string) => { const value = hash(key).get(field); return value ? JSON.parse(value) : null; },
@@ -22,6 +25,10 @@ export const fakeRedisModule = {
 
 // fetch che passa direttamente agli handler dell'API, senza rete.
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  if (input.startsWith("/api/messages")) {
+    const messages = await import("../api/messages");
+    return messages[(init?.method ?? "GET") as "GET" | "POST"](new Request(`http://test${input}`, init));
+  }
   const api = await import("../api/sheets");
   const method = (init?.method ?? "GET") as "GET" | "PUT" | "DELETE";
   return api[method](new Request(`http://test${input}`, init));

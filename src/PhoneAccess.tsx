@@ -5,14 +5,14 @@ import { storage, type PhoneSession } from "./storage";
 import type { CloudSheet } from "./types";
 import { Alert, Button, Card, Input, Select } from "./ui";
 
-async function joinRoom(password: string): Promise<{ room: string; names: string[] }> {
+async function joinRoom(password: string): Promise<{ room: string; names: string[]; gmToken?: string }> {
   const joined = await fetch("/api/join", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }) });
-  const body = await joined.json().catch(() => null) as { room?: string; error?: string } | null;
+  const body = await joined.json().catch(() => null) as { room?: string; gmToken?: string; error?: string } | null;
   if (!joined.ok || !body?.room) throw new Error(body?.error ?? "Accesso non riuscito");
   const library = await fetch(`/api/sheets?room=${encodeURIComponent(body.room)}`);
   if (!library.ok) throw new Error("Server non raggiungibile");
   const { sheets } = await library.json() as { sheets: CloudSheet[] };
-  return { room: body.room, names: aclCandidates(sheets.filter((entry) => !entry.deletedAt), []).filter((name) => name !== EVERYONE) };
+  return { room: body.room, gmToken: body.gmToken, names: aclCandidates(sheets.filter((entry) => !entry.deletedAt), []).filter((name) => name !== EVERYONE) };
 }
 
 function PhoneLogin({ onLogin }: { onLogin: (session: PhoneSession) => void }) {
@@ -26,6 +26,7 @@ function PhoneLogin({ onLogin }: { onLogin: (session: PhoneSession) => void }) {
     setError("");
     try {
       const next = await joinRoom(password);
+      if (next.gmToken) { onLogin({ room: next.room, name: "GM", gmToken: next.gmToken }); return; }
       setJoined(next);
       setName(next.names[0] ?? "");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Accesso non riuscito"); }

@@ -2,6 +2,7 @@ import OBR from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID } from "./constants";
 import { roll, type RollResult } from "./dice";
 import { initiativeRoll } from "./initiative";
+import { postCloudMessage } from "./cloudMessages";
 import { broadcastMessage, showRollOnMap } from "./obr";
 import { buildRollCard } from "./rollCards";
 import { storage } from "./storage";
@@ -42,5 +43,6 @@ export async function announceInitiative({ name, characterId, formula, mode, res
   };
   storage.messages.set([...storage.messages.get(), message]);
   await broadcastMessage(message, "ALL");
+  await postCloudMessage(OBR.room.id, message).catch(() => undefined);
   if (!gmOnly) await showRollOnMap(characterId, title, result.total);
 }

@@ -422,6 +422,15 @@ it("importa un incantesimo da 5e.tools nella scheda, senza doppioni", async () =
   expect([...host.querySelectorAll(".spell-level h2")].map((title) => title.textContent)).toContain("Livello 3");
 });
 
+it("in Owlbear la chat riceve dal cloud i messaggi scritti da telefono, una volta sola", async () => {
+  const body = JSON.stringify({ room: "r1", message: { id: "dal-telefono", kind: "text", author: "Marco", body: "arrivo dal telefono", visibility: "everyone", createdAt: 1 } });
+  await apiFetch("/api/messages", { method: "POST", body });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Messaggi");
+  expect([...host.querySelectorAll(".message")].filter((message) => message.textContent?.includes("arrivo dal telefono"))).toHaveLength(1);
+});
+
 it("tira un dado vita scalandolo dagli attuali; totale e dado si cambiano in Modifica", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 5, max: 30 }, hit_dice: { current: 1, max: 3, die: "d10" } } } });
   sheet.abilities.constitution = { score: 14, mod: 2, save: 2, saveProficient: false };
