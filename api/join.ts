@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { gmToken } from "./_gmToken";
+import { gmToken } from "./_gmToken.js";
 
 declare const process: { env: Record<string, string | undefined> };
 

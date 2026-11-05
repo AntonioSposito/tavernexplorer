@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 import type { ChatMessage } from "../src/types";
-import { isGmToken } from "./_gmToken";
+import { isGmToken } from "./_gmToken.js";
 
 // Chat della stanza: due liste degli ultimi messaggi. "Tutti" è leggibile da chi conosce la stanza, come le schede;
 // "Solo GM" è in chiaro su Redis ma il server lo restituisce solo con un token GM valido. "Solo io" non arriva qui.
