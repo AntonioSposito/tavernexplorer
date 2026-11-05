@@ -1,4 +1,4 @@
-import { STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_PHONE_SESSION, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -14,7 +14,13 @@ function write<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+export interface PhoneSession { room: string; name: string }
+
 export const storage = {
+  phoneSession: {
+    get: () => read<PhoneSession | null>(STORAGE_PHONE_SESSION, null),
+    set: (value: PhoneSession | null) => write(STORAGE_PHONE_SESSION, value),
+  },
   characters: {
     get: () => read<CharacterSheet[]>(STORAGE_CHARACTERS, []),
     set: (value: CharacterSheet[]) => write(STORAGE_CHARACTERS, value),

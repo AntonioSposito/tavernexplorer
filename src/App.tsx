@@ -34,7 +34,7 @@ import { setTurnInitiative, stepTurn } from "./turns";
 import { listAdventures, listBestiarySources, loadAdventure, loadBestiarySource, type FiveToolsAdventure, type FiveToolsSource } from "./fivetoolsApi";
 import { DEFAULT_RULESET, getRuleset } from "./rulesets";
 import { canEditCloudSheet, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
-import { storage } from "./storage";
+import { storage, type PhoneSession } from "./storage";
 import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 import { Alert, Badge, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
 import {
@@ -44,6 +44,8 @@ import {
 import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
 const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
+// Senza gli avvisi broadcast di Owlbear il telefono rilegge le schede più spesso.
+const PHONE_POLL_MS = 15_000;
 const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", campaigns: "Avventure", shared: "Inventario comune", library: "Libreria", settings: "Permessi" };
 type SheetTab = "main" | "actions" | "spells" | "inventory" | "traits" | "bio" | "options";
 const SHEET_TAB_LABELS: Record<SheetTab, string> = { main: "Base", actions: "Azioni", spells: "Magia", inventory: "Zaino", traits: "Tratti", bio: "Bio", options: "Modifica" };
@@ -65,7 +67,7 @@ async function migrateLocalSheets(cloud: ReturnType<typeof createCloudLibrary>, 
   storage.characters.set([]);
 }
 
-export default function App() {
+export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPhoneExit?: () => void }) {
   const viewParam = new URLSearchParams(window.location.search).get("view");
   const floatingView = viewParam && viewParam in TAB_LABELS ? viewParam as AppTab : null;
   const [library, setLibrary] = useState<LibraryState>({ entries: [], offline: false, conflict: null });
@@ -122,6 +124,13 @@ export default function App() {
   const updateActive = (update: (sheet: CharacterSheet) => CharacterSheet) => { if (active) updateSheet(active.id, update); };
 
   useEffect(() => {
+    if (phone) {
+      const info = { id: `phone:${phone.name}`, name: phone.name, role: "PLAYER" as const };
+      setPlayer(info);
+      const cloud = createCloudLibrary({ room: phone.room, viewer: info, onChange: setLibrary, pollMs: PHONE_POLL_MS });
+      libraryRef.current = cloud;
+      return cloud.start();
+    }
     if (!OBR.isAvailable) { setPlayer({ id: "preview", name: "Modalità anteprima", role: "GM" }); return; }
     let cleanup = () => undefined;
     let stopLibrary: () => void = () => undefined;
@@ -165,7 +174,7 @@ export default function App() {
       cleanup = () => { stopTurns(); stopMessages(); stopInventory(); stopPermissions(); stopMembers(); stopLibrary(); };
     });
     return () => { disposed = true; cleanup(); };
-  }, [floatingView]);
+  }, [floatingView, phone]);
 
   // La scheda attiva deve restare tra quelle visibili.
   useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
@@ -364,22 +373,24 @@ export default function App() {
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
         // Tab solo GM in fondo, dopo un separatore.
         ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
-      ] as const).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
+      ] as const).filter(([id]) => !phone || (id !== "turns" && id !== "shared")).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
         <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
         {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
       </button>)}
     </nav>}
 
     <main>
+      {phone && <div className="popout-row"><Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
       {!floatingView && OBR.isAvailable && <div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel(tab)}>Apri {TAB_LABELS[tab].toLowerCase()} in finestra ↗</Button></div>}
       {floatingView === "sheet" && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
       {tokenNotice && <Alert tone="danger">{tokenNotice}</Alert>}
       {syncNotice && <Alert tone="danger">{syncNotice}</Alert>}
       {library.offline && <Alert tone="danger">Server non raggiungibile: le schede sono in sola lettura.</Alert>}
       {library.conflict && <Alert tone="danger"><p>{library.conflict}</p><Button variant="outline" onClick={() => libraryRef.current?.clearConflict()}>OK</Button></Alert>}
-      {!OBR.isAvailable && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
+      {!OBR.isAvailable && !phone && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
       {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
+      {tab === "messages" && phone && <Alert>Da telefono tiri e messaggi restano su questo dispositivo: non arrivano in Owlbear.</Alert>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
       {tab === "notes" && <Journal entries={library.entries} members={partyMembers} player={player} onAdd={(entry) => runAction(async () => { if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare il Journal"); await libraryRef.current.add(entry); })} onUpdate={(id, update) => { try { libraryRef.current?.update(id, update); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); } }} onRemove={(id) => runAction(async () => { await libraryRef.current?.remove(id); })} onShare={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000) || "Nessun testo.", visibility }))); }}/>}
       {tab === "library" && openNpc && <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => setOpenNpcId(null)}>← Libreria</Button></div><MonsterStatblock monster={openNpc} onRoll={performRoll} onShare={shareEntry}/></div>}
@@ -387,6 +398,7 @@ export default function App() {
       {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={player.role === "GM" || permissions.playersManageTurns} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { setMonsters(next); storage.monsters.set(next); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
+      {tab === "settings" && player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso da telefono</h2><p>Su Vercel imposta PHONE_ROOM con questo ID stanza e PHONE_PASSWORD con la password per i giocatori.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/></Card>}
       {tab === "settings" && player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await setPermissions(next); setPermissionState(next); }); }}/>}
     </main>
     </div>

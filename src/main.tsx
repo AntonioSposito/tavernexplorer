@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { OBR } from "./obr";
+import { PhoneApp } from "./PhoneAccess";
 import { TokenInitiativePicker } from "./TokenInitiativePicker";
 import "./styles.css";
 import "./extended.css";
@@ -26,5 +28,8 @@ if (import.meta.env.DEV) {
 }
 
 // Il popover del turn order per i token senza scheda carica solo il suo modulo, non l'app intera.
-const page = new URLSearchParams(window.location.search).has("initiative") ? <TokenInitiativePicker /> : <App />;
+// In locale resta l'anteprima: ?phone prova l'accesso da telefono.
+const params = new URLSearchParams(window.location.search);
+const preview = OBR.isAvailable || (import.meta.env.DEV && !params.has("phone"));
+const page = params.has("initiative") ? <TokenInitiativePicker /> : preview ? <App /> : <PhoneApp />;
 createRoot(document.getElementById("root")!).render(<StrictMode>{page}</StrictMode>);

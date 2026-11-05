@@ -11,6 +11,7 @@ export const STORAGE_MONSTERS = `${EXTENSION_ID}/monsters/v1`;
 export const STORAGE_CAMPAIGNS = `${EXTENSION_ID}/campaigns/v1`;
 export const STORAGE_SHARED_INVENTORY = `${EXTENSION_ID}/shared-inventory/v1`;
 export const STORAGE_CLOUD_CACHE = `${EXTENSION_ID}/cloud-cache/v1`;
+export const STORAGE_PHONE_SESSION = `${EXTENSION_ID}/phone-session/v1`;
 export const STORAGE_CLOSED_SPELL_LEVELS = `${EXTENSION_ID}/closed-spell-levels/v1`;
 export const STORAGE_EQUIPPED_FIRST = `${EXTENSION_ID}/inventory-equipped-first/v1`;
 export const STORAGE_LIBRARY_SORT = `${EXTENSION_ID}/library-alphabetical/v1`;
