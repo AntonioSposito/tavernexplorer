@@ -86,3 +86,11 @@ body {
 /* Il badge sporge a destra dell'icona: spazio nel bottone e niente scroll orizzontale. */
 .app-body > .app-tabs { overflow-x: hidden; }
 .app-body > .app-tabs button { justify-content: center; padding-left: 14px; padding-right: 18px; }
+
+/* Da telefono la barra delle tab può stare in alto invece che di lato. */
+:root { --tabs-top-height:60px; }
+.app-body.tabs-top { flex-direction:column; align-items:stretch; }
+.app-body.tabs-top > .app-tabs { z-index:9; flex-direction:row; height:var(--tabs-top-height); border-right:0; border-bottom:1px solid hsl(var(--border)); }
+.app-body.tabs-top > .app-tabs button { flex:1; border-left:0; border-bottom:3px solid transparent; }
+.app-body.tabs-top > .app-tabs button.active { border-bottom-color:hsl(var(--primary)); }
+.app-body.tabs-top > main:has(> .messages) { height:calc(100vh - var(--topbar-height) - var(--tabs-top-height)); }

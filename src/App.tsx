@@ -93,6 +93,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   const [turns, setTurns] = useState<TurnState>({ round: 1, activeIndex: 0, entries: [] });
   const [tokenImages, setTokenImages] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<AppTab>(floatingView ?? "sheet");
+  const [tabsOnTop, setTabsOnTop] = useState(() => !!phone && storage.phoneTabsOnTop.get());
   const [sheetTab, setSheetTab] = useState<SheetTab>("main");
   const [rollMode, setRollMode] = useState<RollMode>("normal");
   const [visibility, setVisibility] = useState<Visibility>("everyone");
@@ -367,7 +368,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     </header>
     </>}
 
-    <div className="app-body">
+    <div className={`app-body${tabsOnTop ? " tabs-top" : ""}`}>
     {!floatingView && <nav className="app-tabs">
       {([
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
@@ -380,7 +381,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     </nav>}
 
     <main>
-      {phone && <div className="popout-row"><Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
+      {phone && <div className="popout-row"><Button variant="ghost" onClick={() => { storage.phoneTabsOnTop.set(!tabsOnTop); setTabsOnTop(!tabsOnTop); }}>{tabsOnTop ? "Barra di lato" : "Barra in alto"}</Button><Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
       {!floatingView && OBR.isAvailable && <div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel(tab)}>Apri {TAB_LABELS[tab].toLowerCase()} in finestra ↗</Button></div>}
       {floatingView === "sheet" && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
       {tokenNotice && <Alert tone="danger">{tokenNotice}</Alert>}

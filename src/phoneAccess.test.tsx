@@ -86,3 +86,18 @@ it("Cambia giocatore riporta al login", async () => {
   expect(host.querySelector('input[type="password"]')).toBeTruthy();
   expect(JSON.parse(localStorage.getItem(STORAGE_PHONE_SESSION)!)).toBeNull();
 });
+
+it("sposta la barra delle tab in alto e di lato, e ricorda la scelta", async () => {
+  localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "Marco" }));
+  await act(async () => root.render(<PhoneApp/>));
+  const toggle = (label: string) => act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === label)!.click());
+  expect(host.querySelector(".app-body.tabs-top")).toBeNull();
+  await toggle("Barra in alto");
+  expect(host.querySelector(".app-body.tabs-top")).toBeTruthy();
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await act(async () => root.render(<PhoneApp/>));
+  expect(host.querySelector(".app-body.tabs-top")).toBeTruthy();
+  await toggle("Barra di lato");
+  expect(host.querySelector(".app-body.tabs-top")).toBeNull();
+});
