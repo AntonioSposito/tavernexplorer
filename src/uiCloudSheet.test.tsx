@@ -12,7 +12,7 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadItems: async () => [
+vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER" }));
@@ -384,6 +384,44 @@ it("prepara un incantesimo e avvisa il tavolo in chat", async () => {
   expect([...host.querySelectorAll(".r20-alert")].map((alert) => alert.textContent)).toEqual(["⚠ Sonno (livello 1) preparato", "⚠ Sonno (livello 1) preparato"]);
 });
 
+it("lanciare un incantesimo non preparato mostra l'avviso in chat", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spellcasting.slots = { level_1: { total: 2, used: 0 } };
+  sheet.spells = [
+    { id: "sleep", name: "Sonno", level: 1, prepared: false, ritual: false, concentration: false },
+    { id: "armor", name: "Armatura magica", level: 1, prepared: true, ritual: false, concentration: false },
+    { id: "innate", name: "Passo velato", level: 1, prepared: false, innate: "1/giorno", ritual: false, concentration: false },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  const [sleep, armor, innate] = [...host.querySelectorAll<HTMLButtonElement>(".entry-use")];
+  await act(async () => sleep.click());
+  await click("Livello 1 (2/2)");
+  await act(async () => armor.click());
+  await click("Livello 1 (1/2)");
+  await act(async () => innate.click());
+  await click("Messaggi");
+  expect([...host.querySelectorAll(".r20-card")].map((card) => card.querySelector(".r20-alert")?.textContent ?? null)).toEqual(["⚠ Incantesimo non preparato", null, null]);
+});
+
+it("importa un incantesimo da 5e.tools nella scheda, senza doppioni", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
+  sheet.spells = [{ id: "sleep", name: "Sleep", level: 1, prepared: true, ritual: false, concentration: false }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  await click("Importa da 5e.tools");
+  await settle();
+  expect([...host.querySelectorAll(".catalog-option")].map((option) => option.textContent)).toEqual([expect.stringContaining("Fireball")]);
+  await click("Fireball");
+  await settle(1_700);
+  expect(cloudSheet().sheet.spells).toMatchObject([{ name: "Sleep" }, { name: "Fireball", level: 3, prepared: false }]);
+  expect([...host.querySelectorAll(".spell-level h2")].map((title) => title.textContent)).toContain("Livello 3");
+});
+
 it("tira un dado vita scalandolo dagli attuali; totale e dado si cambiano in Modifica", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 5, max: 30 }, hit_dice: { current: 1, max: 3, die: "d10" } } } });
   sheet.abilities.constitution = { score: 14, mod: 2, save: 2, saveProficient: false };
@@ -655,6 +693,7 @@ it("modifica le monete direttamente e mostra il carico dello zaino", async () =>
 
 it("la CA si passa al calcolo automatico dal popup e mostra da cosa è data", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { ac: 12 }, abilities: { dexterity: { score: 14, mod: 2 } }, inventory: [{ name: "Cuoio", equipped: true, modifiers: "Item Type: Light Armor, AC 11", _rowid: "leather" }] } });
+  sheet.combat.acMode = "manual";
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
   await act(async () => root.render(<App/>));
   await settle();
@@ -666,6 +705,26 @@ it("la CA si passa al calcolo automatico dal popup e mostra da cosa è data", as
   expect(metric().title).toBe("CA 13\nCuoio 11\nDES +2");
   await settle(1_700);
   expect(cloudSheet().sheet.combat).toMatchObject({ acMode: "auto", acBase: 10 });
+});
+
+it("nel popup dell'oggetto un modificatore somma caratteristica e competenza", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", level: 1 }, combat: { ac: 10, proficiency_bonus: 2 }, abilities: { wisdom: { score: 16, mod: 3 } } } });
+  sheet.inventory = [{ id: "robe", name: "Veste", count: 1, equipped: true, modifiers: [{ id: "m1", target: "ac", amount: 1 }] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Veste"]')!.click());
+  const select = host.querySelector<HTMLSelectElement>('select[aria-label="Aggiungi modificatore di caratteristica"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, "wisdom");
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Aggiungi bonus di competenza"]')!.click());
+  await click("Salva");
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory[0].modifiers[0]).toMatchObject({ target: "ac", amount: 1, ability: "wisdom", proficient: true });
+  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Classe armatura +1 +Saggezza +Competenza");
 });
 
 it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {

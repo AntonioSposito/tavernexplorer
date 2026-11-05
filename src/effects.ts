@@ -47,20 +47,26 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
   return [{ name: "Opzioni", modifiers: bonuses }, { name: "Maestria", modifiers: expertise }, { name: "Jack of all trades", modifiers: jack }];
 }
 
+// Valori numerici dei modificatori con caratteristica e competenza.
+// shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
+function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
+  return modifiers.map(({ id, target, amount, ability, proficient }) => ({ id, target, amount: amount + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) }));
+}
+
 export function activeModifiers(sheet: CharacterSheet): StatModifier[] {
-  return [
+  return resolveModifiers(sheet, [
     ...optionSources(sheet).flatMap((source) => source.modifiers),
     ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).flatMap((effect) => effect.modifiers),
     ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item)),
     ...sheet.traits.flatMap((trait) => trait.modifiers ?? []),
     // Già inclusi nei valori importati da Roll20: si tolgono, così conta solo lo stato attuale degli oggetti.
     ...(sheet.importedItemModifiers ?? []).map((modifier) => ({ ...modifier, amount: -modifier.amount })),
-  ].filter((modifier) => Number.isFinite(modifier.amount));
+  ]).filter((modifier) => Number.isFinite(modifier.amount));
 }
 
 // Da dove arriva un modificatore: effetti attivi e oggetti equipaggiati, per nome (senza la correzione dell'import Roll20).
 export function modifierSources(sheet: CharacterSheet, target: string): Array<{ name: string; amount: number }> {
-  const sum = (mods: StatModifier[]) => mods.filter((mod) => mod.target === target && Number.isFinite(mod.amount)).reduce((total, mod) => total + mod.amount, 0);
+  const sum = (mods: StatModifier[]) => resolveModifiers(sheet, mods).filter((mod) => mod.target === target && Number.isFinite(mod.amount)).reduce((total, mod) => total + mod.amount, 0);
   return [
     ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).map((effect) => ({ name: effect.name, amount: sum(effect.modifiers) })),
     ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).map((item) => ({ name: item.name, amount: sum(itemModifierList(item)) })),
@@ -72,11 +78,13 @@ export function modifierSources(sheet: CharacterSheet, target: string): Array<{ 
 const equippedItems = (sheet: CharacterSheet) => sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0));
 
 // CA con le parti che la compongono (per il tooltip). dexMod è il modificatore di DES già con gli effetti.
-export function armorClass(sheet: CharacterSheet, dexMod = sheet.abilities.dexterity?.mod ?? 0): { total: number; parts: Array<{ name: string; amount: number }> } {
+export function armorClass(sheet: CharacterSheet, dexMod = sheet.abilities.dexterity?.mod ?? 0): { total: number; parts: Array<{ name: string; amount: number }>; auto: boolean } {
   const sources = modifierSources(sheet, "ac");
   let base: Array<{ name: string; amount: number }>;
-  if (sheet.combat.acMode === "auto") {
-    const armor = equippedItems(sheet).flatMap((item) => itemModifierList(item).filter((mod) => mod.target.startsWith("armor:")).map((mod) => ({ item, type: mod.target.slice(6), ac: mod.amount }))).sort((a, b) => b.ac - a.ac)[0];
+  const armor = equippedItems(sheet).flatMap((item) => resolveModifiers(sheet, itemModifierList(item)).filter((mod) => mod.target.startsWith("armor:")).map((mod) => ({ item, type: mod.target.slice(6), ac: mod.amount }))).sort((a, b) => b.ac - a.ac)[0];
+  // Schede importate, senza una scelta nel popup CA: l'armatura indossata vale comunque con la sua formula.
+  const auto = sheet.combat.acMode === "auto" || (!sheet.combat.acMode && !!armor);
+  if (auto) {
     const dex = !armor || armor.type === "light" ? dexMod : armor.type === "medium" ? Math.min(dexMod, 2) : 0;
     base = [{ name: armor ? armor.item.name : "Senza armatura", amount: armor ? armor.ac : sheet.combat.acBase ?? 10 }, ...dex ? [{ name: "DES", amount: dex }] : []];
   } else {
@@ -85,13 +93,13 @@ export function armorClass(sheet: CharacterSheet, dexMod = sheet.abilities.dexte
     base = [{ name: "Base", amount: sheet.combat.ac - included }];
   }
   const parts = [...base, ...sources];
-  return { total: parts.reduce((sum, part) => sum + part.amount, 0), parts };
+  return { total: parts.reduce((sum, part) => sum + part.amount, 0), parts, auto };
 }
 
 // CA scritta a mano: è la CA attuale, quindi gli oggetti ora equipaggiati sono già compresi.
 export function setManualArmorClass(sheet: CharacterSheet, value: number) {
   sheet.combat.ac = value;
-  sheet.importedItemModifiers = [...(sheet.importedItemModifiers ?? []).filter((mod) => mod.target !== "ac"), ...equippedItems(sheet).flatMap((item) => itemModifierList(item)).filter((mod) => mod.target === "ac")];
+  sheet.importedItemModifiers = [...(sheet.importedItemModifiers ?? []).filter((mod) => mod.target !== "ac"), ...resolveModifiers(sheet, equippedItems(sheet).flatMap((item) => itemModifierList(item))).filter((mod) => mod.target === "ac")];
 }
 
 // Punteggio base cambiato nella tab Modifica: TS, abilità, iniziativa, Percezione passiva e magia seguono la
@@ -162,7 +170,11 @@ export function explainValue(sheet: CharacterSheet, view: CharacterSheet, target
 const TARGET_LABELS: Record<string, string> = Object.fromEntries(MODIFIER_TARGETS);
 // Etichette dei modificatori mostrate sotto il nome di oggetti e tratti. La CA base di un'armatura non è un bonus: niente segno.
 export function modifierTags(modifiers: StatModifier[]): string[] {
-  return modifiers.map((mod) => `${TARGET_LABELS[mod.target] ?? mod.target} ${mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`}`);
+  return modifiers.map((mod) => {
+    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza"].filter(Boolean);
+    const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
+    return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras].join(" ");
+  });
 }
 
 export function modifierTotal(sheet: CharacterSheet, target: string): number {

@@ -12,6 +12,8 @@ export function mergeReimport(existing: CharacterSheet, imported: CharacterSheet
     options: { ...imported.options, ...existing.options },
     combat: {
       ...imported.combat,
+      acMode: existing.combat.acMode,
+      acBase: existing.combat.acBase,
       hp: { ...hp, current: Math.min(existing.combat.hp.current, hp.max), temp: existing.combat.hp.temp },
       hitDice: { ...hitDice, current: Math.min(existing.combat.hitDice.current, hitDice.max) },
       deathSaves: existing.combat.deathSaves,

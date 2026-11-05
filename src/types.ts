@@ -91,6 +91,9 @@ export interface StatModifier {
   id: string;
   target: string;
   amount: number;
+  // Si sommano ad amount: modificatore della caratteristica e bonus di competenza della scheda.
+  ability?: string;
+  proficient?: boolean;
 }
 
 export interface CharacterEffect {
@@ -146,7 +149,8 @@ export interface CharacterSheet {
     experience: string;
   };
   combat: {
-    // Manuale (default): ac è la CA scritta. Automatica: armatura equipaggiata + DES, oppure acBase + DES senza armatura.
+    // Manuale: ac è la CA scritta. Automatica: armatura equipaggiata + DES, oppure acBase + DES senza armatura.
+    // Non scelto (schede importate): come manuale, ma con un'armatura equipaggiata vale come automatica.
     ac: number;
     acMode?: "manual" | "auto";
     acBase?: number;

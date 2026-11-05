@@ -58,6 +58,13 @@ it("legge background, specie e talenti d'origine", () => {
   expect(parseOriginFeats({ feat: [{ name: "Tough", source: "XPHB", category: "O", entries: ["+2 HP per level."] }, { name: "Grappler", source: "XPHB", category: "G" }] })).toEqual([{ name: "Tough", description: "+2 HP per level." }]);
 });
 
+it("con maxLevel legge anche gli incantesimi di livello alto", () => {
+  const file = { spell: [{ name: "Sleep", source: "XPHB", level: 1, school: "E" }, { name: "Fireball", source: "XPHB", level: 3, school: "V" }] };
+  const lookup = { xphb: { sleep: { class: { XPHB: { Wizard: true } } }, fireball: { class: { XPHB: { Wizard: true } } } } };
+  expect(parseSpells(file, lookup).map((spell) => spell.name)).toEqual(["Sleep"]);
+  expect(parseSpells(file, lookup, 9).map((spell) => spell.name)).toEqual(["Sleep", "Fireball"]);
+});
+
 it("converte gli incantesimi con attacco, danno e TS calcolati dalla scheda", () => {
   const spells = parseSpells({ spell: [
     { name: "Fire Bolt", source: "XPHB", level: 0, school: "V", time: [{ number: 1, unit: "action" }], range: { type: "point", distance: { type: "feet", amount: 120 } }, components: { v: true, s: true }, duration: [{ type: "instant" }], entries: ["On a hit, {@damage 1d10} Fire damage."], damageInflict: ["fire"], spellAttack: ["R"] },

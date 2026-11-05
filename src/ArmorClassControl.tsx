@@ -7,7 +7,7 @@ const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 
 // Valore CA della tab Base: il tooltip mostra da cosa è data, il clic apre il popup manuale/automatica.
 export function ArmorClassControl({ sheet, dexMod, editable, onUpdate }: { sheet: CharacterSheet; dexMod: number; editable: boolean; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void }) {
-  const { total, parts } = armorClass(sheet, dexMod);
+  const { total, parts, auto } = armorClass(sheet, dexMod);
   const buffs = modifierSources({ ...sheet, inventory: [] }, "ac").reduce((sum, source) => sum + source.amount, 0);
   const [draft, setDraft] = useState<{ auto: boolean; ac: string; base: string } | null>(null);
   const title = [`CA ${total}`, ...parts.map((part, index) => index === 0 ? `${part.name} ${part.amount}` : `${part.name} ${signed(part.amount)}`)].join("\n");
@@ -20,10 +20,10 @@ export function ArmorClassControl({ sheet, dexMod, editable, onUpdate }: { sheet
     });
     setDraft(null);
   };
-  const content = <><strong>{total}</strong><small>CA{sheet.combat.acMode === "auto" ? " · auto" : ""}</small></>;
+  const content = <><strong>{total}</strong><small>CA{auto ? " · auto" : ""}</small></>;
   return <>
     {editable
-      ? <button className="metric metric-explained" title={title} onClick={() => setDraft({ auto: sheet.combat.acMode === "auto", ac: String(total - buffs), base: String(sheet.combat.acBase ?? 10) })}>{content}</button>
+      ? <button className="metric metric-explained" title={title} onClick={() => setDraft({ auto, ac: String(total - buffs), base: String(sheet.combat.acBase ?? 10) })}>{content}</button>
       : <div className="metric metric-explained" title={title}>{content}</div>}
     <Dialog open={draft !== null} title="Classe armatura" description={title.split("\n").slice(1).join(" · ")} onClose={() => setDraft(null)}>{draft && <form className="action-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
       <label className="action-form-check"><input type="checkbox" checked={draft.auto} onChange={(event) => setDraft({ ...draft, auto: event.target.checked })}/> Calcola automaticamente (come Roll20)</label>

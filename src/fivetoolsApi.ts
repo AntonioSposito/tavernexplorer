@@ -1,5 +1,5 @@
 import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells, type CharacterOptions } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
 import type { CampaignDocument, MonsterSheet } from "./types";
 
 // Il sito applica una challenge Cloudflare; il mirror del progetto espone gli
@@ -50,6 +50,14 @@ export function loadCharacterOptions(): Promise<CharacterOptions> {
   }));
   optionsCache.catch(() => { optionsCache = null; });
   return optionsCache;
+}
+
+let spellsCache: Promise<SpellOption[]> | null = null;
+// Tutti i livelli, per l'import nella scheda; un errore permette di riprovare.
+export function loadSpells(): Promise<SpellOption[]> {
+  spellsCache ??= Promise.all([request("spells/spells-xphb.json"), request("generated/gendata-spell-source-lookup.json")]).then(([spells, lookup]) => parseSpells(spells, lookup, 9));
+  spellsCache.catch(() => { spellsCache = null; });
+  return spellsCache;
 }
 
 let itemsCache: Promise<FiveToolsItem[]> | null = null;

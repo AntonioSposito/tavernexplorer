@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { armorClass, effectiveSheet, explainValue, modifierSources, setManualArmorClass } from "./effects";
+import { armorClass, effectiveSheet, explainValue, modifierSources, modifierTags, setManualArmorClass } from "./effects";
 import { importRoll20 } from "./importer";
 import { actionFromItem, parseItemModifiers } from "./itemModifiers";
 
@@ -46,6 +46,37 @@ it("CA automatica come Roll20: armatura + DES con limiti, scudo e base senza arm
   sheet.inventory.forEach((item) => { item.equipped = false; });
   sheet.combat.acBase = 13;
   expect(effectiveSheet(sheet).combat.ac).toBe(17);
+});
+
+it("armatura equipaggiata su una scheda senza scelta di CA (import Roll20): vale la formula dell'armatura", () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: {
+    identity: { character_name: "Eroe" }, combat: { ac: 14 }, abilities: { dexterity: { score: 18, mod: 4 } },
+    inventory: [{ name: "Cuoio", equipped: false, modifiers: "Item Type: Light Armor, AC 11", _rowid: "leather" }],
+  } });
+  expect(effectiveSheet(sheet).combat.ac).toBe(14);
+  sheet.inventory[0].equipped = true;
+  expect(armorClass(sheet).parts).toEqual([{ name: "Cuoio", amount: 11 }, { name: "DES", amount: 4 }]);
+  expect(armorClass(sheet)).toMatchObject({ total: 15, auto: true });
+  sheet.combat.acMode = "manual";
+  expect(armorClass(sheet)).toMatchObject({ total: 14, auto: false });
+});
+
+it("un modificatore può sommare caratteristica e competenza, ovunque sia usato", () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: {
+    identity: { character_name: "Eroe", level: 5 }, combat: { ac: 10, proficiency_bonus: 3 }, abilities: { wisdom: { score: 16, mod: 3 } },
+    skills: { stealth: { ability: "dexterity", bonus: 1, proficient: false } },
+  } });
+  const ac = { id: "m1", target: "ac", amount: 1, ability: "wisdom" };
+  const stealth = { id: "m2", target: "skill:stealth", amount: 0, ability: "wisdom", proficient: true };
+  sheet.inventory = [{ id: "robe", name: "Veste", count: 1, equipped: true, modifiers: [ac, stealth] }];
+  expect(effectiveSheet(sheet).combat.ac).toBe(14);
+  expect(effectiveSheet(sheet).skills.stealth.bonus).toBe(7);
+  expect(modifierSources(sheet, "ac")).toEqual([{ name: "Veste", amount: 4 }]);
+  expect(modifierTags([ac, stealth])).toEqual(["Classe armatura +1 +Saggezza", "Furtività +Saggezza +Competenza"]);
+  setManualArmorClass(sheet, 20);
+  expect(effectiveSheet(sheet).combat.ac).toBe(20);
+  sheet.inventory[0].equipped = false;
+  expect(effectiveSheet(sheet).combat.ac).toBe(16);
 });
 
 it("CA manuale scritta: gli oggetti equipaggiati ora sono compresi, i cambi successivi si sommano", () => {

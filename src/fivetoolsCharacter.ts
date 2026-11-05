@@ -203,10 +203,10 @@ export function toSpellEntry(row: Obj): Omit<SpellEntry, "id"> {
   };
 }
 
-// Solo trucchetti e incantesimi di 1° livello; le classi vengono da gendata-spell-source-lookup.json.
-export function parseSpells(file: unknown, lookup: unknown): SpellOption[] {
+// Di default solo trucchetti e incantesimi di 1° livello (creazione guidata); le classi vengono da gendata-spell-source-lookup.json.
+export function parseSpells(file: unknown, lookup: unknown, maxLevel = 1): SpellOption[] {
   const classesOf = obj(obj(lookup).xphb);
-  return array(obj(file).spell).map(obj).filter((row) => row.source === SOURCE && Number(row.level) <= 1).map((row) => ({
+  return array(obj(file).spell).map(obj).filter((row) => row.source === SOURCE && Number(row.level) <= maxLevel).map((row) => ({
     name: text(row.name), level: Number(row.level) || 0,
     classes: Object.keys(obj(obj(obj(classesOf[text(row.name).toLowerCase()]).class)[SOURCE])),
     spell: toSpellEntry(row),
