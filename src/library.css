@@ -32,8 +32,8 @@
 .order-list li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Riga azione: il nome tira, le icone condividono e modificano senza aprire il dettaglio. */
-.entry summary .entry-use, .proficiencies .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
-.entry summary .entry-use:hover, .proficiencies .entry-use:hover { text-decoration-style: solid; }
+.entry summary .entry-use, .proficiencies .entry-use, .resource-row .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
+.entry summary .entry-use:hover, .proficiencies .entry-use:hover, .resource-row .entry-use:hover { text-decoration-style: solid; }
 .entry summary .entry-values { margin-left: auto; color: #e7b467; }
 .entry summary .entry-icons { display: flex; gap: .25rem; }
 .entry-icons button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); }

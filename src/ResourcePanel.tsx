@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { effectiveSheet } from "./effects";
-import { EditIcon } from "./icons";
+import { ChatIcon, EditIcon } from "./icons";
 import { counterCurrent, deleteCounter, linkActions, linkedItem, setCounterCurrent } from "./resources";
 import { isCounterRecovery, takeLongRest, takeShortRest, type RestKind } from "./rest";
 import type { CharacterSheet, CounterRecovery, ResourceCounter } from "./types";
@@ -58,6 +58,7 @@ export function ResourcePanel({ sheet, onUpdate, onRest, onUse }: { sheet: Chara
   const [error, setError] = useState("");
   const counters = sheet.counters ?? [];
   const setCurrent = (id: string, value: number) => onUpdate((next) => setCounterCurrent(next, id, value));
+  const share = (counter: ResourceCounter) => onUse(counter.name || "Risorsa senza nome", `${sheet.name}: ${counterCurrent(sheet, counter)}/${counter.max} · ${RECOVERY_LABELS[counter.recovery]}`);
   const moveCounter = (index: number, offset: number) => onUpdate((next) => { const list = next.counters ?? []; const [item] = list.splice(index, 1); list.splice(index + offset, 0, item); next.counters = list; return next; });
   const completeRest = () => {
     if (!pendingRest) return;
@@ -75,10 +76,10 @@ export function ResourcePanel({ sheet, onUpdate, onRest, onUse }: { sheet: Chara
     <Card className="resource-panel"><div className="editor-heading"><h2>Risorse</h2></div>
       <div className="library-actions">{!reordering && <Button onClick={() => setEditing({ id: crypto.randomUUID(), name: "", current: 1, max: 1, recovery: "long" })}>+ Nuova risorsa</Button>}{counters.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>
       {reordering ? <ol className="order-list">{counters.map((counter, index) => <li key={counter.id}><span>{counter.name}</span><Button variant="outline" aria-label={`Sposta su ${counter.name}`} disabled={index === 0} onClick={() => moveCounter(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${counter.name}`} disabled={index === counters.length - 1} onClick={() => moveCounter(index, 1)}>↓</Button></li>)}</ol> : counters.map((counter) => { const current = counterCurrent(sheet, counter); return <div className="resource-row" key={counter.id}>
-        <strong className="resource-name">{counter.name || "Risorsa senza nome"}</strong>
+        <button className="entry-use resource-name" title="Mostra in chat" onClick={() => share(counter)}>{counter.name || "Risorsa senza nome"}</button>
         <div className="resource-amount"><Button variant="outline" aria-label={`Riduci ${counter.name}`} disabled={current <= 0} onClick={() => { setCurrent(counter.id, current - 1); onUse(counter.name, `${sheet.name} usa ${counter.name}: ${current - 1}/${counter.max}`); }}>−</Button><strong>{current} / {counter.max}</strong><Button variant="outline" aria-label={`Aumenta ${counter.name}`} disabled={current >= counter.max} onClick={() => setCurrent(counter.id, current + 1)}>+</Button></div>
         <small>{RECOVERY_LABELS[counter.recovery]}</small>
-        <span className="entry-icons"><button aria-label={`Modifica ${counter.name}`} title="Modifica" onClick={() => setEditing(counter)}><EditIcon/></button></span>
+        <span className="entry-icons"><button aria-label={`Mostra in chat ${counter.name}`} title="Mostra in chat" onClick={() => share(counter)}><ChatIcon/></button><button aria-label={`Modifica ${counter.name}`} title="Modifica" onClick={() => setEditing(counter)}><EditIcon/></button></span>
       </div>; })}
     </Card>
     <ResourceDialog sheet={sheet} counter={editing} onUpdate={onUpdate} onClose={() => setEditing(null)}/>

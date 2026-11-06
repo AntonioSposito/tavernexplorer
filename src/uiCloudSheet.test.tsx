@@ -821,9 +821,16 @@ it("Crea risorsa dallo zaino e dai tratti: frecce collegate alla quantità, trat
   expect(cloudSheet().sheet.inventory[0].count).toBe(18);
   expect(host.textContent).toContain("18 / 20");
 
+  // Nome e tasto chat mostrano la risorsa senza consumarla.
+  await click("Mostra in chat Frecce");
+  await act(async () => host.querySelector<HTMLButtonElement>(".resource-row .entry-use")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.inventory[0].count).toBe(18);
+
   await click("Messaggi");
   expect(host.textContent).toContain("Frecce −1 (19/20)");
   expect(host.textContent).toContain("Eroe usa Frecce: 18/20");
+  expect(host.textContent?.match(/Eroe: 18\/20/g)).toHaveLength(2);
 }, 10_000);
 
 it("riordina lo zaino e mette in cima gli equipaggiati senza cambiare l'ordine salvato", async () => {
