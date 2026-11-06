@@ -7,6 +7,8 @@
 .assign-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(10rem,1.2fr);align-items:center;gap:.55rem;border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.65rem}
 .assign-item>span{display:grid;gap:.15rem;min-width:0}
 .assign-item strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}
+.assign-token-name{display:grid;min-width:0;padding:0;border:0;background:none;color:hsl(var(--primary));font:inherit;text-align:left;text-decoration:underline dotted;cursor:pointer}
+.assign-token-name:hover{text-decoration-style:solid}
 .assign-item small{color:hsl(var(--muted-foreground));font-size:.72rem}
 .assign-item .ui-select{width:100%;min-width:0}
 .assign-heading{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.5rem}

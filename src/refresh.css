@@ -47,6 +47,8 @@ body {
 .turn-list article.current { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / .16); }
 .message.roll { border-left-color: hsl(var(--primary)); }
 .message.share { border-left-color: hsl(262 76% 70%); }
+.message.fresh { animation: message-fresh 5s ease-out; }
+@keyframes message-fresh { from { background: hsl(var(--primary) / .28); box-shadow: 0 0 0 2px hsl(var(--primary) / .75); } }
 .message h3 { color: hsl(262 76% 76%); }
 .roll-result, .shared-row { border-color: hsl(var(--border)); }
 .danger { color: hsl(0 75% 72%); }

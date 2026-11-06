@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { getCharacterTokens, highlightToken, OBR, setTokenCharacter, setTokenOwner, type CharacterToken } from "./obr";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { focusToken, getCharacterTokens, highlightToken, OBR, setTokenCharacter, setTokenOwner, type CharacterToken } from "./obr";
 import { Alert, Button, Card, Input, Select } from "./ui";
 
 interface PartyMember { id: string; name: string; role: "GM" | "PLAYER" }
@@ -9,16 +9,21 @@ interface AssignmentPanelProps {
   sheets: Array<{ id: string; name: string; ownerId?: string }>;
   // Mostri del bestiario del GM: il token si collega senza cambiare proprietario.
   monsters: Array<{ id: string; name: string; challengeRating: string }>;
+  // NPC della Libreria: come i mostri, il token non cambia proprietario.
+  npcs: Array<{ id: string; name: string; challengeRating: string }>;
   members: PartyMember[];
 }
 
-export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelProps) {
+const normalizedName = (name: string) => name.trim().toLocaleLowerCase("it");
+
+export function AssignmentPanel({ sheets, monsters, npcs, members }: AssignmentPanelProps) {
   const [tokens, setTokens] = useState<CharacterToken[]>([]);
   const [sceneReady, setSceneReady] = useState(false);
   const [ownerOnly, setOwnerOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
+  const autoLinked = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
     const ready = OBR.isAvailable && await OBR.scene.isReady();
@@ -45,7 +50,7 @@ export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelPr
     return () => { disposed = true; stopScene(); stopItems(); stopPermissions(); };
   }, [reload]);
 
-  const run = async (action: () => Promise<void>, success: string) => {
+  const run = useCallback(async (action: () => Promise<void>, success: string) => {
     setBusy(true);
     setNotice(null);
     try {
@@ -57,10 +62,27 @@ export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelPr
     } finally {
       setBusy(false);
     }
-  };
+  }, [refresh]);
 
-  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;
-  const visibleTokens = tokens.filter((token) => `${token.tokenName} ${sheetName(token.characterId ?? "") ?? ""}`.toLocaleLowerCase("it").includes(search.toLocaleLowerCase("it")));
+  // Token libero con il nome di una scheda: si collega da solo. A parità di nome vincono i PG, poi NPC e mostri.
+  useEffect(() => {
+    const candidates: Array<{ id: string; name: string; ownerId?: string }> = [...sheets, ...npcs, ...monsters];
+    const matches = tokens.flatMap((token) => {
+      if (token.characterId || token.unlinked || autoLinked.current.has(token.tokenId)) return [];
+      const sheet = candidates.find((candidate) => normalizedName(candidate.name) === normalizedName(token.tokenName));
+      return sheet ? [{ token, sheet }] : [];
+    });
+    if (!matches.length) return;
+    // Ogni scrittura fa ripartire refresh ed effetto: senza questo segno lo stesso token si ricollegherebbe.
+    for (const { token } of matches) autoLinked.current.add(token.tokenId);
+    void run(async () => {
+      for (const { token, sheet } of matches) await setTokenCharacter(token.tokenId, sheet.id, sheet.ownerId);
+    }, matches.length === 1 ? `${matches[0].token.tokenName} collegato a ${matches[0].sheet.name}.` : `${matches.length} token collegati alle schede con lo stesso nome.`);
+  }, [tokens, sheets, npcs, monsters, run]);
+
+  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? npcs.find((npc) => npc.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;
+  const isParty = (token: CharacterToken) => sheets.some((sheet) => sheet.id === token.characterId);
+  const visibleTokens = tokens.filter((token) => `${token.tokenName} ${sheetName(token.characterId ?? "") ?? ""}`.toLocaleLowerCase("it").includes(search.toLocaleLowerCase("it"))).sort((a, b) => Number(isParty(b)) - Number(isParty(a)));
 
   return <Card className="assign-panel"><details className="assign-details">
     <summary><h2>Assegna personaggi e token</h2></summary>
@@ -74,7 +96,7 @@ export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelPr
       <small className="assign-count">{tokens.length} token · {tokens.filter((token) => !token.characterId).length} da collegare</small>
       <div className="assign-grid">
         {visibleTokens.map((token) => <div className="assign-item assign-token-item" key={token.tokenId}>
-          <span><strong>{token.tokenName}</strong><small>{token.characterId ? sheetName(token.characterId) ?? "Scheda non disponibile" : "Nessuna scheda collegata"}</small></span>
+          <span><button type="button" className="assign-token-name" title={`Vai a ${token.tokenName} sulla mappa`} aria-label={`Vai a ${token.tokenName} sulla mappa`} onClick={() => { void run(() => focusToken(token.tokenId), `Vista spostata su ${token.tokenName}.`); }}><strong>{token.tokenName}</strong></button><small>{token.characterId ? sheetName(token.characterId) ?? "Scheda non disponibile" : "Nessuna scheda collegata"}</small></span>
           <div className="assign-token-actions">
             <label><small>Scheda</small><Select aria-label={`Scheda per ${token.tokenName}`} value={token.characterId ?? ""} disabled={busy} onChange={(event) => {
               const characterId = event.target.value || null;
@@ -84,6 +106,7 @@ export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelPr
               <option value="">Nessuna scheda</option>
               {token.characterId && !sheetName(token.characterId) && <option value={token.characterId}>Scheda non disponibile</option>}
               <optgroup label="Personaggi">{sheets.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}</optgroup>
+              {npcs.length > 0 && <optgroup label="NPC">{npcs.map((npc) => <option key={npc.id} value={npc.id}>{npc.name} · GS {npc.challengeRating}</option>)}</optgroup>}
               {monsters.length > 0 && <optgroup label="Bestiario">{monsters.map((monster) => <option key={monster.id} value={monster.id}>{monster.name} · GS {monster.challengeRating}</option>)}</optgroup>}
             </Select></label>
             <label><small>Proprietario token</small><Select aria-label={`Proprietario token ${token.tokenName}`} value={token.ownerId} disabled={busy} onChange={(event) => {

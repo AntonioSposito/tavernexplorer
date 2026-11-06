@@ -13,6 +13,8 @@ export const fakeRedisModule = {
     lrange: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     del: async (key: string) => Number(store.delete(key)),
     hlen: async (key: string) => hash(key).size,
+    hset: async (key: string, fields: Record<string, unknown>) => { for (const [field, value] of Object.entries(fields)) hash(key).set(field, JSON.stringify(value)); return 1; },
+    hgetall: async (key: string) => hash(key).size ? Object.fromEntries([...hash(key)].map(([field, value]) => [field, JSON.parse(value)])) : null,
     hget: async (key: string, field: string) => { const value = hash(key).get(field); return value ? JSON.parse(value) : null; },
     eval: async (_script: string, [key]: string[], [field, rev, value]: [string, number, string]) => {
       const current = hash(key).get(field);
@@ -28,6 +30,14 @@ export async function apiFetch(input: string, init?: RequestInit): Promise<Respo
   if (input.startsWith("/api/messages")) {
     const messages = await import("../api/messages");
     return messages[(init?.method ?? "GET") as "GET" | "POST"](new Request(`http://test${input}`, init));
+  }
+  if (input.startsWith("/api/room-state")) {
+    const state = await import("../api/room-state");
+    return state[(init?.method ?? "GET") as "GET" | "PUT"](new Request(`http://test${input}`, init));
+  }
+  if (input.startsWith("/api/bestiary")) {
+    const bestiary = await import("../api/bestiary");
+    return bestiary[(init?.method ?? "GET") as "GET" | "PUT" | "DELETE"](new Request(`http://test${input}`, init));
   }
   const api = await import("../api/sheets");
   const method = (init?.method ?? "GET") as "GET" | "PUT" | "DELETE";

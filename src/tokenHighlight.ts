@@ -33,6 +33,16 @@ export async function highlightToken(tokenId: string, options: { hiddenFromPlaye
   await OBR.scene.local.deleteItems([ring.id]);
 }
 
+// Porta il token al centro della vista di chi clicca, senza cambiare lo zoom, poi lo evidenzia.
+export async function focusToken(tokenId: string): Promise<void> {
+  if (!OBR.isAvailable || !(await OBR.scene.isReady())) throw new Error("Apri una scena Owlbear per trovare il token");
+  const [token] = await OBR.scene.items.getItems([tokenId]);
+  if (!token) throw new Error("Il token non è più nella scena aperta");
+  const [{ center }, scale, width, height] = await Promise.all([OBR.scene.items.getItemBounds([tokenId]), OBR.viewport.getScale(), OBR.viewport.getWidth(), OBR.viewport.getHeight()]);
+  await OBR.viewport.animateTo({ scale, position: { x: width / 2 - center.x * scale, y: height / 2 - center.y * scale } });
+  await highlightToken(tokenId);
+}
+
 // Ogni partecipante evidenzia il token di turno quando il GM avanza o torna indietro.
 export function setupTurnHighlight(readTurn: (metadata: Record<string, unknown>) => TurnState | undefined): () => void {
   let previous: string | null = null;

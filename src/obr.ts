@@ -125,7 +125,7 @@ export async function uploadMonsterTokens(monsters: Array<{ name: string; source
   return uploaded;
 }
 
-export interface CharacterToken { tokenId: string; tokenName: string; characterId?: string; ownerId: string }
+export interface CharacterToken { tokenId: string; tokenName: string; characterId?: string; ownerId: string; unlinked?: boolean }
 
 export async function setTokenCharacter(tokenId: string, characterId: string | null, ownerId?: string): Promise<void> {
   if (!OBR.isAvailable || !(await OBR.scene.isReady())) throw new Error("Apri una scena Owlbear per collegare il token");
@@ -135,7 +135,8 @@ export async function setTokenCharacter(tokenId: string, characterId: string | n
   await OBR.scene.items.updateItems([tokenId], (items) => {
     for (const item of items) {
       if (characterId) item.metadata[TOKEN_META_KEY] = { characterId };
-      else delete item.metadata[TOKEN_META_KEY];
+      // Il GM l'ha scollegato a mano: l'abbinamento automatico per nome non deve ricollegarlo.
+      else item.metadata[TOKEN_META_KEY] = { unlinked: true };
       if (ownerId) item.createdUserId = ownerId;
     }
   });
@@ -154,7 +155,7 @@ export async function setTokenOwner(tokenId: string, ownerId: string): Promise<v
 export async function getCharacterTokens(): Promise<CharacterToken[]> {
   if (!OBR.isAvailable || !(await OBR.scene.isReady())) return [];
   return (await OBR.scene.items.getItems((item) => item.layer === "CHARACTER"))
-    .map((item) => ({ tokenId: item.id, tokenName: item.name || "Token senza nome", characterId: linkedCharacterId(item), ownerId: item.createdUserId }))
+    .map((item) => ({ tokenId: item.id, tokenName: item.name || "Token senza nome", characterId: linkedCharacterId(item), ownerId: item.createdUserId, unlinked: (item.metadata[TOKEN_META_KEY] as { unlinked?: boolean } | undefined)?.unlinked === true }))
     .sort((a, b) => Number(Boolean(a.characterId)) - Number(Boolean(b.characterId)) || a.tokenName.localeCompare(b.tokenName, "it"));
 }
 
@@ -164,7 +165,7 @@ export async function getTokenImages(tokenIds: string[]): Promise<Record<string,
   return Object.fromEntries(items.filter(isImage).map((item) => [item.id, item.image.url]));
 }
 
-export { highlightToken } from "./tokenHighlight";
+export { focusToken, highlightToken } from "./tokenHighlight";
 
 // Mostra il risultato sulla mappa attaccato al token del personaggio; sparisce da solo.
 export async function showRollOnMap(characterId: string, label: string, total: number): Promise<void> {

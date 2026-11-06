@@ -56,6 +56,21 @@ it("importa un solo mostro dal picker", async () => {
   expect(host.textContent).not.toContain("Drago");
 });
 
+it("la chat scorre in fondo anche con il limite di 200 messaggi", async () => {
+  const chat = (ids: number[]) => JSON.stringify(ids.map((id) => ({ id: `m${id}`, kind: "text", author: "GM", authorId: "gm", body: `Messaggio ${id}`, visibility: "everyone", createdAt: id })));
+  const ids = Array.from({ length: 200 }, (_, index) => index);
+  localStorage.setItem(STORAGE_MESSAGES, chat(ids));
+  await act(async () => root.render(<App/>));
+  await click("Messaggi");
+  const list = host.querySelector<HTMLElement>(".message-list")!;
+  Object.defineProperty(list, "scrollHeight", { configurable: true, value: 999 });
+  list.scrollTop = 0;
+  localStorage.setItem(STORAGE_MESSAGES, chat([...ids.slice(1), 200]));
+  await act(async () => window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_MESSAGES })));
+  expect(host.textContent).toContain("Messaggio 200");
+  expect(list.scrollTop).toBe(999);
+});
+
 it("conta i messaggi non letti sulla tab Messaggi e li azzera all'apertura", async () => {
   localStorage.setItem(STORAGE_MESSAGES_SEEN, "100");
   localStorage.setItem(STORAGE_MESSAGES, JSON.stringify([

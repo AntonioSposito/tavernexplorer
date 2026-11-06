@@ -5,6 +5,7 @@ import { announceInitiative, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetIn
 import { createTokenTurn, linkedCharacterId } from "./tokenTurns";
 import { setupTokenStatus } from "./tokenStatus";
 import { setupTurnHighlight } from "./tokenHighlight";
+import { setupCloudStateBridge } from "./cloudStateBridge";
 import { openFloatingPanel, setupRemotePanelOpening } from "./floatingPanels";
 import { replaceTurnEntries } from "./turns";
 import { writeRoomMetadata } from "./roomMetadata";
@@ -76,4 +77,5 @@ OBR.onReady(async () => {
   setupTokenStatus();
   setupRemotePanelOpening();
   setupTurnHighlight((metadata) => metadata[TURN_META_KEY] as TurnState | undefined);
+  await setupCloudStateBridge();
 });

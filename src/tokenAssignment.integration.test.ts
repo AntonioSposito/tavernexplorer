@@ -34,5 +34,8 @@ it("mostra i token liberi e collega soltanto il token scelto", async () => {
   expect(room.items[1].createdUserId).toBe("gm");
   expect(room.items[0].createdUserId).toBe("gm");
   await setTokenCharacter("token-b", null);
-  expect(room.items[1].metadata[TOKEN_META_KEY]).toBeUndefined();
+  expect(room.items[1].metadata[TOKEN_META_KEY]).toEqual({ unlinked: true });
+  const unlinked = (await getCharacterTokens()).find((item) => item.tokenId === "token-b");
+  expect(unlinked).toMatchObject({ unlinked: true });
+  expect(unlinked?.characterId).toBeUndefined();
 });

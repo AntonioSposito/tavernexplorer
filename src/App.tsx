@@ -10,6 +10,9 @@ import { Journal } from "./Journal";
 import { EffectsEditor } from "./EffectsEditor";
 import { DeathSaveControl, HitDiceControl, HitPointControl } from "./HitPointControl";
 import { AssignmentPanel } from "./AssignmentPanel";
+import { useFreshMessages } from "./freshMessages";
+import { fetchRoomState, putRoomState, ROOM_STATE_POLL_MS } from "./cloudState";
+import { BESTIARY_POLL_MS, deleteCloudMonster, fetchBestiary, mergeBestiary, putMonsters } from "./cloudBestiary";
 import { LibraryPanel } from "./LibraryPanel";
 import { isSameCharacter, mergeReimport } from "./reimport";
 import { ArmorClassControl } from "./ArmorClassControl";
@@ -118,6 +121,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     id: entry.sheet.id, name: entry.sheet.name,
     ownerId: partyMembers.find((member) => member.role !== "GM" && canEditCloudSheet(entry, { name: member.name, role: "PLAYER" }))?.id,
   }] : []);
+  const assignableNpcs = library.entries.flatMap((entry) => entry.kind === "npc" ? [{ id: entry.sheet.id, name: entry.sheet.name, challengeRating: entry.sheet.challengeRating }] : []);
   const openNpcEntry = library.entries.find((entry) => entry.kind === "npc" && entry.sheet.id === openNpcId);
   const openNpc = openNpcEntry?.kind === "npc" ? openNpcEntry.sheet : null;
   const activeEntry = library.entries.find((entry) => entry.sheet.id === activeId);
@@ -198,6 +202,34 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chatRoom dipende da phone e da OBR pronto, che arriva con player
   }, [phone, floatingView, gmToken, player.id, player.role]);
+
+  // Turni, inventario e permessi arrivano al telefono dal cloud: li tiene allineati lo sfondo Owlbear del GM.
+  useEffect(() => {
+    if (!phone) return;
+    const refresh = () => { if (!document.hidden) void fetchRoomState(phone.room).then((state) => {
+      if (state.turns) setTurns(state.turns.value);
+      if (state.inventory) { setSharedInventoryState(state.inventory.value); storage.sharedInventory.set(state.inventory.value); }
+      if (state.permissions) setPermissionState({ ...DEFAULT_PERMISSIONS, ...state.permissions.value });
+    }).catch(() => undefined); };
+    refresh();
+    const timer = setInterval(refresh, ROOM_STATE_POLL_MS);
+    return () => clearInterval(timer);
+  }, [phone]);
+
+  // Serve il token GM: chi non ha collegato questo browser in Permessi tiene il bestiario solo qui.
+  useEffect(() => {
+    const room = chatRoom();
+    if (!room || floatingView || player.role !== "GM" || !gmToken) return;
+    const refresh = () => { if (!document.hidden) void fetchBestiary(room, gmToken).then(async (remote) => {
+      const { monsters: next, upload, changed } = mergeBestiary(storage.monsters.get(), remote);
+      if (changed) { setMonsters(next); storage.monsters.set(next); }
+      await putMonsters(room, gmToken, upload);
+    }).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Bestiario non sincronizzato")); };
+    refresh();
+    const timer = setInterval(refresh, BESTIARY_POLL_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chatRoom dipende da phone e da OBR pronto, che arriva con player
+  }, [phone, floatingView, gmToken, player.role]);
 
   // La scheda attiva deve restare tra quelle visibili.
   useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
@@ -307,7 +339,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     await runAction(async () => {
       if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare la libreria");
       await libraryRef.current.add({ kind: "npc", sheet: { ...monster, id: crypto.randomUUID(), name }, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: player.name });
-      await OBR.notification.show(`${name} aggiunto agli NPC della Libreria`, "SUCCESS");
+      if (OBR.isAvailable) await OBR.notification.show(`${name} aggiunto agli NPC della Libreria`, "SUCCESS");
     });
   }
 
@@ -342,7 +374,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
 
   async function saveSharedInventory(items: SharedInventoryItem[]) {
     if (player.role !== "GM" && !permissions.playersEditInventory) return;
-    await runAction(async () => { await setSharedInventory(items); setSharedInventoryState(items); storage.sharedInventory.set(items); });
+    await runAction(async () => { await (phone ? putRoomState(phone.room, "inventory", items) : setSharedInventory(items)); setSharedInventoryState(items); storage.sharedInventory.set(items); });
   }
 
   async function sendText() {
@@ -359,10 +391,16 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     }
   }
 
+  function syncMonsters(write: (room: string, token: string) => Promise<void>) {
+    const room = chatRoom();
+    if (room && gmToken) void write(room, gmToken).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Bestiario non salvato nel cloud"));
+  }
+
   async function changeTurns(next: TurnState): Promise<boolean> {
     if (player.role !== "GM" && !permissions.playersManageTurns) return false;
-    try { await setTurnState(next); setTurns(next); return true; }
-    catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Turno non salvato", "ERROR"); return false; }
+    // Sul telefono si aggiorna subito: la rete rallenterebbe i campi numerici dei PF.
+    try { if (phone) { setTurns(next); await putRoomState(phone.room, "turns", next); } else { await setTurnState(next); setTurns(next); } return true; }
+    catch (error) { const message = error instanceof Error ? error.message : "Turno non salvato"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else setSyncNotice(message); return false; }
   }
   async function rollTurnInitiative(entry: TurnEntry) {
     if (player.role !== "GM" && !permissions.playersManageTurns) return;
@@ -397,8 +435,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {([
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
         // Tab solo GM in fondo, dopo un separatore.
-        ...(player.role === "GM" && !phone ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
-      ] as const).filter(([id]) => !phone || (id !== "turns" && id !== "shared")).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
+        ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
+      ] as const).filter(([id]) => !phone || id !== "campaigns").map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
         <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
         {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
       </button>)}
@@ -414,16 +452,16 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {library.conflict && <Alert tone="danger"><p>{library.conflict}</p><Button variant="outline" onClick={() => libraryRef.current?.clearConflict()}>OK</Button></Alert>}
       {!OBR.isAvailable && !phone && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
-      {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
+      {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={phone ? undefined : async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && !phone && (assignableSheets.length > 0 || assignableNpcs.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} npcs={assignableNpcs} members={partyMembers}/>}</div>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
       {tab === "notes" && <Journal entries={library.entries} members={partyMembers} player={player} onAdd={(entry) => runAction(async () => { if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare il Journal"); await libraryRef.current.add(entry); })} onUpdate={(id, update) => { try { libraryRef.current?.update(id, update); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); } }} onRemove={(id) => runAction(async () => { await libraryRef.current?.remove(id); })} onShare={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000) || "Nessun testo.", visibility }))); }}/>}
       {tab === "library" && openNpc && <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => setOpenNpcId(null)}>← Libreria</Button></div><MonsterStatblock monster={openNpc} onRoll={performRoll} onShare={shareEntry}/></div>}
       {tab === "library" && !openNpc && <LibraryPanel entries={library.entries} activeId={activeId} members={partyMembers} player={player} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onOpenNpc={setOpenNpcId} onImport={() => fileRef.current?.click()} onCreate={(sheet) => { void createCharacter(sheet); }} onExport={exportCharacter} onExportPack={exportPack} onAclChange={(id, acl) => { try { libraryRef.current?.update(id, (entry) => ({ ...entry, acl })); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Permessi non salvati"); } }} onDelete={(id) => { void runAction(async () => { await libraryRef.current?.remove(id); }); }}/>}
-      {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={player.role === "GM" || permissions.playersManageTurns} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { setMonsters(next); storage.monsters.set(next); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}
+      {tab === "compendium" && player.role === "GM" && <Bestiary canManage={player.role === "GM"} canManageTurns={!phone && (player.role === "GM" || permissions.playersManageTurns)} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { const added = next.filter((item) => !monsters.includes(item)); setMonsters(next); storage.monsters.set(next); syncMonsters((room, token) => putMonsters(room, token, added)); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id)); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
       {tab === "settings" && player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso da telefono</h2><p>Su Vercel imposta PHONE_ROOM con questo ID stanza, PHONE_PASSWORD con la password per i giocatori e PHONE_GM_PASSWORD con quella del GM.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/><GmChatLink room={OBR.room.id} linked={!!gmToken} onLink={(token) => { storage.gmToken.set(token); setGmToken(token); }}/></Card>}
-      {tab === "settings" && player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await setPermissions(next); setPermissionState(next); }); }}/>}
+      {tab === "settings" && player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await (phone ? putRoomState(phone.room, "permissions", next) : setPermissions(next)); setPermissionState(next); }); }}/>}
     </main>
     </div>
     <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importFile(file); event.target.value = ""; }}/>
@@ -658,11 +696,13 @@ function Spells({ sheet, base, editable, onNotice, onRoll, onShare, onUpdate, at
 function Messages({ messages, draft, setDraft, visibility, setVisibility, onSend }: { messages: ChatMessage[]; draft: string; setDraft: (value: string) => void; visibility: Visibility; setVisibility: (value: Visibility) => void; onSend: () => void }) {
   const [filter, setFilter] = useState<"all" | Visibility>("all");
   const listRef = useRef<HTMLElement>(null);
+  const fresh = useFreshMessages(messages);
   const shown = filter === "all" ? messages : messages.filter((message) => message.visibility === filter);
-  useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [messages.length, filter]);
+  const lastId = messages.at(-1)?.id;
+  useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [lastId, filter]);
   return <div className="messages">
     <nav className="message-filters" aria-label="Filtra messaggi">{([ ["all", "Tutti"], ["everyone", "Pubblici"], ["gm", "GM"], ["self", "Personali"] ] as const).map(([id, label]) => <button key={id} className={filter === id ? "active" : ""} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</nav>
-    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
+    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
     <section className="composer"><textarea aria-label="Nuovo messaggio" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim()) onSend(); } }} placeholder="Scrivi un messaggio…"/><div><select aria-label="Destinatari" value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select><button className="primary" disabled={!draft.trim()} onClick={onSend}>Invia</button></div>{visibility === "gm" && <small className="composer-note">Il GM deve avere l'estensione aperta almeno una volta per ricevere messaggi cifrati.</small>}</section>
   </div>;
 }

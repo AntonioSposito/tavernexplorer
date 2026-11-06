@@ -33,7 +33,8 @@ interface TurnOrderProps {
   onRollInitiative: (entry: TurnEntry) => void;
   onFocusToken?: (tokenId: string) => void;
   active: CharacterSheet | null;
-  onAttach: () => void;
+  // Assente fuori da Owlbear: non c'è un token selezionato.
+  onAttach?: () => void;
   onOpenForPlayers?: () => void;
   // PF e CA nel turn order: solo il GM. Mostri e NPC li hanno nella voce, i PG nella scheda (pcStats per id scheda).
   showStats?: boolean;
@@ -74,7 +75,7 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
     </section>
     {editing && canManage && <div className="turn-tools">
       {onOpenForPlayers && <button onClick={onOpenForPlayers}>Apri il turn order ai giocatori ↗</button>}
-      <button onClick={onAttach} disabled={!active}>Collega scheda e token selezionato</button>
+      {onAttach && <button onClick={onAttach} disabled={!active}>Collega scheda e token selezionato</button>}
       <button aria-pressed={!state.hideTokenStats} onClick={() => onChange({ ...state, hideTokenStats: !state.hideTokenStats })}>{state.hideTokenStats ? "Mostra barre vita e CA" : "Nascondi barre vita e CA"}</button>
       {state.entries.length > 0 && <button className="turn-clear" onClick={() => onChange({ ...state, round: 1, activeIndex: 0, entries: [] })}>Svuota ordine</button>}
     </div>}
