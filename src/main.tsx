@@ -4,6 +4,7 @@ import App from "./App";
 import { OBR } from "./obr";
 import { PhoneApp } from "./PhoneAccess";
 import { TokenInitiativePicker } from "./TokenInitiativePicker";
+import { TokenMenu } from "./TokenMenu";
 import "./styles.css";
 import "./extended.css";
 import "./theme.css";
@@ -27,9 +28,9 @@ if (import.meta.env.DEV) {
   void import("./dev.css");
 }
 
-// Il popover del turn order per i token senza scheda carica solo il suo modulo, non l'app intera.
+// Il popover del turn order per i token senza scheda e la tendina del menu del token caricano solo il loro modulo, non l'app intera.
 // In locale resta l'anteprima: ?phone prova l'accesso da telefono.
 const params = new URLSearchParams(window.location.search);
 const preview = OBR.isAvailable || (import.meta.env.DEV && !params.has("phone"));
-const page = params.has("initiative") ? <TokenInitiativePicker /> : preview ? <App /> : <PhoneApp />;
+const page = params.has("initiative") ? <TokenInitiativePicker /> : params.has("token-menu") ? <TokenMenu /> : preview ? <App /> : <PhoneApp />;
 createRoot(document.getElementById("root")!).render(<StrictMode>{page}</StrictMode>);

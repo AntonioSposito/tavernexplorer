@@ -95,6 +95,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   const [pendingMonsters, setPendingMonsters] = useState<MonsterSheet[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [tokenNotice, setTokenNotice] = useState("");
+  // Scheda del token non ancora tra quelle caricate: si apre appena arriva dal cloud.
+  const [pendingTokenSheetId, setPendingTokenSheetId] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState("");
   // Avvisi dell'importer mostrati subito dopo l'import (restano anche nella tab Modifica).
   const [importNotes, setImportNotes] = useState<{ name: string; warnings: string[] } | null>(null);
@@ -170,6 +172,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
         if (!linkedId) { setTokenNotice(`Il token “${token.name || "senza nome"}” non ha una scheda collegata. Il GM può collegarla dalla tab Turni.`); setTab("library"); return; }
         if (charactersRef.current.some((sheet) => sheet.id === linkedId)) { setActiveId(linkedId); setTab("sheet"); return; }
         if (await OBR.player.getRole() === "GM" && storage.monsters.get().some((monster) => monster.id === linkedId)) { setSelectedMonsterId(linkedId); setTab("compendium"); return; }
+        setPendingTokenSheetId(linkedId);
         setTokenNotice(`La scheda collegata a “${token.name || "senza nome"}” non è disponibile su questo browser.`); setTab("library");
       }).catch(() => setTokenNotice("Impossibile leggere il token selezionato."));
       const stopTurns = onTurnStateChange(setTurns);
@@ -240,6 +243,10 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   // Solo la finestra principale decide il personaggio attivo del giocatore.
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
   useEffect(() => { charactersRef.current = characters; }, [characters]);
+  useEffect(() => {
+    if (!pendingTokenSheetId || !characters.some((sheet) => sheet.id === pendingTokenSheetId)) return;
+    setActiveId(pendingTokenSheetId); setTab("sheet"); setTokenNotice(""); setPendingTokenSheetId(null);
+  }, [characters, pendingTokenSheetId]);
   useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/messages-seen/")) setMessagesSeenAt(storage.messagesSeen.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
