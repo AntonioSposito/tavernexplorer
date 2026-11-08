@@ -15,7 +15,7 @@ OBR.onReady(async () => {
       label: "TavernExplorer",
       filter: { every: [{ key: "layer", value: "CHARACTER" }] },
     }],
-    embed: { url: "/?token-menu", height: 72 },
+    embed: { url: "/?token-menu", height: 108 },
   });
 
   setupTokenStatus();

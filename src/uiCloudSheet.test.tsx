@@ -246,7 +246,6 @@ it("l'attacco tira anche il danno, critico se il d20 naturale è nella gamma", a
   expect(host.querySelector(".app-tabs .active")?.getAttribute("aria-label")).toBe("Scheda");
   vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 18; return array; });
   await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
-  await click("Normale");
   vi.restoreAllMocks();
   expect(host.querySelector(".app-tabs .active")?.getAttribute("aria-label")).toBe("Scheda");
   await click("Messaggi");
@@ -301,7 +300,6 @@ it("le magie si usano dal nome: attacco con danno o card con la CD", async () =>
   const [bolt, hold, shield] = [...host.querySelectorAll<HTMLButtonElement>(".entry-use")];
   expect(shield.textContent).toBe("Scudo");
   await act(async () => bolt.click());
-  await click("Normale");
   await act(async () => hold.click());
   expect([...host.querySelectorAll(".cast-choice button")].map((button) => button.textContent)).toEqual(["Livello 2 (1/3)", "Livello 3 (2/2)", "Senza slot"]);
   await click("Livello 3 (2/2)");
@@ -603,8 +601,8 @@ it("crea, modifica ed elimina competenze e strumenti dalla tab Base", async () =
 
   // Il nome dello strumento tira 1d20 + caratteristica + competenza + mod.
   await click("Strumenti da scasso");
-  expect(host.querySelector(".ui-dialog")?.textContent).toContain("1d20+4[PROF]+1[MOD]");
-  await click("Chiudi");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card.d20.formula).toContain("1d20+4[PROF]+1[MOD]");
 
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Elfico"]')!.click());
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
@@ -649,7 +647,8 @@ it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira",
   expect(host.querySelector(".ui-dialog")?.textContent).toContain("Scegli la caratteristica");
   expect(host.querySelector(".ui-dialog")?.textContent).toContain("Carisma +5");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent?.startsWith("Carisma"))!.click());
-  expect(host.querySelector(".ui-dialog")?.textContent).toContain("1d20+3[CHA]+2[PROF]");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card.d20.formula).toContain("1d20+3[CHA]+2[PROF]");
 });
 
 it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
