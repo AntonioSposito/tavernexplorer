@@ -6,7 +6,11 @@ import { createTokenTurn, linkedCharacterId } from "./tokenTurns";
 import { openFloatingPanel } from "./floatingPanels";
 import { replaceTurnEntries } from "./turns";
 import { writeRoomMetadata } from "./roomMetadata";
-import type { TurnState } from "./types";
+import { canEditCloudSheet } from "./cloudSheets";
+import { effectiveSheet } from "./effects";
+import { setHitPointTotal } from "./hitPoints";
+import { notifySheetsChanged } from "./obr";
+import type { CharacterSheet, CloudSheet, TurnState } from "./types";
 
 // Voci della tendina TavernExplorer nel menu del token.
 
@@ -73,4 +77,84 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
     anchorReference: "POSITION", anchorPosition: { left: await OBR.viewport.getWidth() / 2, top: await OBR.viewport.getHeight() / 2 },
     anchorOrigin: { horizontal: "CENTER", vertical: "CENTER" }, transformOrigin: { horizontal: "CENTER", vertical: "CENTER" },
   });
+}
+
+// PF del token nella tendina: totale (attuali + temporanei) come nel turn order.
+// PG: dalla scheda, per chi può modificarla. NPC e mostri: dalla voce del turn order, solo il GM.
+// cap: il totale più alto raggiungibile curando (per i PG massimo + temporanei; NPC e mostri non hanno limite).
+export interface TokenHitPoints { total: number; max: number; cap: number }
+
+export async function getTokenHitPoints(token: Item): Promise<TokenHitPoints | null> {
+  const id = linkedCharacterId(token);
+  if (!id) return null;
+  const role = await OBR.player.getRole();
+  const pc = storage.cloudCache.get(OBR.room.id).find((entry) => entry.kind === "pc" && entry.sheet.id === id);
+  if (pc) {
+    if (!canEditCloudSheet(pc, { name: await OBR.player.getName(), role })) return null;
+    const { hp } = effectiveSheet(pc.sheet as CharacterSheet).combat;
+    return { total: hp.current + hp.temp, max: hp.max, cap: Math.max(hp.max, hp.current) + hp.temp };
+  }
+  if (role !== "GM") return null;
+  const turn = ((await OBR.room.getMetadata())[TURN_META_KEY] as TurnState | undefined)?.entries.find((entry) => entry.tokenId === token.id);
+  return turn?.hp ? { total: turn.hp.current, max: turn.hp.max, cap: Infinity } : null;
+}
+
+const TOKEN_HP_CHANNEL = `${EXTENSION_ID}/token-hp`;
+
+// La voce del menu muore appena il menu si chiude: chiede il salvataggio al background, che resta aperto.
+export async function requestTokenHitPoints(tokenId: string, total: number): Promise<void> {
+  await OBR.broadcast.sendMessage(TOKEN_HP_CHANNEL, { tokenId, total }, { destination: "LOCAL" });
+}
+
+// Nel background: solo richieste di questo stesso browser (un altro partecipante non scrive con i permessi del GM).
+export function setupTokenHitPoints(): () => void {
+  return OBR.broadcast.onMessage(TOKEN_HP_CHANNEL, (event) => {
+    const { tokenId, total } = (event.data ?? {}) as { tokenId?: unknown; total?: unknown };
+    if (typeof tokenId !== "string" || typeof total !== "number" || !Number.isSafeInteger(total)) return;
+    void (async () => {
+      if (event.connectionId !== await OBR.player.getConnectionId()) return;
+      const [token] = await OBR.scene.items.getItems([tokenId]);
+      if (token) await setTokenHitPoints(token, total);
+    })().catch((error) => OBR.notification.show(error instanceof Error ? error.message : "PF non salvati", "ERROR"));
+  });
+}
+
+const sheetsUrl = "/api/sheets";
+
+// Salva con la scheda già in cache (un solo invio); se il server ne ha una più nuova la usa e riprova una volta.
+// Restituisce il nuovo totale: per i PG la cura non supera il massimo.
+export async function setTokenHitPoints(token: Item, total: number): Promise<number> {
+  const id = linkedCharacterId(token);
+  const room = OBR.room.id;
+  const role = await OBR.player.getRole();
+  const isPc = (item: CloudSheet) => item.kind === "pc" && item.sheet.id === id && !item.deletedAt;
+  let entry = storage.cloudCache.get(room).find(isPc);
+  const turns = (await OBR.room.getMetadata())[TURN_META_KEY] as TurnState | undefined;
+  if (!entry && role === "GM" && turns?.entries.some((item) => item.tokenId === token.id && item.hp)) {
+    await writeRoomMetadata({ [TURN_META_KEY]: { ...turns, entries: turns.entries.map((item) => item.tokenId === token.id && item.hp ? { ...item, hp: { ...item.hp, current: Math.max(0, total) } } : item) } });
+    return Math.max(0, total);
+  }
+  if (!entry) {
+    const response = await fetch(`${sheetsUrl}?room=${encodeURIComponent(room)}`);
+    if (!response.ok) throw new Error("Server non raggiungibile: PF non salvati");
+    entry = ((await response.json()) as { sheets: CloudSheet[] }).sheets.find(isPc);
+    if (!entry) throw new Error(role === "GM" ? "Il token non è nel turn order" : "Solo il GM cambia i PF di NPC e mostri");
+  }
+  const name = await OBR.player.getName();
+  const put = async (current: CloudSheet) => {
+    if (!canEditCloudSheet(current, { name, role })) throw new Error("Non hai il permesso di modificare questa scheda");
+    const sheet = structuredClone(current.sheet as CharacterSheet);
+    sheet.combat = setHitPointTotal(sheet.combat, total, effectiveSheet(sheet).combat.hp.max);
+    const response = await fetch(sheetsUrl, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, rev: current.rev, entry: { kind: current.kind, sheet, acl: current.acl, updatedBy: name } }) });
+    const body = await response.json().catch(() => null) as { entry?: CloudSheet | null } | null;
+    return { status: response.status, entry: body?.entry ?? null };
+  };
+  let result = await put(entry);
+  if (result.status === 409 && result.entry) result = await put(result.entry);
+  if (result.status !== 200 || !result.entry) throw new Error(result.status === 409 ? "La scheda è appena cambiata: riprova" : "PF non salvati");
+  const saved = result.entry;
+  storage.cloudCache.set(room, storage.cloudCache.get(room).map((item) => item.sheet.id === saved.sheet.id ? saved : item));
+  notifySheetsChanged();
+  const { hp } = (saved.sheet as CharacterSheet).combat;
+  return hp.current + hp.temp;
 }

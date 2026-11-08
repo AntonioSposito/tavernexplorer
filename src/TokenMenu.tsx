@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import OBR, { type Item } from "@owlbear-rodeo/sdk";
 import { TURN_META_KEY } from "./constants";
-import { openTokenActions, openTokenSheet, toggleTokenInitiative } from "./tokenMenuActions";
+import { getTokenHitPoints, openTokenActions, openTokenSheet, requestTokenHitPoints, toggleTokenInitiative, type TokenHitPoints } from "./tokenMenuActions";
 import { linkedCharacterId } from "./tokenTurns";
 import { storage } from "./storage";
 import type { TurnState } from "./types";
@@ -15,13 +15,7 @@ export function TokenMenu() {
   useEffect(() => {
     document.documentElement.classList.add("token-menu-page");
     OBR.onReady(() => {
-      // Colori del tema della stanza, come le voci native del menu.
-      void OBR.theme.getTheme().then((theme) => {
-        document.body.style.setProperty("--menu-text", theme.text.primary);
-        document.body.style.setProperty("--menu-text-secondary", theme.text.secondary);
-        document.body.style.setProperty("--menu-text-disabled", theme.text.disabled);
-        document.documentElement.dataset.mode = theme.mode.toLowerCase();
-      });
+      applyMenuTheme();
       void Promise.all([
         OBR.player.getSelection().then((ids) => ids?.length ? OBR.scene.items.getItems(ids) : []),
         OBR.room.getMetadata(),
@@ -47,4 +41,61 @@ export function TokenMenu() {
     <button type="button" disabled={!actionsToken} onClick={() => void run(() => openTokenActions(actionsToken!))}>{icon("turns")}Azioni</button>
     <button type="button" disabled={items.length === 0} onClick={() => void run(() => toggleTokenInitiative(items))}>{icon("turns")}{remove ? "Esci dal combattimento" : "Tira iniziativa"}</button>
   </div>;
+}
+
+// Voce "Punti ferita" del menu principale (embed): il campo compare al clic sull'icona e la tendina resta aperta,
+// come il raggio della luce.
+export function TokenHpMenu() {
+  const [token, setToken] = useState<Item | null>(null);
+  const [hp, setHp] = useState<TokenHitPoints | null>(null);
+  const [hpDraft, setHpDraft] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.add("token-menu-page");
+    OBR.onReady(() => {
+      applyMenuTheme();
+      void OBR.player.getSelection().then((ids) => ids?.length === 1 ? OBR.scene.items.getItems(ids) : []).then(async ([selected]) => {
+        if (!selected) return;
+        setToken(selected);
+        setHp(await getTokenHitPoints(selected).catch(() => null));
+      });
+    });
+  }, []);
+
+  const saveHp = async () => {
+    const total = hp && hpDraft !== null ? parseHitPoints(hpDraft, hp.total) : null;
+    setHpDraft(null);
+    if (!hp || !token || total === null || total === hp.total) return;
+    // Il numero cambia subito; il background salva anche se il menu si chiude prima della risposta del server.
+    setHp({ ...hp, total: Math.min(total, Math.max(hp.cap, hp.total)) });
+    try { await requestTokenHitPoints(token.id, total); }
+    catch (error) { await OBR.notification.show(error instanceof Error ? error.message : "PF non salvati", "ERROR"); }
+  };
+
+  return <div className="token-menu">
+    <label className={`token-menu-hp${hp ? "" : " disabled"}`}>
+      <span className="token-menu-icon token-menu-label" aria-hidden="true">PF</span>
+      <input aria-label="Punti ferita" title="Scrivi i PF (attuali + temporanei), oppure -7 per il danno e +5 per la cura" inputMode="numeric" disabled={!hp}
+        value={hpDraft ?? (hp ? String(hp.total) : "—")} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setHpDraft(event.target.value)}
+        onBlur={() => void saveHp()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") setHpDraft(null); }}/>
+      {hp && <small>/ {hp.max}</small>}
+    </label>
+  </div>;
+}
+
+// Colori del tema della stanza, come le voci native del menu (chiamata dentro OBR.onReady).
+function applyMenuTheme() {
+  void OBR.theme.getTheme().then((theme) => {
+    document.body.style.setProperty("--menu-text", theme.text.primary);
+    document.body.style.setProperty("--menu-text-secondary", theme.text.secondary);
+    document.body.style.setProperty("--menu-text-disabled", theme.text.disabled);
+    document.documentElement.dataset.mode = theme.mode.toLowerCase();
+  });
+}
+
+// "12" imposta il totale, "-7" e "+5" lo cambiano; altro testo non cambia niente.
+export function parseHitPoints(text: string, total: number): number | null {
+  const match = /^\s*([+-]?)\s*(\d+)\s*$/.exec(text);
+  if (!match) return null;
+  return Math.max(0, match[1] ? total + Number(`${match[1]}${match[2]}`) : Number(match[2]));
 }

@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { beforeEach, expect, it, vi } from "vitest";
 import { TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 
-const mock = vi.hoisted(() => ({ deselect: vi.fn(async () => undefined), openSheet: vi.fn(async () => undefined), toggle: vi.fn(async () => undefined), openActions: vi.fn(async () => undefined), linked: false, selection: ["t1"], turnIds: [] as string[] }));
+const mock = vi.hoisted(() => ({ deselect: vi.fn(async () => undefined), openSheet: vi.fn(async () => undefined), toggle: vi.fn(async () => undefined), openActions: vi.fn(async () => undefined), hp: null as { total: number; max: number; cap: number } | null, setHp: vi.fn(async () => undefined), linked: false, selection: ["t1"], turnIds: [] as string[] }));
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   onReady: (callback: () => void) => callback(),
   theme: { getTheme: async () => ({ mode: "DARK", text: { primary: "#fff", secondary: "#aaa", disabled: "#888" } }) },
@@ -12,13 +12,13 @@ vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   player: { getSelection: async () => mock.selection, deselect: mock.deselect },
   scene: { items: { getItems: async (ids: string[]) => ids.map((id) => ({ id, name: id, metadata: mock.linked ? { [TOKEN_META_KEY]: { characterId: "pc1" } } : {} })) } },
 } }));
-vi.mock("./tokenMenuActions", () => ({ openTokenSheet: mock.openSheet, toggleTokenInitiative: mock.toggle, openTokenActions: mock.openActions }));
+vi.mock("./tokenMenuActions", () => ({ openTokenSheet: mock.openSheet, toggleTokenInitiative: mock.toggle, openTokenActions: mock.openActions, getTokenHitPoints: async () => mock.hp, requestTokenHitPoints: mock.setHp }));
 
-import { TokenMenu } from "./TokenMenu";
+import { parseHitPoints, TokenHpMenu, TokenMenu } from "./TokenMenu";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-beforeEach(() => { mock.linked = false; mock.openActions.mockClear(); mock.toggle.mockClear(); mock.openSheet.mockClear(); mock.deselect.mockClear(); });
+beforeEach(() => { mock.hp = null; mock.setHp.mockClear(); mock.linked = false; mock.openActions.mockClear(); mock.toggle.mockClear(); mock.openSheet.mockClear(); mock.deselect.mockClear(); });
 
 async function renderMenu() {
   document.body.innerHTML = "<div id='root'></div>";
@@ -61,4 +61,37 @@ it("apre le azioni solo per un token collegato a una scheda", async () => {
   await act(async () => { actions.click(); });
   expect(mock.openActions).toHaveBeenCalledWith(expect.objectContaining({ id: "t1" }));
   expect(mock.deselect).toHaveBeenCalled();
+});
+
+it("legge i PF come totale oppure come danno e cura", () => {
+  expect(parseHitPoints("12", 30)).toBe(12);
+  expect(parseHitPoints("-7", 30)).toBe(23);
+  expect(parseHitPoints("+5", 30)).toBe(35);
+  expect(parseHitPoints("-50", 30)).toBe(0);
+  expect(parseHitPoints("abc", 30)).toBeNull();
+});
+
+async function renderHp() {
+  document.body.innerHTML = "<div id='root'></div>";
+  await act(async () => { createRoot(document.getElementById("root")!).render(<TokenHpMenu />); });
+}
+
+it("cambia i PF dalla voce del menu senza chiuderlo", async () => {
+  mock.selection = ["t1"]; mock.turnIds = []; mock.hp = { total: 15, max: 20, cap: 20 };
+  await renderHp();
+  const input = document.querySelector<HTMLInputElement>('input[aria-label="Punti ferita"]')!;
+  expect(input.value).toBe("15");
+  expect(document.querySelector(".token-menu-hp small")?.textContent).toBe("/ 20");
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+  await act(async () => { setValue.call(input, "+9"); input.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => { input.focus(); input.blur(); });
+  expect(mock.setHp).toHaveBeenCalledWith("t1", 24);
+  expect(input.value).toBe("20");
+  expect(mock.deselect).not.toHaveBeenCalled();
+});
+
+it("senza PF modificabili il campo è disattivato", async () => {
+  mock.selection = ["t1"]; mock.turnIds = [];
+  await renderHp();
+  expect(document.querySelector<HTMLInputElement>('input[aria-label="Punti ferita"]')!.disabled).toBe(true);
 });

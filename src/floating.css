@@ -12,6 +12,11 @@ html.token-menu-page body { color: var(--menu-text, #fff); font-family: Roboto, 
 .token-menu { display: grid; }
 .token-menu button { display: flex; align-items: center; gap: 12px; min-height: 36px; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; font-size: 16px; letter-spacing: .15px; text-align: left; white-space: nowrap; padding: 0 16px; cursor: pointer; }
 .token-menu button:hover:not(:disabled) { background: rgba(255, 255, 255, .08); }
+.token-menu-hp { display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 16px; font-size: 16px; }
+.token-menu-hp.disabled { color: var(--menu-text-disabled, rgba(255, 255, 255, .5)); }
+.token-menu-hp input { width: 64px; border: 1px solid var(--menu-text-disabled, rgba(255, 255, 255, .5)); border-radius: 4px; background: transparent; color: inherit; font: inherit; padding: 2px 6px; }
+.token-menu-hp small { color: var(--menu-text-secondary, rgba(255, 255, 255, .7)); }
+.token-menu-icon.token-menu-label { background: none; font-size: 12px; font-weight: 700; line-height: 24px; text-align: center; }
 html.token-menu-page[data-mode="light"] .token-menu button:hover:not(:disabled) { background: rgba(0, 0, 0, .04); }
 .token-menu button:disabled { color: var(--menu-text-disabled, rgba(255, 255, 255, .5)); cursor: default; }
 .token-menu-icon { flex: none; width: 24px; height: 24px; background: currentColor; mask-size: contain; mask-repeat: no-repeat; mask-position: center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; }

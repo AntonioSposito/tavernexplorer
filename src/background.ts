@@ -1,9 +1,10 @@
 import OBR from "@owlbear-rodeo/sdk";
-import { EXTENSION_ID, TURN_META_KEY } from "./constants";
+import { EXTENSION_ID, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import { setupTokenStatus } from "./tokenStatus";
 import { setupTurnHighlight } from "./tokenHighlight";
 import { setupCloudStateBridge } from "./cloudStateBridge";
 import { setupRemotePanelOpening } from "./floatingPanels";
+import { setupTokenHitPoints } from "./tokenMenuActions";
 import type { TurnState } from "./types";
 
 OBR.onReady(async () => {
@@ -17,8 +18,19 @@ OBR.onReady(async () => {
     }],
     embed: { url: "/?token-menu", height: 108 },
   });
+  // I PF si cambiano spesso: voce propria nel menu principale, solo su un token collegato a una scheda.
+  await OBR.contextMenu.create({
+    id: `${EXTENSION_ID}/token-hp`,
+    icons: [{
+      icon: "/hp.svg",
+      label: "Punti ferita",
+      filter: { max: 1, every: [{ key: "layer", value: "CHARACTER" }, { key: ["metadata", TOKEN_META_KEY, "characterId"], operator: "!=", value: undefined }] },
+    }],
+    embed: { url: "/?token-hp", height: 44 },
+  });
 
   setupTokenStatus();
+  setupTokenHitPoints();
   setupRemotePanelOpening();
   setupTurnHighlight((metadata) => metadata[TURN_META_KEY] as TurnState | undefined);
   await setupCloudStateBridge();

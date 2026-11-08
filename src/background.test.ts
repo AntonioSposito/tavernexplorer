@@ -36,8 +36,11 @@ vi.mock("./privateMessages", () => ({ gmRecipients: async () => [], encryptGmMes
 beforeAll(async () => { await import("./background"); await mock.ready?.(); });
 beforeEach(() => { mock.updateItems.mockClear(); mock.open.mockClear(); mock.setMetadata.mockClear(); mock.notify.mockClear(); mock.send.mockClear(); mock.role = "PLAYER"; localStorage.clear(); });
 
-it("registra una sola voce TavernExplorer che apre la tendina", () => {
-  expect(mock.menus).toEqual([expect.objectContaining({ id: "it.tavernexplorer/token-menu", icons: [expect.objectContaining({ label: "TavernExplorer" })], embed: expect.objectContaining({ url: "/?token-menu" }) })]);
+it("registra la voce TavernExplorer che apre la tendina e la voce dei PF", () => {
+  expect(mock.menus).toEqual([
+    expect.objectContaining({ id: "it.tavernexplorer/token-menu", icons: [expect.objectContaining({ label: "TavernExplorer" })], embed: expect.objectContaining({ url: "/?token-menu" }) }),
+    expect.objectContaining({ id: "it.tavernexplorer/token-hp", icons: [expect.objectContaining({ label: "Punti ferita" })], embed: expect.objectContaining({ url: "/?token-hp" }) }),
+  ]);
 });
 
 it("apre il token senza collegarlo di nascosto alla scheda attiva", async () => {
