@@ -2,7 +2,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { STORAGE_CLOUD_CACHE, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import { createBlankSheet } from "./blankSheet";
-import type { CloudSheet } from "./types";
+import type { CharacterSheet, CloudSheet } from "./types";
 
 const mock = vi.hoisted(() => ({
   role: "PLAYER", metadata: {} as Record<string, unknown>, written: [] as unknown[], notify: vi.fn(), error: vi.fn(),
@@ -52,7 +52,7 @@ it("salva subito dalla cache: il danno consuma prima i temporanei", async () => 
   const calls = serve(entry);
   expect(await setTokenHitPoints(token("eroe"), 8)).toBe(8);
   expect(calls.map((call) => call.method)).toEqual(["PUT"]);
-  expect(calls[0].entry?.sheet.combat.hp).toMatchObject({ current: 8, temp: 0 });
+  expect((calls[0].entry?.sheet as CharacterSheet).combat.hp).toMatchObject({ current: 8, temp: 0 });
   expect(JSON.parse(localStorage.getItem(`${STORAGE_CLOUD_CACHE}/r1`)!)[0].rev).toBe(5);
   expect(mock.notify).toHaveBeenCalled();
 });
@@ -106,5 +106,5 @@ it("il background salva le richieste di questo browser e ignora quelle degli alt
   expect(calls).toHaveLength(0);
   mock.listener?.({ data: { tokenId: "t1", total: 6 }, connectionId: "me" });
   await vi.waitFor(() => expect(calls.map((call) => call.method)).toEqual(["PUT"]));
-  expect(calls[0].entry?.sheet.combat.hp.current).toBe(6);
+  expect((calls[0].entry?.sheet as CharacterSheet).combat.hp.current).toBe(6);
 });
