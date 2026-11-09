@@ -107,7 +107,7 @@ export function import5eToolsMonsters(source: unknown): MonsterSheet[] {
       saves: Object.fromEntries(Object.entries(obj(monster.save)).map(([key, value]) => [key, number(value)])),
       skills: Object.fromEntries(Object.entries(obj(monster.skill)).map(([key, value]) => [key, number(value)])), passivePerception: number(monster.passive),
       traits: importTraits(monster.trait), actions: importEntries(monster.action, "action"), reactions: importEntries(monster.reaction, "reaction"),
-      legendaryActions: importEntries(monster.legendary, "legendary"), image: imageUrl(monster), importWarnings: [],
+      legendaryActions: importEntries(monster.legendary, "legendary"), image: imageUrl(monster), importWarnings: array(monster._teWarnings).map(text),
     };
   });
 }

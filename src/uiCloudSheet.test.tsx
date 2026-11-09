@@ -142,6 +142,10 @@ it("il GM condivide un mostro del bestiario dai permessi del mostro", async () =
   await click("Bestiario");
   await click("Lupo");
   expect(host.textContent).not.toContain("Aggiungi agli NPC");
+  expect(host.textContent).not.toContain("Riepilogo mostro");
+  await click("Mostra in chat");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Lupo", visibility: "everyone", body: expect.stringContaining("CA 13") });
   await choose("Può vedere: aggiungi giocatore", "Marco");
   await settle();
   expect(cloudEntries()).toEqual([expect.objectContaining({ kind: "npc", acl: { view: ["Marco"], edit: [] }, sheet: expect.objectContaining({ id: "wolf", name: "Lupo" }) })]);

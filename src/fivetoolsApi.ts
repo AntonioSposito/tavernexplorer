@@ -1,5 +1,6 @@
 import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
 import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
+import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { CampaignDocument, MonsterSheet } from "./types";
 
 // Il sito applica una challenge Cloudflare; il mirror del progetto espone gli
@@ -22,8 +23,25 @@ export async function listBestiarySources(): Promise<FiveToolsSource[]> {
 
 export async function loadBestiarySource(source: FiveToolsSource): Promise<MonsterSheet[]> {
   if (!/^[a-z0-9_.-]+$/i.test(source.file)) throw new Error("Nome sorgente 5e.tools non valido");
-  return import5eToolsMonsters(await request(`bestiary/${source.file}`));
+  return importMonsters(await request(`bestiary/${source.file}`));
 }
+
+// Anche per i file caricati a mano: i mostri "_copy" prendono i dati dell'originale dal suo manuale.
+export async function importMonsters(data: Record<string, unknown>): Promise<MonsterSheet[]> {
+  return import5eToolsMonsters({ ...data, monster: await resolveCopies(Array.isArray(data.monster) ? data.monster : [], findMonster) });
+}
+
+let bestiaryIndex: Promise<Record<string, unknown>> | null = null;
+const bestiaryFiles = new Map<string, Promise<Array<Record<string, unknown>>>>();
+// Un manuale si scarica una volta per sessione; se fallisce si riprova alla prossima importazione.
+const findMonster: FindMonster = async (name, source) => {
+  const index = await (bestiaryIndex ??= request("bestiary/index.json").catch((error) => { bestiaryIndex = null; throw error; }));
+  const file = Object.entries(index).find(([id]) => id.toLowerCase() === source.toLowerCase())?.[1];
+  if (typeof file !== "string" || !/^[a-z0-9_.-]+$/i.test(file)) return undefined;
+  if (!bestiaryFiles.has(file)) bestiaryFiles.set(file, request(`bestiary/${file}`).then((data) => Array.isArray(data.monster) ? data.monster : []).catch((error) => { bestiaryFiles.delete(file); throw error; }));
+  const lower = name.toLowerCase();
+  return (await bestiaryFiles.get(file)!).find((monster) => String(monster.name).toLowerCase() === lower && String(monster.source).toLowerCase() === source.toLowerCase());
+};
 
 export async function listAdventures(): Promise<FiveToolsAdventure[]> {
   const root = await request("adventures.json");
