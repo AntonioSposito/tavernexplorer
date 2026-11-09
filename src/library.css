@@ -183,3 +183,8 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .statblock-section>summary h2{margin:0}
 .statblock-section>summary .ui-button{margin-left:auto;min-height:1.8rem;padding:.1rem .6rem}
 @media(max-width:480px){.statblock-abilities{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Dettagli veloci del mostro (menu del token): etichetta a sinistra, valore a destra. */
+.quick-details{display:grid;gap:0;margin:0}
+.quick-details>div{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem;padding:.4rem 0;border-bottom:1px solid hsl(var(--border))}
+.quick-details dt{font-weight:700;color:hsl(var(--primary))}
+.quick-details dd{margin:0;line-height:1.4}

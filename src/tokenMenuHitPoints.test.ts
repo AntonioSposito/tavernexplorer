@@ -18,7 +18,7 @@ vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
 vi.mock("./obr", () => ({ notifySheetsChanged: mock.notify }));
 vi.mock("./roomMetadata", () => ({ writeRoomMetadata: async (value: unknown) => { mock.written.push(value); } }));
 
-import { setTokenHitPoints, setupTokenHitPoints } from "./tokenMenuActions";
+import { monsterTokenSections, setTokenHitPoints, setupTokenHitPoints } from "./tokenMenuActions";
 
 const token = (characterId: string) => ({ id: "t1", name: "Eroe", metadata: { [TOKEN_META_KEY]: { characterId } } }) as never;
 
@@ -120,4 +120,13 @@ it("il background salva le richieste di questo browser e ignora quelle degli alt
   mock.listener?.({ data: { tokenId: "t1", total: 6 }, connectionId: "me" });
   await vi.waitFor(() => expect(calls.map((call) => call.method)).toEqual(["PUT"]));
   expect((calls[0].entry?.sheet as CharacterSheet).combat.hp.current).toBe(6);
+});
+
+it("un mostro modificabile ha tutte le voci del menu tranne Risorse, Magia solo se incantatore", () => {
+  const monster = (id: string, spellcasting?: unknown) => ({ kind: "npc", sheet: { id, spellcasting }, acl: { view: [], edit: ["Anna"] }, rev: 1, updatedAt: 0, updatedBy: "GM" });
+  cache([monster("lupo"), monster("mago", { ability: "intelligence", attackModifier: 0, dcModifier: 0, casterLevel: 1, slots: {} })] as never);
+  const anna = { name: "Anna", role: "PLAYER" as const };
+  expect(monsterTokenSections("lupo", anna)).toEqual(["details", "actions", "abilities", "skills"]);
+  expect(monsterTokenSections("mago", anna)).toEqual(["details", "actions", "abilities", "skills", "spells"]);
+  expect(monsterTokenSections("lupo", { name: "Bruno", role: "PLAYER" })).toEqual([]);
 });

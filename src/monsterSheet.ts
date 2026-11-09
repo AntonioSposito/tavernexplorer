@@ -1,6 +1,6 @@
 import { createBlankSheet } from "./blankSheet";
 import { slotsForCasterLevel } from "./classes";
-import { SKILL_LABELS } from "./constants";
+import { SKILL_ABILITIES, SKILL_LABELS } from "./constants";
 import { DEFAULT_RULESET } from "./rulesets";
 import type { ActionDamage, ActionEntry, CharacterSheet, MonsterSheet, MonsterSpellcasting } from "./types";
 
@@ -57,6 +57,12 @@ export function monsterCasterSheet(monster: MonsterSheet, cast?: MonsterSpellcas
     const score = monster.abilities[short] ?? 10; const mod = Math.floor((score - 10) / 2);
     sheet.abilities[long] = { score, mod, save: monster.saves[short] ?? mod, saveProficient: monster.saves[short] != null };
   }
+  // Abilità: bonus dello statblock (competente) oppure il modificatore della caratteristica.
+  for (const [key, ability] of Object.entries(SKILL_ABILITIES)) {
+    const trained = monster.skills[key.replace(/_/g, " ")];
+    sheet.skills[key] = { ability, bonus: trained ?? sheet.abilities[ability]?.mod ?? 0, proficient: trained != null };
+  }
+  sheet.combat = { ...sheet.combat, ac: monster.ac, speed: monster.speed, passivePerception: monster.passivePerception };
   if (cast) sheet.spellcasting = { ability: cast.ability, ...monsterSpellStats(monster, cast), slots: cast.slots };
   sheet.spells = monster.spells ?? [];
   return sheet;

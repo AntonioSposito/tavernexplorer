@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import OBR, { type Item } from "@owlbear-rodeo/sdk";
 import { TURN_META_KEY } from "./constants";
-import { canEditMonster, getTokenHitPoints, openTokenActions, openTokenSheet, requestTokenHitPoints, toggleTokenInitiative, TOKEN_SHEET_SECTIONS, type TokenHitPoints, type TokenSheetSection } from "./tokenMenuActions";
+import { getTokenHitPoints, monsterTokenSections, openTokenActions, openTokenSheet, requestTokenHitPoints, toggleTokenInitiative, TOKEN_SHEET_SECTIONS, type TokenHitPoints, type TokenSheetSection } from "./tokenMenuActions";
 import { linkedCharacterId } from "./tokenTurns";
 import { storage } from "./storage";
 import type { TurnState } from "./types";
@@ -37,14 +37,14 @@ export function TokenMenu() {
   // Tutti già nei turni: la voce li toglie; altrimenti aggiunge i mancanti (selezione mista compresa).
   const remove = items.length > 0 && inTurnIds.length === items.length;
   // Azioni, magia, risorse, prove, TS e abilità: un solo token collegato a una scheda personaggio della stanza.
-  // Mostri (del bestiario per il GM, condivisi in modifica per un giocatore): solo le azioni.
+  // Mostri (del bestiario per il GM, condivisi in modifica per un giocatore): tutto tranne le risorse, Magia solo se incantatori.
   const linkedId = items.length === 1 ? linkedCharacterId(items[0]) : undefined;
   const pcToken = linkedId && storage.cloudCache.characters(OBR.room.id).some((sheet) => sheet.id === linkedId) ? items[0] : undefined;
-  const monsterToken = linkedId && canEditMonster(linkedId, player) ? items[0] : undefined;
+  const monsterSections = linkedId && !pcToken ? monsterTokenSections(linkedId, player) : [];
 
   return <div className="token-menu">
     <button type="button" disabled={items.length !== 1} onClick={() => void run(() => openTokenSheet(items[0]))}>{icon("sheet")}Apri scheda</button>
-    {(Object.keys(TOKEN_SHEET_SECTIONS) as TokenSheetSection[]).map((section) => <button key={section} type="button" disabled={!(pcToken ?? (section === "actions" ? monsterToken : undefined))} onClick={() => void run(() => openTokenActions((pcToken ?? monsterToken)!, section))}>{icon(section === "actions" ? "turns" : "sheet")}{TOKEN_SHEET_SECTIONS[section]}</button>)}
+    {(Object.keys(TOKEN_SHEET_SECTIONS) as TokenSheetSection[]).filter((section) => monsterSections.length ? section !== "resources" : section !== "details").map((section) => <button key={section} type="button" disabled={!pcToken && !monsterSections.includes(section)} onClick={() => void run(() => openTokenActions(items[0], section))}>{icon(section === "actions" ? "turns" : section === "details" ? "compendium" : "sheet")}{TOKEN_SHEET_SECTIONS[section]}</button>)}
     <button type="button" disabled={items.length === 0} onClick={() => void run(() => toggleTokenInitiative(items))}>{icon("turns")}{remove ? "Esci dal combattimento" : "Tira iniziativa"}</button>
   </div>;
 }

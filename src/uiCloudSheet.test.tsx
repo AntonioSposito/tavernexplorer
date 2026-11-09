@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MONSTERS, TOKEN_META_KEY } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
@@ -15,11 +15,11 @@ vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined
 vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
-const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER" }));
+const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[] }));
 const noop = () => undefined;
 const unsubscribe = () => noop;
 vi.mock("./obr", () => ({
-  OBR: { isAvailable: true, isReady: true, onReady: (callback: () => void) => callback(), room: { id: "r1", getPermissions: async () => [], onPermissionsChange: unsubscribe }, party: { onChange: unsubscribe }, scene: { isReady: async () => false, onReadyChange: unsubscribe, items: { onChange: unsubscribe } }, notification: { show: async () => undefined } },
+  OBR: { isAvailable: true, isReady: true, onReady: (callback: () => void) => callback(), room: { id: "r1", getPermissions: async () => [], onPermissionsChange: unsubscribe }, party: { onChange: unsubscribe }, scene: { isReady: async () => false, onReadyChange: unsubscribe, items: { onChange: unsubscribe, getItems: async () => viewer.tokens } }, player: { getRole: async () => viewer.role }, popover: { close: async () => undefined }, notification: { show: async () => undefined } },
   DEFAULT_PERMISSIONS: { playersEditInventory: true, playersImportContent: false, playersManageTurns: false },
   getPlayerInfo: async () => ({ id: viewer.name, ...viewer }),
   getTurnState: async () => ({ round: 1, activeIndex: 0, entries: [] }),
@@ -39,10 +39,10 @@ beforeEach(() => {
   Object.defineProperty(globalThis, "crypto", { configurable: true, value: webcrypto });
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
   vi.stubGlobal("fetch", apiFetch);
-  viewer.name = "GM"; viewer.role = "GM";
+  viewer.name = "GM"; viewer.role = "GM"; viewer.tokens = [];
   store.clear(); localStorage.clear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); });
 
 const settle = (ms = 50) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
 const click = async (label: string) => {
@@ -157,6 +157,40 @@ it("il GM rende incantatore un mostro: Magia come le schede PG, con CD calcolata
   await click("Dardo di fuoco");
   await settle();
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ author: "Mago", visibility: "gm" });
+});
+
+it("la finestra del token di un mostro mostra solo la parte scelta dal menu, come le schede PG", async () => {
+  const mage = { schemaVersion: 1, id: "mage", name: "Mago", source: "MM", creatureType: "Umanoide", challengeRating: "6", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 12, hp: { average: 40, formula: "9d8" }, speed: "30 ft.", abilities: { int: 17 }, saves: { int: 6 }, skills: {}, passivePerception: 11, traits: [], actions: [{ id: "a", name: "Bastone", description: "" }], reactions: [], legendaryActions: [], importWarnings: [],
+    spellcasting: { ability: "intelligence", attackModifier: 0, dcModifier: 0, casterLevel: 1, slots: { level_1: { total: 2, used: 0 } } }, spells: [{ id: "bolt", name: "Dardo di fuoco", level: 0, prepared: true, ritual: false, concentration: false, description: "" }] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([mage]));
+  viewer.tokens = [{ id: "t1", name: "Mago", metadata: { [TOKEN_META_KEY]: { characterId: "mage" } } }];
+  const open = async (section: string) => {
+    window.history.replaceState(null, "", `/?view=sheet&token=t1&section=${section}`);
+    await act(async () => root.render(<App key={section}/>));
+    await settle();
+  };
+  // Prove e TS nella stessa finestra, con gli stessi riquadri della scheda PG.
+  await open("abilities");
+  expect(host.querySelector("h2")?.textContent).toBe("Prove e tiri salvezza · Mago");
+  expect([...host.querySelectorAll(".paper h2")].map((title) => title.textContent)).toEqual(["Caratteristiche", "Tiri salvezza"]);
+  expect(host.querySelector('[aria-label="Prova di Intelligenza"]')?.textContent).toBe("INT17+3");
+  expect([...host.querySelectorAll(".core-list.saves .proficient")].map((save) => save.textContent)).toEqual(["+6Intelligenza"]);
+  expect(host.textContent).not.toContain("Bastone");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Prova di Intelligenza"]')!.click());
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ author: "Mago", visibility: "gm" });
+  await open("skills");
+  expect(host.textContent).toContain("+3Arcano (INT)");
+  expect(host.textContent).toContain("Percezione passiva11");
+  await open("details");
+  expect([...host.querySelectorAll(".quick-details dt")].map((label) => label.textContent)).toEqual(["CA", "PF", "Velocità", "GS", "Sensi"]);
+  expect(host.querySelector(".quick-details")?.textContent).toContain("Percezione passiva 11");
+  await open("spells");
+  expect(host.textContent).toContain("Dardo di fuoco");
+  expect(host.textContent).not.toContain("Bastone");
+  await open("actions");
+  expect(host.textContent).toContain("Bastone");
+  expect(host.textContent).not.toContain("Dardo di fuoco");
 });
 
 it("il GM condivide un mostro del bestiario dai permessi del mostro", async () => {

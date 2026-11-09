@@ -10,7 +10,7 @@ import { canEditCloudSheet } from "./cloudSheets";
 import { effectiveSheet } from "./effects";
 import { setHitPointTotal } from "./hitPoints";
 import { notifySheetsChanged } from "./obr";
-import type { CharacterSheet, CloudSheet, TurnState } from "./types";
+import type { CharacterSheet, CloudSheet, MonsterSheet, TurnState } from "./types";
 
 // Voci della tendina TavernExplorer nel menu del token.
 
@@ -32,10 +32,18 @@ export function canEditMonster(id: string, player: { name: string; role: "GM" | 
   return !!entry && canEditCloudSheet(entry, player);
 }
 
+// Voci del menu per il token di un mostro modificabile: tutte tranne Risorse; Magia solo se è incantatore.
+export function monsterTokenSections(id: string, player: { name: string; role: "GM" | "PLAYER" }): TokenSheetSection[] {
+  if (!canEditMonster(id, player)) return [];
+  const monster = player.role === "GM" ? storage.monsters.get().find((item) => item.id === id) : storage.cloudCache.get(OBR.room.id).find((item) => item.kind === "npc" && item.sheet.id === id)?.sheet as MonsterSheet | undefined;
+  return ["details", "actions", "abilities", "skills", ...monster?.spellcasting ? ["spells" as const] : []];
+}
+
 export const TOKEN_ACTIONS_ID = `${EXTENSION_ID}/token-actions`;
 const TOKEN_ACTIONS_SIZE = { width: 360, height: 420 };
 // Parti della scheda che il menu del token apre da sole nella finestra accanto al token.
-export const TOKEN_SHEET_SECTIONS = { actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove caratteristica", saves: "Tiri salvezza", skills: "Abilità" } as const;
+// details solo per i mostri, resources solo per i PG.
+export const TOKEN_SHEET_SECTIONS = { details: "Dettagli veloci", actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove e tiri salvezza", skills: "Abilità" } as const;
 export type TokenSheetSection = keyof typeof TOKEN_SHEET_SECTIONS;
 
 // Finestra con una sola parte della scheda del token (azioni, prove, TS o abilità), accanto al token; si chiude cliccando fuori.
