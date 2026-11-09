@@ -3,7 +3,9 @@ import type { RollCard, RollMode } from "./types";
 
 // Dati dell'azione che accompagnano il tiro: con un d20 è un attacco con danno automatico,
 // senza d20 è un tiro di danno. critRange decide il critico sul d20 naturale.
-export type AttackRoll = { label?: string; alert?: string; critRange: number; damage?: string; critDamage?: string; damageType?: string; subtitle?: string; save?: RollCard["save"]; description?: string };
+// extraDamage: danni dopo il primo, ognuno con il suo tipo (es. morso 1d6+4 perforante più 3d6 necrotico), una riga ciascuno in chat.
+export type ExtraDamage = { damage: string; critDamage?: string; type?: string };
+export type AttackRoll = { label?: string; alert?: string; critRange: number; damage?: string; critDamage?: string; damageType?: string; extraDamage?: ExtraDamage[]; subtitle?: string; save?: RollCard["save"]; description?: string };
 
 // shortcut: descrizione troncata per tenere piccolo il broadcast Owlbear; il testo completo resta nella scheda.
 export const DESCRIPTION_LIMIT = 2000;
@@ -45,6 +47,7 @@ export function buildRollCard(name: string, formula: string, result: RollResult,
   let body = `${result.formula} → ${result.total}`;
   if (result.natural == null || !D20_FORMULA.test(result.formula)) {
     card.rolls.push({ label: attack?.label ?? (attack ? "Danno" : "Risultato"), formula, total: result.total, dice: result.dice, type: attack?.damageType });
+    body += rollExtraDamage(card, attack?.extraDamage ?? [], false);
     return { card, title, body };
   }
   const critRange = attack?.critRange ?? 20;
@@ -63,5 +66,15 @@ export function buildRollCard(name: string, formula: string, result: RollResult,
     card.rolls.push({ label: critical ? "Danno critico" : "Danno", formula: damageFormula, total: damage.total, dice: damage.dice, type: attack.damageType, critical });
     body += ` · ${critical ? "Danno critico" : "Danno"} ${damage.formula} → ${damage.total}${attack.damageType ? ` ${attack.damageType}` : ""}`;
   }
+  body += rollExtraDamage(card, attack.extraDamage ?? [], critical);
   return { card, title, body };
+}
+
+function rollExtraDamage(card: RollCard, extra: ExtraDamage[], critical: boolean): string {
+  return extra.map((part) => {
+    const formula = critical ? part.critDamage ?? part.damage : part.damage;
+    const damage = roll(formula);
+    card.rolls.push({ label: critical ? "Danno critico" : "Danno", formula, total: damage.total, dice: damage.dice, type: part.type, critical });
+    return ` · ${critical ? "Danno critico" : "Danno"} ${damage.formula} → ${damage.total}${part.type ? ` ${part.type}` : ""}`;
+  }).join("");
 }

@@ -28,7 +28,20 @@ export async function loadBestiarySource(source: FiveToolsSource): Promise<Monst
 
 // Anche per i file caricati a mano: i mostri "_copy" prendono i dati dell'originale dal suo manuale.
 export async function importMonsters(data: Record<string, unknown>): Promise<MonsterSheet[]> {
-  return import5eToolsMonsters({ ...data, monster: await resolveCopies(Array.isArray(data.monster) ? data.monster : [], findMonster) });
+  const monsters = import5eToolsMonsters({ ...data, monster: await resolveCopies(Array.isArray(data.monster) ? data.monster : [], findMonster) });
+  if (!monsters.some((monster) => monster.spells?.length)) return monsters;
+  // Incantesimi dei mostri con i dati del catalogo 2024 (gittata, danni, descrizione); quelli non trovati restano col solo nome.
+  const catalog = await loadSpells().catch(() => []);
+  return monsters.map((monster) => {
+    if (!monster.spells?.length) return monster;
+    const missing: string[] = [];
+    const spells = monster.spells.map((spell) => {
+      const found = catalog.find((option) => option.name.toLowerCase() === spell.name.toLowerCase());
+      if (!found) { missing.push(spell.name); return spell; }
+      return { ...found.spell, id: spell.id, prepared: true, innate: spell.innate, ritual: found.spell.ritual || spell.ritual };
+    });
+    return { ...monster, spells, importWarnings: missing.length ? [...monster.importWarnings, `Incantesimi non trovati nel catalogo 5e.tools 2024, solo nome e livello: ${missing.join(", ")}`] : monster.importWarnings };
+  });
 }
 
 let bestiaryIndex: Promise<Record<string, unknown>> | null = null;

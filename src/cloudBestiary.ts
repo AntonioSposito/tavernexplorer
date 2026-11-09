@@ -23,11 +23,13 @@ export async function putMonsters(room: string, gmToken: string, monsters: Monst
 
 export const deleteCloudMonster = (room: string, gmToken: string, id: string) => send("DELETE", gmToken, { room, id });
 
-// Toglie i mostri eliminati altrove, aggiunge quelli nuovi e indica quali il cloud non ha ancora mai visto.
+// Toglie i mostri eliminati altrove, aggiunge quelli nuovi, prende le modifiche più recenti fatte altrove
+// e indica quali il cloud non ha ancora mai visto.
 export function mergeBestiary(local: MonsterSheet[], remote: BestiaryEntry[]): { monsters: MonsterSheet[]; upload: MonsterSheet[]; changed: boolean } {
   const known = new Map(remote.map((entry) => [entry.id, entry]));
   const localIds = new Set(local.map((monster) => monster.id));
-  const kept = local.filter((monster) => !known.get(monster.id)?.deletedAt);
+  const kept = local.filter((monster) => !known.get(monster.id)?.deletedAt).map((monster) => { const remote = known.get(monster.id)?.monster; return remote && (remote.updatedAt ?? 0) > (monster.updatedAt ?? 0) ? remote : monster; });
+  const updated = kept.some((monster, index) => monster !== local.filter((item) => !known.get(item.id)?.deletedAt)[index]);
   const added = remote.flatMap((entry) => entry.monster && !entry.deletedAt && !localIds.has(entry.id) ? [entry.monster] : []);
-  return { monsters: [...kept, ...added], upload: kept.filter((monster) => !known.has(monster.id)), changed: added.length > 0 || kept.length !== local.length };
+  return { monsters: [...kept, ...added], upload: kept.filter((monster) => !known.has(monster.id)), changed: added.length > 0 || kept.length !== local.length || updated };
 }

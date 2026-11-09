@@ -52,6 +52,12 @@ it("unisce locale e cloud senza resuscitare gli eliminati", () => {
   expect(result.changed).toBe(true);
 });
 
+it("prende la versione più recente di un mostro modificato in un altro browser", () => {
+  const result = mergeBestiary([{ ...monster("a"), updatedAt: 1 }, monster("b")], [{ id: "a", monster: { ...monster("a"), name: "Nuovo", updatedAt: 2 } }, { id: "b", monster: { ...monster("b"), name: "Vecchio" } }]);
+  expect(result.monsters.map((item) => item.name)).toEqual(["Nuovo", monster("b").name]);
+  expect(result).toMatchObject({ changed: true, upload: [] });
+});
+
 it("se non cambia nulla lo segnala", () => {
   expect(mergeBestiary([monster("a")], [{ id: "a", monster: monster("a") }])).toMatchObject({ changed: false, upload: [] });
 });

@@ -19,6 +19,8 @@ export interface ResolvedAction {
   // Solo incantesimi: cura, con e senza etichette.
   healing?: string;
   healingFormula?: string;
+  // Con più danni: ognuno a parte (formula, critico e tipo), per tirarli in righe separate.
+  damageParts?: Array<{ damage: string; critDamage: string; type?: string }>;
 }
 
 const signed = (value: number) => value === 0 ? "" : `${value > 0 ? "+" : ""}${value}`;
@@ -65,5 +67,6 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry | SpellE
   const labels = parts.map((part, index) => labeledBonus([[abilityMod(sheet, part.ability), abilityTag(part.ability)], [part.bonus, "BONUS"], [index === 0 ? magic : 0, "MAGIC"]], flat[index]));
   const damageFormula = parts.map((part, index) => `${part.dice.trim()}${labels[index]}`).join("+");
   const critDamageFormula = parts.map((part, index) => `${[part.dice.trim(), part.critDice.trim()].filter(Boolean).join("+")}${labels[index]}`).join("+");
-  return { attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, critRange, ...save, ...heal };
+  const damageParts = parts.length > 1 ? parts.map((part, index) => ({ damage: `${part.dice.trim()}${labels[index]}`, critDamage: `${[part.dice.trim(), part.critDice.trim()].filter(Boolean).join("+")}${labels[index]}`, type: part.type.trim() || undefined })) : undefined;
+  return { attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, damageParts, critRange, ...save, ...heal };
 }

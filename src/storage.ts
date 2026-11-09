@@ -1,4 +1,4 @@
-import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_GM_TOKEN, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
+import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_GM_TOKEN, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
 import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
@@ -74,5 +74,9 @@ export const storage = {
   closedSpellLevels: {
     get: () => read<string[]>(STORAGE_CLOSED_SPELL_LEVELS, []),
     set: (value: string[]) => { try { write(STORAGE_CLOSED_SPELL_LEVELS, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
+  },
+  closedMonsterSections: {
+    get: () => read<string[]>(STORAGE_CLOSED_MONSTER_SECTIONS, []),
+    set: (value: string[]) => { try { write(STORAGE_CLOSED_MONSTER_SECTIONS, value); } catch { /* storage pieno o bloccato: resta in memoria */ } },
   },
 };

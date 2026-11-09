@@ -15,6 +15,7 @@ export const STORAGE_CLOUD_CACHE = `${EXTENSION_ID}/cloud-cache/v1`;
 export const STORAGE_PHONE_TABS_ON_TOP = `${EXTENSION_ID}/phone-tabs-on-top/v1`;
 export const STORAGE_PHONE_SESSION = `${EXTENSION_ID}/phone-session/v1`;
 export const STORAGE_CLOSED_SPELL_LEVELS = `${EXTENSION_ID}/closed-spell-levels/v1`;
+export const STORAGE_CLOSED_MONSTER_SECTIONS = `${EXTENSION_ID}/closed-monster-sections/v1`;
 export const STORAGE_EQUIPPED_FIRST = `${EXTENSION_ID}/inventory-equipped-first/v1`;
 export const STORAGE_LIBRARY_SORT = `${EXTENSION_ID}/library-alphabetical/v1`;
 export const INVENTORY_META_KEY = `${EXTENSION_ID}/shared-inventory`;

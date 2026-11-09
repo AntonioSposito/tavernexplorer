@@ -4,7 +4,7 @@ import { webcrypto } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_CHARACTERS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
+import { STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./constants";
 import { apiFetch, store } from "./fakeRedis";
 import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
@@ -134,6 +134,31 @@ it("il GM assegna la vista dalla Libreria e il giocatore vede solo quella scheda
   expect(host.querySelector('select[aria-label="Può vedere: aggiungi giocatore"]')).toBeNull();
 });
 
+it("il GM rende incantatore un mostro: Magia come le schede PG, con CD calcolata, slot e incantesimi tirati dal mostro", async () => {
+  const mage = { schemaVersion: 1, id: "mage", name: "Mago", source: "MM", creatureType: "Umanoide", challengeRating: "6", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 12, hp: { average: 40, formula: "9d8" }, speed: "30 ft.", abilities: { int: 17 }, saves: {}, skills: {}, passivePerception: 11, traits: [], actions: [], reactions: [], legendaryActions: [], importWarnings: [],
+    spells: [{ id: "bolt", name: "Dardo di fuoco", level: 0, prepared: true, ritual: false, concentration: false, description: "", attackBonus: 6, damage: "2d10" }] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([mage]));
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Mago");
+  expect(host.textContent).not.toContain("Incantesimi");
+  await click("Modifica");
+  await act(async () => host.querySelector<HTMLInputElement>('.action-form legend input[type="checkbox"]')!.click());
+  await type('input[aria-label="Livello incantatore"]', "3");
+  // INT 17 (+3) e competenza +3 a GS 6: CD 14, attacco +6.
+  expect(host.querySelector(".form-note")?.textContent).toBe("CD 14 · attacco +6 · slot fino al 2° livello");
+  await click("Salva");
+  const stored = () => JSON.parse(localStorage.getItem(STORAGE_MONSTERS) ?? "[]")[0];
+  expect(stored().spellcasting).toEqual({ ability: "intelligence", attackModifier: 0, dcModifier: 0, casterLevel: 3, slots: { level_1: { total: 4, used: 0 }, level_2: { total: 2, used: 0 } } });
+  expect(host.querySelector(".spell-head")?.textContent).toContain("CD 14");
+  await click("Usa slot level_1");
+  expect(stored().spellcasting.slots.level_1.used).toBe(1);
+  await click("Dardo di fuoco");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ author: "Mago", visibility: "gm" });
+});
+
 it("il GM condivide un mostro del bestiario dai permessi del mostro", async () => {
   const wolf = { schemaVersion: 1, id: "wolf", name: "Lupo", source: "XMM", creatureType: "Bestia", challengeRating: "1/4", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 13, hp: { average: 11, formula: "2d8+2" }, speed: "40 ft.", abilities: { dex: 15 }, saves: {}, skills: {}, passivePerception: 13, traits: [], actions: [{ id: "bite", name: "Morso", description: "" }], reactions: [], legendaryActions: [], importWarnings: [] };
   localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
@@ -143,9 +168,23 @@ it("il GM condivide un mostro del bestiario dai permessi del mostro", async () =
   await click("Lupo");
   expect(host.textContent).not.toContain("Aggiungi agli NPC");
   expect(host.textContent).not.toContain("Riepilogo mostro");
+  // Tutto ciò che il mostro manda in chat è solo per il GM, salvo scelta diversa nel selettore del mostro.
+  const lastMessage = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1);
   await click("Mostra in chat");
   await settle();
-  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Lupo", visibility: "everyone", body: expect.stringContaining("CA 13") });
+  expect(lastMessage()).toMatchObject({ title: "Lupo", visibility: "gm", body: expect.stringContaining("CA 13") });
+  await click("Mostra in chat Morso");
+  await settle();
+  expect(lastMessage()).toMatchObject({ kind: "share", author: "Lupo", title: "Morso", visibility: "gm" });
+  await choose("Visibilità tiri del mostro", "everyone");
+  await choose("Modo tiri del mostro", "advantage");
+  await click("Prova di Destrezza");
+  await settle();
+  expect(lastMessage()).toMatchObject({ kind: "roll", author: "Lupo", visibility: "everyone" });
+  expect(lastMessage().dice).toHaveLength(2);
+  await click("Mostra in chat");
+  await settle();
+  expect(lastMessage()).toMatchObject({ title: "Lupo", visibility: "everyone" });
   await choose("Può vedere: aggiungi giocatore", "Marco");
   await settle();
   expect(cloudEntries()).toEqual([expect.objectContaining({ kind: "npc", acl: { view: ["Marco"], edit: [] }, sheet: expect.objectContaining({ id: "wolf", name: "Lupo" }) })]);
@@ -220,6 +259,91 @@ it("il Bestiario ha cartelle come il Journal: il GM sposta un mostro, il giocato
   expect(host.querySelector(".inventory-mods")).toBeNull();
 }, 15_000);
 
+it("il GM crea, modifica e duplica un mostro; la modifica arriva anche alla copia condivisa", async () => {
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Nuovo mostro");
+  await type('input[aria-label="Nome del mostro"]', "Bandito");
+  await type('input[aria-label="CA"]', "12");
+  await type('input[aria-label="Punteggio DES"]', "14");
+  await type('input[aria-label="TS DES"]', "4");
+  await type('input[aria-label="Abilità Furtività"]', "6");
+  // "Competente" come su Roll20: modificatore (SAG 10 → +0) più bonus competenza (+2 a GS 0).
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Competente Percezione"]')!.click());
+  await type('input[aria-label="Resistenze ai danni"]', "veleno");
+  await click("Salva");
+  const stored = () => JSON.parse(localStorage.getItem(STORAGE_MONSTERS) ?? "[]");
+  expect(stored()).toEqual([expect.objectContaining({ name: "Bandito", ac: 12, abilities: expect.objectContaining({ dex: 14 }), saves: { dex: 4 }, skills: { stealth: 6, perception: 2 }, resistances: "veleno", updatedAt: expect.any(Number) })]);
+  expect(stored()[0]).not.toHaveProperty("languages");
+  expect(host.querySelector(".statblock-details")?.textContent).toBe("Resistenze ai danni veleno");
+  expect(host.querySelector(".statblock-head h1")?.textContent).toBe("Bandito");
+  expect(host.querySelector('[aria-label="Prova di Destrezza"]')?.textContent).toContain("+2");
+  expect(host.querySelector('[aria-label="TS Destrezza"]')?.textContent).toBe("TS +4");
+  expect(host.querySelector('[aria-label="TS Forza"]')?.textContent).toBe("TS +0");
+  expect([...host.querySelectorAll(".statblock-line .proficient")].map((skill) => skill.textContent)).toEqual(["Percezione +2", "Furtività +6"]);
+  // Le abilità non impostate si tirano con il modificatore della caratteristica.
+  await click("Acrobazia +2");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ author: "Bandito", visibility: "gm" });
+
+  await choose("Può vedere: aggiungi giocatore", "Marco");
+  await settle();
+  await click("Modifica");
+  await type('input[aria-label="CA"]', "15");
+  await click("Salva");
+  await settle(1_700);
+  expect(stored()[0].ac).toBe(15);
+  expect(cloudEntries().find((entry) => entry.kind === "npc").sheet.ac).toBe(15);
+
+  await click("Duplica");
+  await type('input[aria-label="Nome del mostro"]', "Bandito capo");
+  await click("Salva");
+  expect(stored().map((monster: { name: string }) => monster.name)).toEqual(["Bandito", "Bandito capo"]);
+  expect(stored()[1].id).not.toBe(stored()[0].id);
+}, 15_000);
+
+it("il GM aggiunge, modifica ed elimina tratti e azioni del mostro nei popup", async () => {
+  const wolf = { schemaVersion: 1, id: "wolf", name: "Lupo", source: "XMM", creatureType: "Bestia", challengeRating: "1/4", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 13, hp: { average: 11, formula: "2d8+2" }, speed: "40 ft.", abilities: { dex: 15 }, saves: {}, skills: {}, passivePerception: 13, traits: [], actions: [{ id: "bite", name: "Morso", description: "" }], reactions: [], legendaryActions: [], importWarnings: [] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
+  vi.stubGlobal("confirm", () => true);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Lupo");
+  await click("Nuova reazione");
+  await type('input[aria-label="Nome voce"]', "Schivata");
+  await click("Salva");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Morso"]')!.click());
+  await type('input[aria-label="Bonus attacco"]', "4");
+  await type('input[aria-label="Danno"]', "2d4+2");
+  await type('input[aria-label="Tipo di danno"]', "perforante");
+  // Riempita una riga ne compare un'altra, come "Danno 2" di Roll20.
+  await type('input[aria-label="Danno 2"]', "1d6");
+  await type('input[aria-label="Tipo di danno 2"]', "veleno");
+  await click("Salva");
+  const stored = () => JSON.parse(localStorage.getItem(STORAGE_MONSTERS)!)[0];
+  expect(stored().reactions).toEqual([expect.objectContaining({ name: "Schivata" })]);
+  expect(stored().actions).toEqual([expect.objectContaining({ name: "Morso", attackBonus: 4, damage: "2d4+2+1d6", damageType: "perforante / veleno", damages: [
+    { dice: "2d4", bonus: 2, ability: "none", type: "perforante", critDice: "2d4" }, { dice: "1d6", bonus: 0, ability: "none", type: "veleno", critDice: "1d6" }] })]);
+  // In chat ogni danno ha la sua riga con il suo tipo.
+  const rollBite = async () => { await click("Morso"); await settle(); return JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card; };
+  // Con un 1 naturale l'attacco manca e non ci sono danni: si ritira.
+  let card = await rollBite();
+  while (card.note) card = await rollBite();
+  expect(card.rolls.map((row: { formula: string; type: string }) => [row.formula, row.type])).toEqual(expect.arrayContaining([[expect.stringMatching(/^2d4/), "perforante"], [expect.stringMatching(/^(1d6|1d6\+1d6)$/), "veleno"]]));
+  expect(card.rolls).toHaveLength(2);
+  expect(host.textContent).toContain("Reazioni");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Schivata"]')!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
+  expect(stored().reactions).toEqual([]);
+  // Le sezioni sono riquadri richiudibili; lo stato vale per tutti i mostri.
+  const actionsBox = [...host.querySelectorAll<HTMLDetailsElement>("details.statblock-section")].find((box) => box.querySelector("summary h2")?.textContent === "Azioni")!;
+  expect(actionsBox.open).toBe(true);
+  await act(async () => { actionsBox.open = false; actionsBox.dispatchEvent(new Event("toggle")); });
+  expect(JSON.parse(localStorage.getItem(STORAGE_CLOSED_MONSTER_SECTIONS) ?? "[]")).toEqual(["actions"]);
+});
+
 it("gli NPC già nella libreria passano nel bestiario e la Libreria mostra solo il party", async () => {
   const innkeeper = { ...{ schemaVersion: 1, ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, source: "XMM", size: "M", alignment: "N", ac: 10, hp: { average: 4, formula: "1d8" }, speed: "30 ft.", abilities: { dex: 10 }, saves: {}, skills: {}, passivePerception: 10, traits: [], actions: [], reactions: [], legendaryActions: [], importWarnings: [] }, id: "oste", name: "Oste", creatureType: "Umanoide", challengeRating: "0" };
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "npc", sheet: innkeeper, acl: { view: ["Marco"], edit: [] }, updatedBy: "GM" } }) });
@@ -262,7 +386,7 @@ it("il bestiario si cerca con il pulsante ⌕e i tiri dei mostri vanno solo al G
   await type('input[aria-label="Cerca nel catalogo"]', "orc");
   expect([...host.querySelectorAll(".catalog-option strong")].map((item) => item.textContent)).toEqual(["Orco"]);
   await act(async () => host.querySelector<HTMLButtonElement>(".catalog-option")!.click());
-  expect(host.querySelector(".hero h1")?.textContent).toBe("Orco");
+  expect(host.querySelector(".statblock-head h1")?.textContent).toBe("Orco");
 
   await click("Clava");
   await settle();

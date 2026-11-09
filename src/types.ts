@@ -323,6 +323,16 @@ export interface Roll20Export {
   raw?: Record<string, unknown>;
 }
 
+// CD = 8 + competenza + modificatore + dcModifier; attacco = competenza + modificatore + attackModifier (come Roll20).
+export interface MonsterSpellcasting {
+  ability: string;
+  attackModifier: number;
+  dcModifier: number;
+  // Livello da incantatore completo: dà gli slot. 0 = nessuno slot (es. solo incantesimi innati).
+  casterLevel: number;
+  slots: Record<string, { total: number; used: number }>;
+}
+
 export interface MonsterSheet {
   schemaVersion: 1;
   id: string;
@@ -340,14 +350,31 @@ export interface MonsterSheet {
   saves: Record<string, number>;
   skills: Record<string, number>;
   passivePerception: number;
+  // Campi del form NPC di Roll20, assenti nei mostri salvati prima. PE, bonus competenza e taglia token vuoti = calcolati da GS e taglia.
+  vulnerabilities?: string;
+  resistances?: string;
+  immunities?: string;
+  conditionImmunities?: string;
+  senses?: string;
+  languages?: string;
+  xp?: number;
+  proficiencyBonus?: number;
+  tokenSize?: number;
+  // "Spellcasting NPC" di Roll20: presente solo sui mostri incantatori.
+  spellcasting?: MonsterSpellcasting;
+  spells?: SpellEntry[];
   traits: TraitEntry[];
   actions: ActionEntry[];
+  // Assenti nei mostri salvati prima delle azioni bonus.
+  bonusActions?: ActionEntry[];
   reactions: ActionEntry[];
   legendaryActions: ActionEntry[];
   image?: string;
   importWarnings: string[];
   // Cartella del Bestiario (voce "folder" con area "bestiary" della libreria).
   folderId?: string;
+  // Ultima modifica del GM: tra due browser vince la versione più recente.
+  updatedAt?: number;
 }
 
 export interface CampaignChapter {

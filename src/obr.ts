@@ -1,6 +1,7 @@
 import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import type { ChatMessage, PermissionSettings, SharedInventoryItem, TurnEntry, TurnState } from "./types";
+import { monsterTokenSize } from "./monsterSheet";
 import { decryptGmMessage, encryptGmMessage, gmRecipients, isGmEnvelope } from "./privateMessages";
 import { replaceTurnEntries } from "./turns";
 import { linkedCharacterId } from "./tokenTurns";
@@ -107,18 +108,19 @@ export async function pickOwlbearImage(search?: string): Promise<string | null> 
   return picked?.image.url ?? null;
 }
 
-export async function uploadMonsterTokens(monsters: Array<{ name: string; source: string; image?: string }>): Promise<number> {
+export async function uploadMonsterTokens(monsters: Array<{ name: string; source: string; image?: string; size: string; tokenSize?: number }>): Promise<number> {
   if (!OBR.isAvailable) return 0; let uploaded = 0;
   for (let offset = 0; offset < monsters.length; offset += 20) {
     const batch = monsters.slice(offset, offset + 20); const assets = [];
     for (const monster of batch) {
-      let file: File | null = null;
+      let file: File | null = null; let width = 150;
       if (monster.image) {
-        try { const response = await fetch(monster.image); if (response.ok) { const blob = await response.blob(); file = new File([blob], `${monster.name}.webp`, { type: blob.type || "image/webp" }); } }
+        try { const response = await fetch(monster.image); if (response.ok) { const blob = await response.blob(); file = new File([blob], `${monster.name}.webp`, { type: blob.type || "image/webp" }); width = (await createImageBitmap(blob)).width; } }
         catch { /* Un token mancante non deve annullare l'intero manuale. */ }
       }
-      if (!file) file = fallbackTokenFile(monster.name);
-      assets.push(buildImageUpload(file).name(`beasts/${monster.name}`).description(`beasts · ${monster.source} · TavernExplorer`).build());
+      if (!file) { file = fallbackTokenFile(monster.name); width = 150; }
+      // dpi = pixel per quadretto: un mostro Grande (2 quadretti) usa metà della larghezza per quadretto.
+      assets.push(buildImageUpload(file).dpi(width / monsterTokenSize(monster)).name(`beasts/${monster.name}`).description(`beasts · ${monster.source} · TavernExplorer`).build());
     }
     if (assets.length) { await OBR.assets.uploadImages(assets, "CHARACTER"); uploaded += assets.length; }
   }

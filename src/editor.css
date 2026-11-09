@@ -3,5 +3,5 @@
 /* I tiri restano cliccabili anche in sola lettura: si bloccano solo le modifiche. */
 .readonly-sheet input,.readonly-sheet textarea,.readonly-sheet select,.readonly-sheet .inventory-row button{pointer-events:none;opacity:.6}
 /* Mostro che il giocatore può solo vedere: il nome non tira. */
-.monster-readonly .entry-use{pointer-events:none}
+.monster-readonly .entry-use,.monster-readonly .statblock-roll{pointer-events:none}
 .editor-delegates{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.5rem}.editor-delegates label{display:flex;align-items:center;gap:.35rem;font-size:.8rem}.party-owner{font-size:.8rem;color:hsl(var(--muted-foreground))}

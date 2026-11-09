@@ -1,5 +1,6 @@
 import { DEFAULT_RULESET } from "./rulesets";
-import type { ActionEntry, CampaignChapter, CampaignDocument, MonsterSheet, TraitEntry } from "./types";
+import { monsterDamages, monsterSpellStats } from "./monsterSheet";
+import type { ActionEntry, CampaignChapter, CampaignDocument, MonsterSheet, MonsterSpellcasting, SpellEntry, TraitEntry } from "./types";
 
 type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj => value && typeof value === "object" && !Array.isArray(value) ? value as Obj : {};
@@ -8,9 +9,23 @@ const text = (value: unknown): string => value == null ? "" : String(value);
 const number = (value: unknown, fallback = 0): number => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const uid = () => crypto.randomUUID();
 
+// Tag degli statblock scritti come su 5e.tools: "{@atk mw} {@hit 3} to hit … {@h}5" diventa "Melee Weapon Attack: +3 to hit … Hit: 5".
+const ATTACKS: Record<string, string> = {
+  mw: "Melee Weapon Attack:", rw: "Ranged Weapon Attack:", "mw,rw": "Melee or Ranged Weapon Attack:", ms: "Melee Spell Attack:", rs: "Ranged Spell Attack:", "ms,rs": "Melee or Ranged Spell Attack:",
+  m: "Melee Attack Roll:", r: "Ranged Attack Roll:", "m,r": "Melee or Ranged Attack Roll:",
+};
+const SAVES: Record<string, string> = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
+const LABELS: Record<string, string> = { h: "Hit:", m: "Miss:", hom: "Hit or Miss:", actSaveFail: "Failure:", actSaveSuccess: "Success:", actSaveSuccessOrFail: "Failure or Success:", actTrigger: "Trigger:", actResponse: "Response:" };
+
 function stripTags(value: string): string {
   return value
-    .replace(/\{@(?:hit|dc) ([^}|]+)(?:\|[^}]*)?}/g, "$1")
+    .replace(/\{@atkr? ([^}|]+)}/g, (_, kind: string) => ATTACKS[kind.replace(/\s/g, "")] ?? "Attack:")
+    .replace(/\{@hit ([+-]?\d+)(?:\|[^}]*)?}/g, (_, bonus: string) => `${Number(bonus) < 0 ? "" : "+"}${Number(bonus)}`)
+    .replace(/\{@dc ([^}|]+)(?:\|[^}]*)?}/g, "DC $1")
+    .replace(/\{@recharge(?: (\d))?}/g, (_, from?: string) => from ? `(Recharge ${from}–6)` : "(Recharge 6)")
+    .replace(/\{@actSave (\w+)}/g, (_, ability: string) => `${SAVES[ability] ?? ability} Saving Throw:`)
+    .replace(/\{@(\w+)}/g, (tag, name: string) => LABELS[name] ? `${LABELS[name]} ` : tag)
+    .replace(/\{@hit ([^}|]+)(?:\|[^}]*)?}/g, "$1")
     .replace(/\{@(?:damage|dice) ([^}|]+)(?:\|[^}]*)?}/g, "$1")
     .replace(/\{@\w+ ([^}|]+)(?:\|[^}]*)?}/g, "$1")
     .replace(/\{@\w+}/g, "")
@@ -47,6 +62,19 @@ function parseAttackBonus(raw: unknown, rendered: string): number | undefined {
   return value == null ? undefined : number(value);
 }
 
+// "Hit: 5 (1d6 + 4) piercing damage plus 10 (3d6) necrotic damage" → "1d6+4+3d6", "piercing / necrotic".
+// Si sommano solo i danni uniti da "plus": "or 8 (1d10 + 3) … if used with two hands" è un'alternativa.
+function parseDamage(description: string): Pick<ActionEntry, "damage" | "damageType" | "damages"> | undefined {
+  const hit = description.slice(Math.max(0, description.search(/\b(?:Hit|Failure):/)));
+  const parts: Array<{ dice: string; type: string }> = []; let end = 0;
+  // Anche "(1d12 + 4 plus 1d8) slashing damage" (Orc War Chief).
+  for (const match of hit.matchAll(/\((\d+d\d+(?:\s*(?:[+-]|plus)\s*\d+(?:d\d+)?)*)\)\s*([a-z]+) damage/gi)) {
+    if (parts.length && !/\bplus\b/i.test(hit.slice(end, match.index))) break;
+    parts.push({ dice: match[1].replace(/\s*plus\s*/gi, "+").replace(/\s+/g, ""), type: match[2] }); end = match.index + match[0].length;
+  }
+  return parts.length ? monsterDamages(parts.map((part) => ({ damage: part.dice, type: part.type }))) : undefined;
+}
+
 function importEntries(value: unknown, source: string): ActionEntry[] {
   return array(value).map((raw) => {
     const entry = obj(raw);
@@ -55,6 +83,7 @@ function importEntries(value: unknown, source: string): ActionEntry[] {
     return {
       id: uid(), name: stripTags(text(entry.name)) || "Azione", source,
       attackBonus: parseAttackBonus(raw, description), damage: damageMatches.at(-1)?.[0].replace(/\s+/g, "") ?? firstRollFormula(description),
+      ...parseDamage(description),
       saveDc: number(JSON.stringify(raw).match(/\{@dc\s+(\d+)/)?.[1]) || undefined,
       description,
     };
@@ -63,6 +92,74 @@ function importEntries(value: unknown, source: string): ActionEntry[] {
 
 function importTraits(value: unknown): TraitEntry[] {
   return array(value).map((raw) => { const entry = obj(raw); return { id: uid(), name: stripTags(text(entry.name)) || "Tratto", description: renderEntries(entry.entries), source: "5e.tools" }; });
+}
+
+const ordinal = (level: number) => ["", "1st", "2nd", "3rd"][level] ?? `${level}th`;
+const spellNames = (value: unknown) => array(value).map((spell) => typeof spell === "string" ? spell : text(obj(spell).entry)).join(", ");
+
+// "spellcasting" di 5e.tools come voce dello statblock: intestazione e righe "At will", "1/day each", "1st level (4 slots)".
+// displayAs dice in che sezione va (tratto se assente, "action" nei mostri 2024).
+function spellcasting(value: unknown): Array<Obj & { displayAs: string }> {
+  return array(value).map((raw) => {
+    const cast = obj(raw); const items: string[] = [];
+    if (cast.will) items.push(`At will: ${spellNames(cast.will)}`);
+    if (cast.ritual) items.push(`Rituals: ${spellNames(cast.ritual)}`);
+    const uses: Array<[string, (n: number) => string]> = [["daily", (n) => `${n}/day`], ["rest", (n) => `${n}/rest`], ["restLong", (n) => `${n}/long rest`], ["weekly", (n) => `${n}/week`],
+      ["recharge", (n) => `(Recharge ${n}–6)`], ["charges", (n) => `${n} charge${n === 1 ? "" : "s"}`], ["legendary", (n) => `Legendary Action (costs ${n})`]];
+    for (const [period, label] of uses) {
+      for (const [count, spells] of Object.entries(obj(cast[period]))) items.push(`${label(parseInt(count))}${count.endsWith("e") ? " each" : ""}: ${spellNames(spells)}`);
+    }
+    for (const [level, raw] of Object.entries(obj(cast.spells))) {
+      const slots = obj(raw); const n = Number(level);
+      const label = n === 0 ? "Cantrips (at will)" : `${slots.lower ? `${ordinal(number(slots.lower))}–` : ""}${ordinal(n)} level${slots.slots ? ` (${text(slots.slots)} slot${number(slots.slots) === 1 ? "" : "s"})` : ""}`;
+      items.push(`${label}: ${spellNames(slots.spells)}`);
+    }
+    return { name: cast.name || "Spellcasting", entries: [...array(cast.headerEntries), ...(items.length ? [{ type: "list", items }] : []), ...array(cast.footerEntries)], displayAs: text(cast.displayAs) || "trait" };
+  });
+}
+
+// "resist": ["fire", { resist: ["bludgeoning", …], note: "from nonmagical attacks" }, { special: "…" }] → testo come su 5e.tools.
+function readDefenses(value: unknown, key: string): string {
+  return array(value).map((item) => {
+    if (typeof item === "string") return stripTags(item);
+    const group = obj(item);
+    return group.special ? stripTags(text(group.special)) : [stripTags(text(group.preNote)), readDefenses(group[key], key), stripTags(text(group.note))].filter(Boolean).join(" ");
+  }).filter(Boolean).join(", ");
+}
+
+// Stessi blocchi "spellcasting" come sezione Magia: caratteristica, CD e attacco dall'intestazione, slot e incantesimi.
+// Gli incantesimi hanno solo nome, livello e usi: i dati veri arrivano dal catalogo 5e.tools (importMonsters).
+const INNATE: Array<[string, (n: number) => string]> = [["daily", (n) => `${n}/giorno`], ["rest", (n) => `${n}/riposo`], ["restLong", (n) => `${n}/riposo lungo`], ["weekly", (n) => `${n}/settimana`],
+  ["recharge", (n) => `ricarica ${n}–6`], ["charges", (n) => `${n} ${n === 1 ? "carica" : "cariche"}`], ["legendary", (n) => `azione leggendaria (costo ${n})`]];
+function importSpellcasting(sheet: MonsterSheet, value: unknown): MonsterSheet {
+  const blocks = array(value).map(obj);
+  if (!blocks.length) return sheet;
+  const raw = JSON.stringify(blocks);
+  const ability = text(blocks.find((block) => block.ability)?.ability);
+  const cast: MonsterSpellcasting = { ability: (SAVES[ability] ?? "Intelligence").toLowerCase(), attackModifier: 0, dcModifier: 0, casterLevel: number(/(\d+)(?:st|nd|rd|th)-level spellcaster/.exec(raw)?.[1]), slots: {} };
+  const stats = monsterSpellStats(sheet, cast);
+  const dc = /\{@dc (\d+)/.exec(raw)?.[1]; const hit = /\{@hit (\d+)/.exec(raw)?.[1];
+  if (dc) cast.dcModifier = Number(dc) - stats.saveDc;
+  if (hit) cast.attackModifier = Number(hit) - stats.attackBonus;
+  const spells: SpellEntry[] = [];
+  const add = (list: unknown, level: number, extra: Partial<SpellEntry> = {}) => {
+    for (const item of array(list)) {
+      const entry = typeof item === "string" ? item : text(obj(item).entry);
+      const name = /\{@spell ([^}|]+)/.exec(entry)?.[1] ?? stripTags(entry);
+      if (name) spells.push({ id: uid(), name, level, prepared: true, ritual: false, concentration: false, description: "", ...extra });
+    }
+  };
+  for (const block of blocks) {
+    add(block.will, 0, { innate: "a volontà" });
+    add(block.ritual, 0, { innate: "solo rituale", ritual: true });
+    for (const [key, label] of INNATE) for (const [count, list] of Object.entries(obj(block[key]))) add(list, 0, { innate: `${label(parseInt(count))}${count.endsWith("e") ? " ciascuno" : ""}` });
+    for (const [level, group] of Object.entries(obj(block.spells))) {
+      const slots = number(obj(group).slots);
+      if (slots) cast.slots[`level_${level}`] = { total: slots, used: 0 };
+      add(obj(group).spells, Number(level));
+    }
+  }
+  return { ...sheet, spellcasting: cast, spells };
 }
 
 function readAc(value: unknown): number {
@@ -96,19 +193,27 @@ export function import5eToolsMonsters(source: unknown): MonsterSheet[] {
   const root = obj(source);
   const monsters = array(root.monster);
   if (!monsters.length) throw new Error("Il JSON 5e.tools non contiene un array monster");
-  return monsters.map((raw): MonsterSheet => {
+  return monsters.map((raw) => {
     const monster = obj(raw); const hp = obj(monster.hp);
     const abilities = Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((key) => [key, number(monster[key])]));
-    return {
+    const casting = spellcasting(monster.spellcasting);
+    const withCasting = (entries: unknown, displayAs: string) => [...array(entries), ...casting.filter((cast) => cast.displayAs === displayAs)];
+    return importSpellcasting({
       schemaVersion: 1, id: uid(), ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version },
       name: text(monster.name) || "Mostro senza nome", source: text(monster.source), size: array(monster.size).map(text).join("/") || text(monster.size),
       creatureType: readType(monster.type), alignment: array(monster.alignment).map(text).join(" "), challengeRating: text(typeof monster.cr === "object" ? obj(monster.cr).cr : monster.cr),
       ac: readAc(monster.ac), hp: { average: number(hp.average), formula: text(hp.formula) }, speed: readSpeed(monster.speed), abilities,
       saves: Object.fromEntries(Object.entries(obj(monster.save)).map(([key, value]) => [key, number(value)])),
       skills: Object.fromEntries(Object.entries(obj(monster.skill)).map(([key, value]) => [key, number(value)])), passivePerception: number(monster.passive),
-      traits: importTraits(monster.trait), actions: importEntries(monster.action, "action"), reactions: importEntries(monster.reaction, "reaction"),
-      legendaryActions: importEntries(monster.legendary, "legendary"), image: imageUrl(monster), importWarnings: array(monster._teWarnings).map(text),
-    };
+      ...Object.fromEntries(Object.entries({
+        vulnerabilities: readDefenses(monster.vulnerable, "vulnerable"), resistances: readDefenses(monster.resist, "resist"), immunities: readDefenses(monster.immune, "immune"),
+        conditionImmunities: readDefenses(monster.conditionImmune, "conditionImmune"), senses: array(monster.senses).map((sense) => stripTags(text(sense))).join(", "), languages: array(monster.languages).map((language) => stripTags(text(language))).join(", "),
+      }).filter(([, value]) => value)),
+      xp: number(obj(monster.cr).xp) || undefined,
+      traits: importTraits(withCasting(monster.trait, "trait")), actions: importEntries(withCasting(monster.action, "action"), "action"),
+      bonusActions: importEntries(withCasting(monster.bonus, "bonus"), "bonus"), reactions: importEntries(withCasting(monster.reaction, "reaction"), "reaction"),
+      legendaryActions: importEntries(withCasting(monster.legendary, "legendary"), "legendary"), image: imageUrl(monster), importWarnings: array(monster._teWarnings).map(text),
+    }, monster.spellcasting);
   });
 }
 

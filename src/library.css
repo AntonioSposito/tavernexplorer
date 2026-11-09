@@ -13,8 +13,10 @@
 /* Il dialog taglia ciò che eccede: il form scorre sotto l'intestazione fissa. */
 .ui-dialog:has(>.action-form){grid-template-rows:auto minmax(0,1fr)}
 .action-form{display:grid;gap:.7rem;min-height:0;overflow-y:auto;padding:1rem}
-.action-form label{display:grid;gap:.25rem}
-.action-form label>span,.action-form legend{font-size:.75rem;color:hsl(var(--muted-foreground))}
+.action-form label,.action-form .form-field{display:grid;gap:.25rem}
+.action-form .form-note{grid-column:1/-1;margin:0;font-size:.8rem;color:hsl(var(--muted-foreground))}
+.action-form .form-field>span{display:flex;align-items:center;gap:.3rem}
+.action-form label>span,.action-form .form-field>span,.action-form legend{font-size:.75rem;color:hsl(var(--muted-foreground))}
 .action-form fieldset{display:grid;gap:.5rem;margin:0;padding:.6rem;border:1px solid hsl(var(--border));border-radius:var(--radius)}
 .action-form legend label,.action-form-check{display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:hsl(var(--foreground))}
 .action-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(7rem,1fr));gap:.5rem;align-items:end}
@@ -152,3 +154,32 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .journal-note .entry-icons,.journal-folder .entry-icons{display:flex;gap:.25rem}
 /* Condivisione di estratti di avventura (era in notes.css). */
 .content-share{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.7rem;border:1px solid hsl(var(--border));border-radius:var(--radius);background:hsl(var(--card))}.content-share span{flex:1 1 10rem;color:hsl(var(--muted-foreground));font-size:.8rem}.content-share .ui-select{flex:0 1 9rem;width:auto;min-width:8rem}
+
+/* Statblock dei mostri in stile 5e.tools: poche righe compatte, il resto della pagina è per tratti e azioni. */
+.statblock{display:grid;gap:.55rem;padding-bottom:.7rem;border-bottom:2px solid hsl(var(--primary) / .5)}
+.statblock-head{display:flex;align-items:center;gap:.8rem}
+.statblock-head img{width:56px;height:56px;border-radius:12px;object-fit:cover;border:2px solid hsl(var(--primary) / .6)}
+.statblock-head h1{margin:0;font-family:Georgia,serif;font-size:1.5rem;color:hsl(var(--primary))}
+.statblock-head p{margin:.1rem 0;font-style:italic;color:hsl(var(--foreground) / .85)}
+.statblock-head small{color:hsl(var(--muted-foreground))}
+.statblock-line{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .9rem;margin:0;line-height:1.5}
+.statblock-line b{color:hsl(var(--primary))}
+.statblock-abilities{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.4rem}
+.statblock-abilities>div{display:grid;justify-items:center;gap:.15rem;padding:.35rem .2rem;border:1px solid hsl(var(--border));border-radius:10px;background:hsl(var(--card))}
+.statblock-abilities small{font-size:.7rem;font-weight:700;letter-spacing:.06em;color:hsl(var(--muted-foreground))}
+.statblock-abilities strong{font-family:Georgia,serif;font-size:1.15rem}
+.statblock-roll{border:0;background:transparent;color:hsl(var(--foreground));font:inherit;font-size:.85rem;padding:.05rem .3rem;border-radius:6px;cursor:pointer}
+.statblock-roll:hover{background:hsl(var(--primary) / .15);color:hsl(var(--primary))}
+.statblock-roll.proficient{color:hsl(var(--primary));font-weight:700}
+.statblock-details{display:grid;gap:.15rem;margin:0;line-height:1.45}
+.statblock-details b{color:hsl(var(--primary))}
+.statblock-more summary{cursor:pointer;font-size:.8rem;color:hsl(var(--muted-foreground))}
+.statblock-more .statblock-line{margin-top:.3rem;gap:.1rem .4rem}
+.statblock-section{display:grid;gap:.5rem}
+.statblock-section>summary{display:flex;align-items:center;gap:.6rem;cursor:pointer;list-style:none}
+.statblock-section>summary::-webkit-details-marker{display:none}
+.statblock-section>summary::before{content:"▸";color:hsl(var(--primary));transition:transform .15s}
+.statblock-section[open]>summary::before{transform:rotate(90deg)}
+.statblock-section>summary h2{margin:0}
+.statblock-section>summary .ui-button{margin-left:auto;min-height:1.8rem;padding:.1rem .6rem}
+@media(max-width:480px){.statblock-abilities{grid-template-columns:repeat(3,minmax(0,1fr))}}
