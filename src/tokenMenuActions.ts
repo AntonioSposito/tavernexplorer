@@ -24,15 +24,18 @@ export async function openTokenSheet(token: Item): Promise<void> {
 
 export const TOKEN_ACTIONS_ID = `${EXTENSION_ID}/token-actions`;
 const TOKEN_ACTIONS_SIZE = { width: 360, height: 420 };
+// Parti della scheda che il menu del token apre da sole nella finestra accanto al token.
+export const TOKEN_SHEET_SECTIONS = { actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove caratteristica", saves: "Tiri salvezza", skills: "Abilità" } as const;
+export type TokenSheetSection = keyof typeof TOKEN_SHEET_SECTIONS;
 
-// Finestra con le sole azioni della scheda del token, accanto al token; si chiude cliccando fuori.
-export async function openTokenActions(token: Item): Promise<void> {
+// Finestra con una sola parte della scheda del token (azioni, prove, TS o abilità), accanto al token; si chiude cliccando fuori.
+export async function openTokenActions(token: Item, section: TokenSheetSection = "actions"): Promise<void> {
   const point = await OBR.viewport.transformPoint(token.position);
   const [width, height] = await Promise.all([OBR.viewport.getWidth(), OBR.viewport.getHeight()]);
   // Un po' a destra del centro del token, dentro la vista.
   const anchorPosition = { left: Math.max(0, Math.min(point.x + 48, width - TOKEN_ACTIONS_SIZE.width)), top: Math.max(0, Math.min(point.y - 48, height - TOKEN_ACTIONS_SIZE.height)) };
   await OBR.popover.open({
-    id: TOKEN_ACTIONS_ID, url: `/?view=sheet&token=${encodeURIComponent(token.id)}&section=actions`, ...TOKEN_ACTIONS_SIZE,
+    id: TOKEN_ACTIONS_ID, url: `/?view=sheet&token=${encodeURIComponent(token.id)}&section=${section}`, ...TOKEN_ACTIONS_SIZE,
     anchorReference: "POSITION", anchorPosition, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" },
   });
 }

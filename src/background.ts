@@ -16,7 +16,7 @@ OBR.onReady(async () => {
       label: "TavernExplorer",
       filter: { every: [{ key: "layer", value: "CHARACTER" }] },
     }],
-    embed: { url: "/?token-menu", height: 108 },
+    embed: { url: "/?token-menu", height: 288 },
   });
   // I PF si cambiano spesso: voce propria nel menu principale, solo su un token collegato a una scheda.
   await OBR.contextMenu.create({

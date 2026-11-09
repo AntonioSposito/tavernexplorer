@@ -49,7 +49,8 @@ function ResourceForm({ sheet, counter, isNew, onUpdate, onClose, onDelete }: { 
   </form>;
 }
 
-export function ResourcePanel({ sheet, onUpdate, onRest, onUse }: { sheet: CharacterSheet; onUpdate: Update; onRest: (summary: string) => void; onUse: (title: string, body: string) => void }) {
+// compact: finestra del menu del token, solo le risorse da usare (niente aggiunta, ordine e riposi).
+export function ResourcePanel({ sheet, onUpdate, onRest, onUse, compact }: { compact?: boolean; sheet: CharacterSheet; onUpdate: Update; onRest: (summary: string) => void; onUse: (title: string, body: string) => void }) {
   const [diceToSpend, setDiceToSpend] = useState(0);
   const [pendingRest, setPendingRest] = useState<RestKind | null>(null);
   // Risorsa aperta nel popup.
@@ -74,7 +75,7 @@ export function ResourcePanel({ sheet, onUpdate, onRest, onUse }: { sheet: Chara
   const hp = effectiveSheet(sheet).combat.hp;
   return <div className="stack">
     <Card className="resource-panel"><div className="editor-heading"><h2>Risorse</h2></div>
-      <div className="library-actions">{!reordering && <Button onClick={() => setEditing({ id: crypto.randomUUID(), name: "", current: 1, max: 1, recovery: "long" })}>+ Nuova risorsa</Button>}{counters.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>
+      {!compact && <div className="library-actions">{!reordering && <Button onClick={() => setEditing({ id: crypto.randomUUID(), name: "", current: 1, max: 1, recovery: "long" })}>+ Nuova risorsa</Button>}{counters.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}
       {reordering ? <ol className="order-list">{counters.map((counter, index) => <li key={counter.id}><span>{counter.name}</span><Button variant="outline" aria-label={`Sposta su ${counter.name}`} disabled={index === 0} onClick={() => moveCounter(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${counter.name}`} disabled={index === counters.length - 1} onClick={() => moveCounter(index, 1)}>↓</Button></li>)}</ol> : counters.map((counter) => { const current = counterCurrent(sheet, counter); return <div className="resource-row" key={counter.id}>
         <button className="entry-use resource-name" title="Mostra in chat" onClick={() => share(counter)}>{counter.name || "Risorsa senza nome"}</button>
         <div className="resource-amount"><Button variant="outline" aria-label={`Riduci ${counter.name}`} disabled={current <= 0} onClick={() => { setCurrent(counter.id, current - 1); onUse(counter.name, `${sheet.name} usa ${counter.name}: ${current - 1}/${counter.max}`); }}>−</Button><strong>{current} / {counter.max}</strong><Button variant="outline" aria-label={`Aumenta ${counter.name}`} disabled={current >= counter.max} onClick={() => setCurrent(counter.id, current + 1)}>+</Button></div>
@@ -83,7 +84,7 @@ export function ResourcePanel({ sheet, onUpdate, onRest, onUse }: { sheet: Chara
       </div>; })}
     </Card>
     <ResourceDialog sheet={sheet} counter={editing} onUpdate={onUpdate} onClose={() => setEditing(null)}/>
-    <Card className="resource-panel"><h2>Riposi</h2><p>PF {sheet.combat.hp.current}/{hp.max} · Dadi vita disponibili {sheet.combat.hitDice.current}/{sheet.combat.hitDice.max}</p><div className="rest-controls"><Button onClick={() => { setDiceToSpend(0); setPendingRest("short"); }}>Riposo breve</Button><Button onClick={() => setPendingRest("long")}>Riposo lungo</Button></div>{error && <p role="alert" className="rest-error">{error}</p>}</Card>
+    {!compact && <Card className="resource-panel"><h2>Riposi</h2><p>PF {sheet.combat.hp.current}/{hp.max} · Dadi vita disponibili {sheet.combat.hitDice.current}/{sheet.combat.hitDice.max}</p><div className="rest-controls"><Button onClick={() => { setDiceToSpend(0); setPendingRest("short"); }}>Riposo breve</Button><Button onClick={() => setPendingRest("long")}>Riposo lungo</Button></div>{error && <p role="alert" className="rest-error">{error}</p>}</Card>}
     <Dialog open={pendingRest !== null} title={pendingRest === "short" ? "Conferma riposo breve" : "Conferma riposo lungo"} description={pendingRest === "short" ? "Scegli quanti dadi vita spendere; i contatori da riposo breve saranno ripristinati." : "Ripristinerai PF, slot, dadi vita e contatori configurati. I PF temporanei termineranno."} onClose={() => setPendingRest(null)}>{pendingRest === "short" && <label className="rest-dice">Dadi vita da spendere (disponibili {sheet.combat.hitDice.current}, d{/^d?(\d+)$/i.exec(sheet.combat.hitDice.die.trim())?.[1] ?? "?"}) <Input aria-label="Dadi vita da spendere" type="number" min="0" max={sheet.combat.hitDice.current} value={diceToSpend} onChange={(event) => setDiceToSpend(Math.min(sheet.combat.hitDice.current, Math.max(0, Math.floor(Number(event.target.value)) || 0)))}/></label>}<div className="rest-actions"><Button variant="outline" onClick={() => setPendingRest(null)}>Annulla</Button><Button onClick={completeRest}>Completa riposo</Button></div></Dialog>
   </div>;
 }
