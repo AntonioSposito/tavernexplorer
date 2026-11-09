@@ -209,12 +209,16 @@ it("il GM condivide un mostro del bestiario dai permessi del mostro", async () =
   expect(lastMessage()).toMatchObject({ title: "Lupo", visibility: "gm", body: expect.stringContaining("CA 13") });
   await click("Mostra in chat Morso");
   await settle();
-  expect(lastMessage()).toMatchObject({ kind: "share", author: "Lupo", title: "Morso", visibility: "gm" });
+  expect(lastMessage()).toMatchObject({ kind: "share", author: "Lupo", title: "Morso", visibility: "gm", card: { monster: true } });
   await choose("Visibilità tiri del mostro", "everyone");
   await choose("Modo tiri del mostro", "advantage");
   await click("Prova di Destrezza");
   await settle();
-  expect(lastMessage()).toMatchObject({ kind: "roll", author: "Lupo", visibility: "everyone" });
+  expect(lastMessage()).toMatchObject({ kind: "roll", author: "Lupo", visibility: "everyone", card: { monster: true } });
+  // Card dei mostri in blu (classe "monster"), sia per i tiri sia per le voci mandate in chat.
+  await click("Messaggi");
+  expect([...host.querySelectorAll(".r20-card.monster header strong")].map((title) => title.textContent)).toEqual(["Morso", "Destrezza"]);
+  await click("Bestiario");
   expect(lastMessage().dice).toHaveLength(2);
   await click("Mostra in chat");
   await settle();

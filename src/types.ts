@@ -314,6 +314,8 @@ export interface RollCard {
   // Avviso evidenziato per il tavolo, es. incantesimo lanciato senza slot o slot recuperato a mano.
   alert?: string;
   description?: string;
+  // Tiro o voce di un mostro: intestazione blu invece che rossa.
+  monster?: boolean;
 }
 
 export interface Roll20Export {

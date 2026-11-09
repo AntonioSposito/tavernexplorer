@@ -4,7 +4,7 @@ import { roll, type RollResult } from "./dice";
 import { decodeLegacy, importRoll20 } from "./importer";
 import { import5eToolsCampaign } from "./import5etools";
 import { mergeMonsters } from "./monsterImport";
-import { canViewMessage } from "./messageVisibility";
+import { canViewMessage, messageTime } from "./messageVisibility";
 import { publishGmMessageKey } from "./privateMessages";
 import { Journal } from "./Journal";
 import { EffectsEditor } from "./EffectsEditor";
@@ -291,7 +291,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     try {
       const result = roll(formula, mode);
       const { card, title, body } = buildRollCard(name, formula, result, mode, attack);
-      await publish(makeMessage({ kind: "roll", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title, body, card, formula: result.formula, total: result.total, dice: result.dice, visibility: as?.visibility ?? visibility }));
+      await publish(makeMessage({ kind: "roll", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title, body, card: as ? { ...card, monster: true } : card, formula: result.formula, total: result.total, dice: result.dice, visibility: as?.visibility ?? visibility }));
       if (!as && active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
       return result;
     } catch (error) {
@@ -307,7 +307,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   // `card` arriva dalle liste della scheda con attacco, danno e TS già calcolati; senza, solo nome e descrizione.
   async function shareEntry(entry: ActionEntry | SpellEntry, card?: RollCard, as?: RollAs) {
     try {
-      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: card ?? { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, visibility: as?.visibility ?? visibility }));
+      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: { ...card ?? { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, ...as && { monster: true } }, visibility: as?.visibility ?? visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }
   }
 
@@ -481,7 +481,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       const result = roll(formula, mode);
       if (!await changeTurns(setTurnInitiative(turns, entry.id, result.total + tiebreaker))) return;
       const monster = !sheet && monsters.some((item) => item.id === entry.characterId);
-      await publish(makeMessage({ kind: "roll", author: monster ? entry.name : player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, card: buildRollCard(`Iniziativa · ${entry.name}`, formula, result, mode).card, formula: result.formula, total: result.total, dice: result.dice, visibility: monster ? "gm" : visibility }));
+      await publish(makeMessage({ kind: "roll", author: monster ? entry.name : player.name, title: `Iniziativa · ${entry.name}`, body: `${result.formula} → ${result.total}`, card: { ...buildRollCard(`Iniziativa · ${entry.name}`, formula, result, mode).card, ...monster && { monster: true } }, formula: result.formula, total: result.total, dice: result.dice, visibility: monster ? "gm" : visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Tiro iniziativa fallito", "ERROR"); }
   }
 
@@ -783,7 +783,7 @@ function Messages({ messages, draft, setDraft, visibility, setVisibility, onSend
   useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [lastId, filter]);
   return <div className="messages">
     <nav className="message-filters" aria-label="Filtra messaggi">{([ ["all", "Tutti"], ["everyone", "Pubblici"], ["gm", "GM"], ["self", "Personali"] ] as const).map(([id, label]) => <button key={id} className={filter === id ? "active" : ""} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</nav>
-    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
+    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{messageTime(message.createdAt)} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
     <section className="composer"><textarea aria-label="Nuovo messaggio" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim()) onSend(); } }} placeholder="Scrivi un messaggio…"/><div><select aria-label="Destinatari" value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select><button className="primary" disabled={!draft.trim()} onClick={onSend}>Invia</button></div>{visibility === "gm" && <small className="composer-note">Il GM deve avere l'estensione aperta almeno una volta per ricevere messaggi cifrati.</small>}</section>
   </div>;
 }
@@ -793,7 +793,7 @@ const MODE_LABELS: Record<RollMode, string> = { normal: "", advantage: " (vantag
 // Card ispirata ai template "D&D 5e by Roll20": ogni numero ha un'etichetta, i dadi sono nel tooltip.
 function RollCardView({ card }: { card: RollCard }) {
   const d20 = card.d20;
-  return <div className="r20-card">
+  return <div className={card.monster ? "r20-card monster" : "r20-card"}>
     <header><strong>{card.name}</strong>{card.subtitle && <small>{card.subtitle}</small>}</header>
     {card.alert && <p className="r20-alert" role="note">⚠ {card.alert}</p>}
     {d20 && <div className="r20-row"><span className="r20-label">{d20.label}{MODE_LABELS[d20.mode]}</span><span className="r20-values">{d20.dice.map((die, index) => <span key={index} title={d20.formula ? describeRoll(d20.formula, [die]) : undefined} className={["r20-roll", die >= d20.critRange && "crit", die === 1 && "fumble", d20.dice.length > 1 && index !== d20.kept && "dropped"].filter(Boolean).join(" ")}>{die + d20.modifier}</span>)}</span></div>}

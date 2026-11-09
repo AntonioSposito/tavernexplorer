@@ -18,3 +18,7 @@
 .r20-description p { margin: .3rem 0 0; }
 .r20-alert { margin: 0; padding: .35rem .6rem; border-bottom: 1px solid #e6dcc8; background: #fff1c2; color: #8a4b00; font-weight: 700; }
 .message-player { font-weight: 400; color: hsl(var(--muted-foreground)); }
+/* Tiri e voci dei mostri: blu invece del rosso dei PG. */
+.r20-card.monster header { background: #1f4e79; }
+.r20-card.monster .r20-label, .r20-card.monster .r20-description summary { color: #1f4e79; }
+.r20-card.monster header small { color: #dce8f4; }

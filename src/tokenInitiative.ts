@@ -39,7 +39,8 @@ export async function announceInitiative({ name, characterId, formula, mode, res
   const { card, title, body } = buildRollCard("Iniziativa", formula, result, mode);
   const message: ChatMessage = {
     id: crypto.randomUUID(), kind: "roll", author: name, authorId: await OBR.player.getId(), playerName: await OBR.player.getName(), characterId,
-    title, body, card, formula: result.formula, total: result.total, dice: result.dice, visibility: gmOnly ? "gm" : "everyone", createdAt: Date.now(),
+    // gmOnly: tiro di un mostro (card blu).
+    title, body, card: gmOnly ? { ...card, monster: true } : card, formula: result.formula, total: result.total, dice: result.dice, visibility: gmOnly ? "gm" : "everyone", createdAt: Date.now(),
   };
   storage.messages.set([...storage.messages.get(), message]);
   await broadcastMessage(message, "ALL");
