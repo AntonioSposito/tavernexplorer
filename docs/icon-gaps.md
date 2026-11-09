@@ -1,0 +1,459 @@
+# Icone mancanti
+
+Voci del catalogo 5e.tools 2024 senza icona in `public/icons` (confronto per nome inglese, come `src/EntryIcon.tsx`;
+"+1 X" usa l'icona di "X"). Elenco del 09/11/2026.
+
+## Incantesimi XPHB (69 su 391 senza icona)
+
+- Arcane Gate
+- Arcane Vigor
+- Armor of Agathys
+- Arms of Hadar
+- Aura of Purity
+- Aura of Vitality
+- Banishing Smite
+- Beast Sense
+- Bigby's Hand
+- Blade Ward
+- Blinding Smite
+- Circle of Power
+- Cloud of Daggers
+- Compelled Duel
+- Conjure Barrage
+- Conjure Volley
+- Cordon of Arrows
+- Crown of Madness
+- Crusader's Mantle
+- Destructive Wave
+- Drawmij's Instant Summons
+- Elemental Weapon
+- Evard's Black Tentacles
+- Feign Death
+- Fount of Moonlight
+- Friends
+- Grasping Vine
+- Hail of Thorns
+- Hunger of Hadar
+- Jallarzi's Storm of Radiance
+- Leomund's Secret Chest
+- Leomund's Tiny Hut
+- Lightning Arrow
+- Melf's Acid Arrow
+- Mind Sliver
+- Mordenkainen's Faithful Hound
+- Mordenkainen's Magnificent Mansion
+- Mordenkainen's Private Sanctum
+- Mordenkainen's Sword
+- Nystul's Magic Aura
+- Otiluke's Freezing Sphere
+- Otiluke's Resilient Sphere
+- Otto's Irresistible Dance
+- Power Word Fortify
+- Rary's Telepathic Bond
+- Staggering Smite
+- Steel Wind Strike
+- Summon Aberration
+- Summon Beast
+- Summon Celestial
+- Summon Construct
+- Summon Elemental
+- Summon Fey
+- Summon Fiend
+- Summon Undead
+- Swift Quiver
+- Synaptic Static
+- Tasha's Bubbling Cauldron
+- Tasha's Hideous Laughter
+- Telepathy
+- Tenser's Floating Disk
+- Thorn Whip
+- Thunderclap
+- Thunderous Smite
+- Toll the Dead
+- Witch Bolt
+- Word of Radiance
+- Wrathful Smite
+- Yolande's Regal Presence
+
+## Oggetti base XPHB (10 su 94 senza icona)
+
+- Arrow
+- Arrows (20)
+- Bolt
+- Bolts (20)
+- Firearm Bullet
+- Firearm Bullets (10)
+- Needle
+- Needles (50)
+- Sling Bullet
+- Sling Bullets (20)
+
+## Oggetti XPHB e XDMG (367 su 707 senza icona)
+
+- +1 Rod of the Pact Keeper
+- +1 Wraps of Unarmed Power
+- +2 Rod of the Pact Keeper
+- +2 Wraps of Unarmed Power
+- +3 Rod of the Pact Keeper
+- +3 Wraps of Unarmed Power
+- Airship
+- Alchemy Jug
+- Ale (mug)
+- Alexandrite
+- Amber
+- Amethyst
+- Apparatus of Kwalish
+- Aquamarine
+- Assassin's Blood
+- Axe of the Dwarvish Lords
+- Azurite
+- Baba Yaga's Dancing Broom
+- Bag of Tricks, Gray
+- Bag of Tricks, Rust
+- Bag of Tricks, Tan
+- Banded Agate
+- Basic Poison
+- Bead of Nourishment
+- Bead of Refreshment
+- Bejeweled gold bracelet
+- Bejeweled ivory drinking horn with gold filigree
+- Black Opal
+- Black Pearl
+- Black Sapphire
+- Black velvet mask stitched with silver thread
+- Blackrazor
+- Bloodstone
+- Blue Quartz
+- Blue Sapphire
+- Blue Spinel
+- Bomb
+- Book of Exalted Deeds
+- Book of Vile Darkness
+- Boots of False Tracks
+- Bottle stopper cork embossed with gold leaf and set with amethysts
+- Box of turquoise animal figurines
+- Brass mug with jade inlay
+- Bread (loaf)
+- Bronze crown
+- Bullseye Lantern
+- Bundle of sheet music representing the lost dirges of a famous composer
+- Burnt Othur Fumes
+- Candle of the Deep
+- Canvas (1 sq. yd.)
+- Cap of Water Breathing
+- Carnelian
+- Carrion Crawler Mucus
+- Carved bone statuette
+- Carved ivory statuette
+- Carved wooden harp with ivory inlay and zircon gems
+- Cauldron of Rebirth
+- Ceremonial gold armor with black pearls
+- Chalcedony
+- Charlatan's Die
+- Cheese (wedge)
+- Chicken
+- Chrysoberyl
+- Chrysoprase
+- Cinnamon
+- Citrine
+- Cloak of Billowing
+- Cloak of Invisibility
+- Cloak of Many Fashions
+- Clockwork Amulet
+- Cloth-of-gold vestments
+- Clothes of Mending
+- Cloves
+- Common Wine (bottle)
+- Copper
+- Copper chalice with silver filigree
+- Coral
+- Cotton Cloth (1 sq. yd.)
+- Cow
+- Crossbow Bolt Case
+- Cube of Summoning
+- Daern's Instant Fortress
+- Dark Shard Amulet
+- Demonomicon of Iggwilv
+- Detailed, life-sized dragonborn skull cast in electrum
+- Diamond
+- Dice Set
+- Draft Horse
+- Dragonchess Set
+- Dread Helm
+- Driftglobe
+- Dynamite Stick
+- Ear Horn of Hearing
+- Elemental Gem, Blue Sapphire
+- Elemental Gem, Emerald
+- Elemental Gem, Red Corundum
+- Elemental Gem, Yellow Diamond
+- Elixir of Health
+- Embroidered glove set with jewel chips
+- Embroidered silk and velvet mantle set with numerous moonstones
+- Embroidered silk handkerchief
+- Emerald
+- Enduring Spellbook
+- Enspelled Staff (Cantrip)
+- Enspelled Staff (Level 1)
+- Enspelled Staff (Level 2)
+- Enspelled Staff (Level 3)
+- Enspelled Staff (Level 4)
+- Enspelled Staff (Level 5)
+- Enspelled Staff (Level 6)
+- Enspelled Staff (Level 7)
+- Enspelled Staff (Level 8)
+- Ersatz Eye
+- Essence of Ether
+- Exotic Saddle
+- Eye Agate
+- Eye of Vecna
+- Eye patch decorated with tiny blue sapphires and moonstones
+- Feed (per day)
+- Figurine of Wondrous Power, Bronze Griffon
+- Figurine of Wondrous Power, Ebony Fly
+- Figurine of Wondrous Power, Golden Lions
+- Figurine of Wondrous Power, Ivory Goats
+- Figurine of Wondrous Power, Marble Elephant
+- Figurine of Wondrous Power, Obsidian Steed
+- Figurine of Wondrous Power, Onyx Dog
+- Figurine of Wondrous Power, Serpentine Owl
+- Figurine of Wondrous Power, Silver Raven
+- Fine Clothes
+- Fine Wine (bottle)
+- Fine gold chain set with a fire opal
+- Fire Opal
+- Flour
+- Fragmentation Grenade
+- Garnet
+- Gilded royal coach or funeral barge
+- Ginger
+- Glass Bottle
+- Gloves of Thievery
+- Goat
+- Gold
+- Gold Bar (5-pound)
+- Gold birdcage with electrum filigree
+- Gold bracelet
+- Gold circlet set with four aquamarines
+- Gold comb shaped like a dragon with red garnets as eyes
+- Gold cup set with emeralds
+- Gold idol
+- Gold jewelry box with platinum filigree
+- Gold locket with a painted portrait inside
+- Gold music box
+- Gold ring set with bloodstones
+- Gold statuette set with rubies
+- Grenade Launcher
+- Gunpowder (keg)
+- Gunpowder (powder horn)
+- Hag Eye
+- Hand of Vecna
+- Handheld mirror set in a painted wooden frame
+- Hat of Many Spells
+- Hat of Vermin
+- Hat of Wizardry
+- Hematite
+- Heward's Handy Haversack
+- Heward's Handy Spice Pouch
+- Hooded Lantern
+- Horn of Silent Alarm
+- Horn of Valhalla, Brass
+- Horn of Valhalla, Bronze
+- Horn of Valhalla, Iron
+- Horn of Valhalla, Silver
+- Instrument of Illusions
+- Instrument of Scribing
+- Instrument of the Bards, Anstruth Harp
+- Instrument of the Bards, Canaith Mandolin
+- Instrument of the Bards, Cli Lyre
+- Instrument of the Bards, Doss Lute
+- Instrument of the Bards, Fochlucan Bandore
+- Instrument of the Bards, Mac-Fuirmidh Cittern
+- Instrument of the Bards, Ollamh Harp
+- Ioun Stone, Absorption
+- Ioun Stone, Agility
+- Ioun Stone, Awareness
+- Ioun Stone, Fortitude
+- Ioun Stone, Greater Absorption
+- Ioun Stone, Insight
+- Ioun Stone, Intellect
+- Ioun Stone, Leadership
+- Ioun Stone, Mastery
+- Ioun Stone, Protection
+- Ioun Stone, Regeneration
+- Ioun Stone, Reserve
+- Ioun Stone, Strength
+- Ioun Stone, Sustenance
+- Iron
+- Iron Bands of Bilarro
+- Iron Pot
+- Iron Spike
+- Iron Spikes
+- Jacinth
+- Jade
+- Jade game board with gold playing pieces
+- Jasper
+- Jet
+- Jeweled anklet
+- Jeweled gold crown
+- Jeweled platinum ring
+- Keoghtom's Ointment
+- Lapis Lazuli
+- Linen (1 sq. yd.)
+- Lock of Trickery
+- Lolth's Sting
+- Lute of Thunderous Thumping
+- Malachite
+- Malice
+- Map or Scroll Case
+- Midnight Tears
+- Military Saddle
+- Moonstone
+- Moss Agate
+- Mystery Key
+- Nature's Mantle
+- Necklace string of small pink pearls
+- Nolzur's Marvelous Pigments
+- Obsidian
+- Obsidian statuette with gold fittings and inlay
+- Oil of Taggit
+- Old masterpiece painting
+- Onyx
+- Opal
+- Orb of Direction
+- Orb of Time
+- Ox
+- Painted gold war mask
+- Pair of engraved bone dice
+- Pale Tincture
+- Pearl
+- Pepper
+- Perfume of Bewitching
+- Peridot
+- Pig
+- Pipe of Smoke Monsters
+- Platinum
+- Platinum bracelet set with an emerald
+- Pole of Angling
+- Pole of Collapsing
+- Portable Ram
+- Pot of Awakening
+- Potion of Comprehension
+- Potion of Fire Breath
+- Potion of Greater Invisibility
+- Potion of Invulnerability
+- Potion of Longevity
+- Potion of Pugilism
+- Potion of Vitality
+- Prosthetic Limb
+- Psychic Blade
+- Purple Worm Poison
+- Quaal's Feather Token, Anchor
+- Quaal's Feather Token, Bird
+- Quaal's Feather Token, Fan
+- Quaal's Feather Token, Swan Boat
+- Quaal's Feather Token, Tree
+- Quaal's Feather Token, Whip
+- Quarterstaff of the Acrobat
+- Quartz
+- Quiver of Ehlonna
+- Rhodochrosite
+- Riding Horse
+- Riding Saddle
+- Ring of Elemental Command (Air)
+- Ring of Elemental Command (Earth)
+- Ring of Elemental Command (Fire)
+- Ring of Elemental Command (Water)
+- Rival Coin
+- Rod of Resurrection
+- Rope of Mending
+- Ruby
+- Ruby of the War Mage
+- Saddle of the Cavalier
+- Saffron
+- Salt
+- Sardonyx
+- Scroll of Protection (Aberrations)
+- Scroll of Protection (Beasts)
+- Scroll of Protection (Celestials)
+- Scroll of Protection (Constructs)
+- Scroll of Protection (Dragons)
+- Scroll of Protection (Elementals)
+- Scroll of Protection (Fey)
+- Scroll of Protection (Fiends)
+- Scroll of Protection (Giants)
+- Scroll of Protection (Humanoids)
+- Scroll of Protection (Monstrosities)
+- Scroll of Protection (Oozes)
+- Scroll of Protection (Plants)
+- Scroll of Protection (Undead)
+- Scroll of Titan Summoning (Animal Lord)
+- Scroll of Titan Summoning (Blob of Annihilation)
+- Scroll of Titan Summoning (Colossus)
+- Scroll of Titan Summoning (Elemental Cataclysm)
+- Scroll of Titan Summoning (Empyrean)
+- Scroll of Titan Summoning (Kraken)
+- Scroll of Titan Summoning (Tarrasque)
+- Sending Stones
+- Sentinel Shield
+- Serpent Venom
+- Set of gold nesting dolls
+- Sheep
+- Shield of Expression
+- Shield of the Cavalier
+- Silk
+- Silk vestments with gold embroidery
+- Silver
+- Silver Bar (2-pound)
+- Silver Bar (5-pound)
+- Silver and gold brooch
+- Silver chalice set with moonstones
+- Silver ewer
+- Silver necklace with a gemstone pendant
+- Smoke Grenade
+- Spell Scroll (Level 2)
+- Spell Scroll (Level 3)
+- Spell Scroll (Level 4)
+- Spell Scroll (Level 5)
+- Spell Scroll (Level 6)
+- Spell Scroll (Level 7)
+- Spell Scroll (Level 8)
+- Spell Scroll (Level 9)
+- Spinel
+- Spirit Board
+- Stabling (per day)
+- Staff of Adornment
+- Staff of Birdcalls
+- Staff of Flowers
+- Staff of the Adder
+- Star Ruby
+- Star Sapphire
+- Star rose quartz
+- Stone of Good Luck
+- Sword of Answering
+- Sword of Kas
+- Talking Doll
+- Tankard of Sobriety
+- Tentacle Rod
+- Three-Dragon Ante Set
+- Thunderous Greatclub
+- Tiger Eye
+- Tome of the Stilled Tongue
+- Topaz
+- Torpor
+- Tourmaline
+- Traveler's Clothes
+- Trinket
+- Truth Serum
+- Turquoise
+- Veteran's Cane
+- Wand of Conducting
+- Wand of Orcus
+- Wand of Pyrotechnics
+- Wave
+- Well-made tapestry that is 10 feet by 10 feet
+- Wheat
+- Whelm
+- Wyvern Poison
+- Yellow Sapphire
+- Zircon

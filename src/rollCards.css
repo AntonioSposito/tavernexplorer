@@ -22,3 +22,7 @@
 .r20-card.monster header { background: #1f4e79; }
 .r20-card.monster .r20-label, .r20-card.monster .r20-description summary { color: #1f4e79; }
 .r20-card.monster header small { color: #dce8f4; }
+/* Prova icone: nome a sinistra, icona a destra nella card in chat. */
+.r20-card header { flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; }
+.r20-card header > div { display: flex; flex-direction: column; min-width: 0; }
+.r20-card header .entry-icon { width: 2.2rem; height: 2.2rem; }

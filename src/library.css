@@ -72,10 +72,10 @@
 /* Risorse (con Riposi sotto) e Competenze affiancate; una colonna se la finestra è stretta. */
 .sheet-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: start; }
 /* Zaino come Roll20: equipaggiato, quantità, nome, peso; dettagli nella riga richiudibile. */
-.inventory-head, .inventory-item > summary { display: grid; grid-template-columns: 2.6rem 2.8rem minmax(0, 1fr) 4rem 4.25rem; align-items: center; gap: .5rem; }
+.inventory-head, .inventory-item > summary { display: grid; grid-template-columns: 2.6rem 2.8rem 2.6rem minmax(0, 1fr) 4rem 4.25rem; align-items: center; gap: .5rem; }
 .inventory-head { padding: 0 .25rem; white-space: nowrap; color: hsl(var(--muted-foreground)); font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
 /* Intestazioni allineate come i valori: Equip., Qtà e Peso al centro, Nome a sinistra. */
-.inventory-head span:nth-child(1), .inventory-head span:nth-child(2), .inventory-head span:nth-child(4) { text-align: center; }
+.inventory-head span:nth-child(1), .inventory-head span:nth-child(2), .inventory-head span:nth-child(5) { text-align: center; }
 .inventory-item > summary > input[type="checkbox"] { justify-self: center; margin: 0; }
 .inventory-item { border-top: 1px solid hsl(var(--border)); }
 .inventory-item > summary { padding: .5rem .25rem; cursor: pointer; list-style: none; }
@@ -188,3 +188,8 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .quick-details>div{display:grid;grid-template-columns:8.5rem 1fr;gap:.6rem;padding:.4rem 0;border-bottom:1px solid hsl(var(--border))}
 .quick-details dt{font-weight:700;color:hsl(var(--primary))}
 .quick-details dd{margin:0;line-height:1.4}
+/* Prova icone (EntryIcon): accanto al nome di incantesimi e oggetti. */
+.entry-icon { display: block; width: 2.6rem; height: 2.6rem; flex: none; border-radius: 6px; }
+/* Incantesimi: icona alta quanto la riga, a destra nome e sotto il tipo. */
+.entry summary > span.entry-with-icon { flex-direction: row; align-items: center; gap: .6rem; }
+.entry-with-icon > span { display: flex; flex-direction: column; min-width: 0; }

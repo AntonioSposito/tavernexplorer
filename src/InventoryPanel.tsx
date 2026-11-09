@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EntryIcon } from "./EntryIcon";
 import { CatalogDialog } from "./CatalogDialog";
 import { loadItems } from "./fivetoolsApi";
 import type { FiveToolsItem } from "./import5etools";
@@ -82,10 +83,11 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpe
       {editable && <div className="library-actions">{!reordering && <Button onClick={() => setDraft(draftOf(null))}>+ Nuovo oggetto</Button>}{sheet.inventory.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}
       {!reordering && sheet.inventory.length > 1 && <label className="action-form-check"><input type="checkbox" checked={equippedFirst} onChange={(event) => toggleEquippedFirst(event.target.checked)}/> Equipaggiati in cima</label>}
       {reordering ? <ol className="order-list">{sheet.inventory.map((item, index) => <li key={item.id}><span>{item.name}</span><Button variant="outline" aria-label={`Sposta su ${item.name}`} disabled={index === 0} onClick={() => moveItem(index, -1)}>↑</Button><Button variant="outline" aria-label={`Sposta giù ${item.name}`} disabled={index === sheet.inventory.length - 1} onClick={() => moveItem(index, 1)}>↓</Button></li>)}</ol> : <>
-      {sheet.inventory.length > 0 && <div className="inventory-head" aria-hidden="true"><span>Equip.</span><span>Qtà</span><span>Nome</span><span>Peso (kg)</span></div>}
+      {sheet.inventory.length > 0 && <div className="inventory-head" aria-hidden="true"><span>Equip.</span><span>Qtà</span><span/><span>Nome</span><span>Peso (kg)</span></div>}
       {shown.map((item) => <details key={item.id} className="inventory-item"><summary>
         <input type="checkbox" aria-label={`Equipaggiato ${item.name}`} checked={item.equipped} disabled={!editable} onChange={(event) => patch(item.id, (found) => { found.equipped = event.target.checked; })}/>
         {editable ? <input className="inventory-qty" type="number" min="0" aria-label={`Quantità ${item.name}`} value={item.count ?? ""} onChange={(event) => patch(item.id, (found) => { found.count = optionalNumber(event.target.value); })}/> : <span className="inventory-qty">{item.count ?? "—"}</span>}
+        <span className="inventory-icon"><EntryIcon name={item.name}/></span>
         <span className="inventory-name"><strong>{item.name}</strong>{itemTags(item).length > 0 && <small className="inventory-mods">{itemTags(item).map((tag) => <span key={tag}>{tag}</span>)}</small>}</span>
         <span className="inventory-weight" title={item.weight != null ? lbText(item.weight) : undefined}>{item.weight != null ? kgText(item.weight) : "-"}</span>
         <span className="entry-icons">
