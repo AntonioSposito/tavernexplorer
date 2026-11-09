@@ -19,7 +19,6 @@ interface LibraryPanelProps {
   members: Member[];
   player: { name: string; role: "GM" | "PLAYER" };
   onSelect: (id: string) => void;
-  onOpenNpc: (id: string) => void;
   onImport: () => void;
   onCreate: (sheet: CharacterSheet) => void;
   onExport: () => void;
@@ -28,27 +27,25 @@ interface LibraryPanelProps {
   onDelete: (id: string) => void;
 }
 
-export function LibraryPanel({ entries, activeId, members, player, onSelect, onOpenNpc, onImport, onCreate, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
-  const [section, setSection] = useState<"pc" | "npc">("pc");
+export function LibraryPanel({ entries, activeId, members, player, onSelect, onImport, onCreate, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
   const [newName, setNewName] = useState<string | null>(null);
   const [guided, setGuided] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [alphabetical, setAlphabetical] = useState(storage.libraryAlphabetical.get);
   const isGm = player.role === "GM";
   const candidates = aclCandidates(entries, members);
-  const inSection = entries.filter((entry) => entry.kind === section);
+  const inSection = entries.filter((entry) => entry.kind === "pc");
   const shown = alphabetical ? [...inSection].sort((a, b) => a.sheet.name.localeCompare(b.sheet.name, "it", { sensitivity: "base" })) : inSection;
-  const subtitleOf = (entry: CloudSheet) => entry.kind === "pc" ? `${entry.sheet.identity.classDisplay} · ${getRuleset(entry.sheet.ruleset.id).label}` : entry.kind === "npc" ? `${entry.sheet.creatureType} · GS ${entry.sheet.challengeRating}` : "";
-  const open = (entry: CloudSheet) => entry.kind === "pc" ? onSelect(entry.sheet.id) : onOpenNpc(entry.sheet.id);
+  const subtitleOf = (entry: CloudSheet) => entry.kind === "pc" ? `${entry.sheet.identity.classDisplay} · ${getRuleset(entry.sheet.ruleset.id).label}` : "";
+  const open = (entry: CloudSheet) => onSelect(entry.sheet.id);
 
   return <div className="stack">
-    <nav className="sheet-tabs"><button className={section === "pc" ? "active" : ""} onClick={() => setSection("pc")}>Party</button><button className={section === "npc" ? "active" : ""} onClick={() => setSection("npc")}>NPC</button></nav>
-    {section === "pc" && <section className="library-actions"><button className="primary" onClick={() => setNewName("")}>Nuovo personaggio</button>{isGm && <button className="primary" onClick={onImport}>Importa Roll20 / TavernPack</button>}<button onClick={onExport} disabled={!activeId}>Esporta scheda</button>{isGm && <button onClick={onExportPack}>Esporta tutto</button>}</section>}
+    <section className="library-actions"><button className="primary" onClick={() => setNewName("")}>Nuovo personaggio</button>{isGm && <button className="primary" onClick={onImport}>Importa Roll20 / TavernPack</button>}<button onClick={onExport} disabled={!activeId}>Esporta scheda</button>{isGm && <button onClick={onExportPack}>Esporta tutto</button>}</section>
     {shown.length > 0 && <div className="library-actions">
-      <Button variant="outline" className="picker-button" onClick={() => setSearching(true)}><span>{section === "pc" ? "Cerca nel party" : "Cerca negli NPC"}</span><span>⌕</span></Button>
+      <Button variant="outline" className="picker-button" onClick={() => setSearching(true)}><span>Cerca nel party</span><span>⌕</span></Button>
       <Button variant={alphabetical ? "default" : "outline"} aria-pressed={alphabetical} onClick={() => { setAlphabetical(!alphabetical); storage.libraryAlphabetical.set(!alphabetical); }}>Ordine alfabetico</Button>
     </div>}
-    <CatalogDialog open={searching} title={section === "pc" ? "Cerca nel party" : "Cerca negli NPC"} description="Cerca per nome, classe o tipo" items={shown.map((entry) => ({ id: entry.sheet.id, label: entry.sheet.name, detail: subtitleOf(entry) }))} selectedId={activeId ?? ""} onSelect={(id) => { setSearching(false); const entry = shown.find((item) => item.sheet.id === id); if (entry) open(entry); }} onClose={() => setSearching(false)}/>
+    <CatalogDialog open={searching} title="Cerca nel party" description="Cerca per nome o classe" items={shown.map((entry) => ({ id: entry.sheet.id, label: entry.sheet.name, detail: subtitleOf(entry) }))} selectedId={activeId ?? ""} onSelect={(id) => { setSearching(false); const entry = shown.find((item) => item.sheet.id === id); if (entry) open(entry); }} onClose={() => setSearching(false)}/>
     {isGm && <p className="library-hint">Di base ogni scheda è visibile e modificabile solo dal GM. Chi può modificare può anche vedere. I permessi valgono per il nome Owlbear e sono applicati solo dall'estensione.</p>}
     {shown.map((entry) => {
       const editable = canEditCloudSheet(entry, player);
@@ -69,7 +66,7 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onO
       <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={() => setNewName(null)}>Annulla</Button><Button type="button" variant="outline" disabled={!newName.trim()} onClick={() => { onCreate(createBlankSheet(newName.trim())); setNewName(null); }}>Scheda vuota</Button><Button type="submit">Creazione guidata</Button></div>
     </form>}</Dialog>
     <Dialog open={guided !== null} title="Creazione guidata" description="Livello 1 · PHB 2024 (dati 5e.tools)" onClose={() => setGuided(null)}>{guided !== null && <CharacterWizard name={guided} onCreate={(sheet) => { onCreate(sheet); setGuided(null); }} onCancel={() => setGuided(null)}/>}</Dialog>
-    {shown.length === 0 && <p className="assign-empty">{section === "pc" ? (isGm ? "Nessuna scheda: crea un personaggio o importa un export Roll20 o un TavernPack." : "Crea il tuo personaggio, oppure chiedi al GM di renderti visibile una scheda.") : (isGm ? "Nessun NPC: aggiungili dal Bestiario con «Aggiungi agli NPC»." : "Il GM non ti ha ancora reso visibile nessun NPC.")}</p>}
+    {shown.length === 0 && <p className="assign-empty">{isGm ? "Nessuna scheda: crea un personaggio o importa un export Roll20 o un TavernPack." : "Crea il tuo personaggio, oppure chiedi al GM di renderti visibile una scheda."}</p>}
   </div>;
 }
 

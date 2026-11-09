@@ -13,7 +13,9 @@ import { AssignmentPanel } from "./AssignmentPanel";
 import { useFreshMessages } from "./freshMessages";
 import { fetchRoomState, putRoomState, ROOM_STATE_POLL_MS } from "./cloudState";
 import { BESTIARY_POLL_MS, deleteCloudMonster, fetchBestiary, mergeBestiary, putMonsters } from "./cloudBestiary";
-import { LibraryPanel } from "./LibraryPanel";
+import { AclPicker, LibraryPanel } from "./LibraryPanel";
+import { FolderDialog, FolderPick, FolderTree, type FolderDraft } from "./FolderTree";
+import { canMoveFolder, folderTargets, visibleFolders } from "./journalTree";
 import { isSameCharacter, mergeReimport } from "./reimport";
 import { ArmorClassControl } from "./ArmorClassControl";
 import { CatalogDialog } from "./CatalogDialog";
@@ -39,7 +41,7 @@ import type { SpellOption } from "./fivetoolsCharacter";
 import { fetchCloudMessages, mergeMessages, postCloudMessage } from "./cloudMessages";
 import { GmChatLink } from "./GmChatLink";
 import { DEFAULT_RULESET, getRuleset } from "./rulesets";
-import { canEditCloudSheet, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
+import { aclCandidates, canEditCloudSheet, EVERYONE, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
 import { storage, type PhoneSession } from "./storage";
 import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 import { Alert, Badge, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
@@ -48,9 +50,9 @@ import {
   getSharedInventory, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onTurnStateChange, getFloatingPanelPosition, getTokenImages, openFloatingPanel, pickOwlbearImage, openPanelForPlayers, resizeFloatingPanel, type PanelSize, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
 import { TOKEN_ACTIONS_ID, TOKEN_SHEET_SECTIONS, type TokenSheetSection } from "./tokenMenuActions";
-import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
+import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterSheet, ChatMessage, JournalFolder, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
 
-const GM_TABS: AppTab[] = ["compendium", "campaigns", "settings"];
+const GM_TABS: AppTab[] = ["campaigns", "settings"];
 // Senza gli avvisi broadcast di Owlbear il telefono rilegge le schede più spesso.
 const PHONE_POLL_MS = 15_000;
 const CHAT_POLL_MS = 15_000;
@@ -95,7 +97,6 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   const [permissions, setPermissionState] = useState<PermissionSettings>(DEFAULT_PERMISSIONS);
   const [partyMembers, setPartyMembers] = useState<Array<{ id: string; name: string; role: "GM" | "PLAYER" }>>([]);
   const [selectedMonsterId, setSelectedMonsterId] = useState<string | null>(null);
-  const [openNpcId, setOpenNpcId] = useState<string | null>(null);
   const [pendingMonsters, setPendingMonsters] = useState<MonsterSheet[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [tokenNotice, setTokenNotice] = useState("");
@@ -126,10 +127,11 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     id: entry.sheet.id, name: entry.sheet.name,
     ownerId: partyMembers.find((member) => member.role !== "GM" && canEditCloudSheet(entry, { name: member.name, role: "PLAYER" }))?.id,
   }] : []);
-  const assignableNpcs = library.entries.flatMap((entry) => entry.kind === "npc" ? [{ id: entry.sheet.id, name: entry.sheet.name, challengeRating: entry.sheet.challengeRating }] : []);
-  const openNpcEntry = library.entries.find((entry) => entry.kind === "npc" && entry.sheet.id === openNpcId);
-  const openNpc = openNpcEntry?.kind === "npc" ? openNpcEntry.sheet : null;
-  const selectedMonster = monsters.find((monster) => monster.id === selectedMonsterId);
+  // Bestiario: il GM vede tutti i suoi mostri, un giocatore solo quelli condivisi con lui (voci "npc" della libreria).
+  const sharedMonsters = library.entries.flatMap((entry) => entry.kind === "npc" ? [entry.sheet] : []);
+  const bestiaryFolders = library.entries.flatMap((entry) => entry.kind === "folder" && entry.sheet.area === "bestiary" ? [entry.sheet] : []);
+  const selectedMonster = (player.role === "GM" ? monsters : sharedMonsters).find((monster) => monster.id === selectedMonsterId);
+  const canRollMonster = (id: string) => player.role === "GM" || library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === id && canEditCloudSheet(entry, player));
   const activeEntry = library.entries.find((entry) => entry.sheet.id === activeId);
   const activeEditable = !library.offline && !!activeEntry && canEditCloudSheet(activeEntry, player);
   // Ogni modifica passa dalla libreria cloud: errori di permesso o rete diventano un avviso.
@@ -239,6 +241,18 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chatRoom dipende da phone e da OBR pronto, che arriva con player
   }, [phone, floatingView, gmToken, player.role]);
 
+  // Mostri e NPC sono una cosa sola: le voci "npc" della libreria (i mostri condivisi, e gli NPC di prima) stanno anche nel bestiario del GM.
+  useEffect(() => {
+    if (player.role !== "GM" || floatingView) return;
+    const known = new Set(storage.monsters.get().map((monster) => monster.id));
+    const missing = library.entries.flatMap((entry) => entry.kind === "npc" && !known.has(entry.sheet.id) ? [entry.sheet] : []);
+    if (!missing.length) return;
+    const next = [...storage.monsters.get(), ...missing];
+    setMonsters(next); storage.monsters.set(next);
+    syncMonsters((room, token) => putMonsters(room, token, missing));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- syncMonsters legge solo stanza e token GM correnti
+  }, [library.entries, player.role, floatingView]);
+
   // La scheda attiva deve restare tra quelle visibili.
   useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
   // Bestiario, avventure e permessi sono riservati al GM: chi non lo è torna alla scheda.
@@ -249,9 +263,12 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   useEffect(() => { if (OBR.isReady && !floatingView) void setActiveCharacter(activeId); }, [activeId, player.id, floatingView]);
   useEffect(() => { charactersRef.current = characters; }, [characters]);
   useEffect(() => {
-    if (!pendingTokenSheetId || !characters.some((sheet) => sheet.id === pendingTokenSheetId)) return;
+    if (!pendingTokenSheetId) return;
+    // Mostro condiviso con il giocatore: si apre nel Bestiario.
+    if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === pendingTokenSheetId)) { setSelectedMonsterId(pendingTokenSheetId); setTab("compendium"); setTokenNotice(""); setPendingTokenSheetId(null); return; }
+    if (!characters.some((sheet) => sheet.id === pendingTokenSheetId)) return;
     setActiveId(pendingTokenSheetId); setTab("sheet"); setTokenNotice(""); setPendingTokenSheetId(null);
-  }, [characters, pendingTokenSheetId]);
+  }, [characters, library.entries, pendingTokenSheetId]);
   useEffect(() => { const sync = (event: StorageEvent) => { if (event.key?.includes("/messages/")) setMessages(storage.messages.get()); if (event.key?.includes("/messages-seen/")) setMessagesSeenAt(storage.messagesSeen.get()); if (event.key?.includes("/monsters/")) setMonsters(storage.monsters.get()); if (event.key?.includes("/campaigns/")) setCampaigns(storage.campaigns.get()); }; window.addEventListener("storage", sync); return () => window.removeEventListener("storage", sync); }, []);
 
   async function publish(message: ChatMessage) {
@@ -344,14 +361,46 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     });
   }
 
-  // Ogni NPC è una copia con id e nome propri: lo stesso mostro può diventare più NPC.
-  async function addNpc(monster: MonsterSheet) {
-    const name = window.prompt("Nome dell'NPC", monster.name)?.trim();
-    if (!name) return;
-    await runAction(async () => {
-      if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare la libreria");
-      await libraryRef.current.add({ kind: "npc", sheet: { ...monster, id: crypto.randomUUID(), name }, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: player.name });
-      if (OBR.isAvailable) await OBR.notification.show(`${name} aggiunto agli NPC della Libreria`, "SUCCESS");
+  async function addMonsterToTurns(monster: MonsterSheet) {
+    if (player.role !== "GM" && !permissions.playersManageTurns) return;
+    const initiative = Math.floor((monster.abilities.dex - 10) / 2);
+    try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); }
+  }
+
+  // Cartelle del Bestiario: voci "folder" della libreria (come il Journal), così le vedono anche gli altri browser e i giocatori.
+  // Un mostro (o una cartella) va in folderId; undefined = radice. Il mostro condiviso si aggiorna anche nella sua voce "npc".
+  function moveInBestiary(id: string, folderId: string | undefined) {
+    if (bestiaryFolders.some((folder) => folder.id === id)) {
+      if (canMoveFolder(bestiaryFolders, id, folderId)) libraryRef.current?.update(id, (entry) => entry.kind === "folder" ? { ...entry, sheet: { ...entry.sheet, parentId: folderId } } : entry);
+      return;
+    }
+    const moved = storage.monsters.get().find((monster) => monster.id === id);
+    if (!moved) return;
+    const next = storage.monsters.get().map((monster) => monster.id === id ? { ...monster, folderId } : monster);
+    setMonsters(next); storage.monsters.set(next);
+    syncMonsters((room, token) => putMonsters(room, token, [{ ...moved, folderId }]));
+    if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === id)) libraryRef.current?.update(id, (entry) => entry.kind === "npc" ? { ...entry, sheet: { ...entry.sheet, folderId } } : entry);
+  }
+  async function saveBestiaryFolder(draft: FolderDraft) {
+    const parentId = draft.parentId || undefined;
+    if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare le cartelle");
+    if (!draft.id) await libraryRef.current.add({ kind: "folder", sheet: { schemaVersion: 1, id: crypto.randomUUID(), name: draft.name.trim(), parentId, area: "bestiary" }, acl: { view: [], edit: [] }, rev: 0, updatedAt: 0, updatedBy: player.name });
+    else if (canMoveFolder(bestiaryFolders, draft.id, parentId)) libraryRef.current.update(draft.id, (entry) => entry.kind === "folder" ? { ...entry, sheet: { ...entry.sheet, name: draft.name.trim(), parentId } } : entry);
+  }
+  // Come nel Journal: eliminando una cartella il suo contenuto sale di un livello.
+  async function deleteBestiaryFolder(id: string) {
+    const parentId = bestiaryFolders.find((folder) => folder.id === id)?.parentId;
+    for (const folder of bestiaryFolders.filter((item) => item.parentId === id)) moveInBestiary(folder.id, parentId);
+    for (const monster of storage.monsters.get().filter((item) => item.folderId === id)) moveInBestiary(monster.id, parentId);
+    await libraryRef.current?.remove(id);
+  }
+
+  // Permessi di un mostro: stanno nella sua voce "npc" della libreria cloud (stesso id), creata alla prima condivisione.
+  function setMonsterAcl(monster: MonsterSheet, acl: CloudSheet["acl"]) {
+    void runAction(async () => {
+      if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per condividere i mostri");
+      if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === monster.id)) libraryRef.current.update(monster.id, (entry) => ({ ...entry, acl }));
+      else await libraryRef.current.add({ kind: "npc", sheet: monster, acl, rev: 0, updatedAt: 0, updatedBy: player.name });
     });
   }
 
@@ -445,9 +494,9 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     <div className={`app-body${tabsOnTop ? " tabs-top" : ""}`}>
     {!floatingView && <nav className="app-tabs">
       {([
-        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null],
+        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null], ["compendium", null],
         // Tab solo GM in fondo, dopo un separatore.
-        ...(player.role === "GM" ? [["gm-separator", null], ["compendium", null], ["campaigns", null], ["settings", null]] as const : []),
+        ...(player.role === "GM" ? [["gm-separator", null], ["campaigns", null], ["settings", null]] as const : []),
       ] as const).filter(([id]) => !phone || id !== "campaigns").map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
         <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
         {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
@@ -464,13 +513,17 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {library.conflict && <Alert tone="danger"><p>{library.conflict}</p><Button variant="outline" onClick={() => libraryRef.current?.clearConflict()}>OK</Button></Alert>}
       {!OBR.isAvailable && !phone && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} section={section} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
-      {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={phone ? undefined : async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && !phone && (assignableSheets.length > 0 || assignableNpcs.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} npcs={assignableNpcs} members={partyMembers}/>}</div>}
+      {tab === "turns" && <div className="stack"><TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void changeTurns(stepTurn(turns, 1))} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onRollInitiative={(entry) => void rollTurnInitiative(entry)} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={phone ? undefined : async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && !phone && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
       {tab === "messages" && <Messages messages={visibleMessages} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}
       {tab === "notes" && <Journal entries={library.entries} members={partyMembers} player={player} onAdd={(entry) => runAction(async () => { if (!libraryRef.current) throw new Error("Apri TavernExplorer dentro Owlbear Rodeo per usare il Journal"); await libraryRef.current.add(entry); })} onUpdate={(id, update) => { try { libraryRef.current?.update(id, update); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Modifica non salvata"); } }} onRemove={(id) => runAction(async () => { await libraryRef.current?.remove(id); })} onShare={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000) || "Nessun testo.", visibility }))); }}/>}
-      {tab === "library" && openNpc && <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => setOpenNpcId(null)}>← Libreria</Button></div><MonsterStatblock monster={openNpc} onRoll={performRoll} onShare={shareEntry}/></div>}
-      {tab === "library" && !openNpc && <LibraryPanel entries={library.entries} activeId={activeId} members={partyMembers} player={player} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onOpenNpc={setOpenNpcId} onImport={() => fileRef.current?.click()} onCreate={(sheet) => { void createCharacter(sheet); }} onExport={exportCharacter} onExportPack={exportPack} onAclChange={(id, acl) => { try { libraryRef.current?.update(id, (entry) => ({ ...entry, acl })); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Permessi non salvati"); } }} onDelete={(id) => { void runAction(async () => { await libraryRef.current?.remove(id); }); }}/>}
-      {tab === "compendium" && player.role === "GM" && section === "actions" && selectedMonster && <><div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel("compendium", undefined, new URLSearchParams(window.location.search).get("token") ?? undefined).then(() => OBR.popover.close(TOKEN_ACTIONS_ID))}>Apri scheda completa ↗</Button></div><h2>Azioni · {selectedMonster.name}</h2><MonsterStatblock actionsOnly monster={selectedMonster} onRoll={performRoll} onShare={shareEntry}/></>}
-      {tab === "compendium" && player.role === "GM" && !section && <Bestiary canManage={player.role === "GM"} canManageTurns={!phone && (player.role === "GM" || permissions.playersManageTurns)} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { const added = next.filter((item) => !monsters.includes(item)); setMonsters(next); storage.monsters.set(next); syncMonsters((room, token) => putMonsters(room, token, added)); }} onDelete={(id) => { const next = monsters.filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id)); }} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={async (monster) => { if (player.role !== "GM" && !permissions.playersManageTurns) return; const initiative = Math.floor((monster.abilities.dex - 10) / 2); try { await addSelectedTokenToTurns(monster.id, monster.name, roll(`1d20${signed(initiative)}`, "normal").total, initiative); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }} onAddNpc={(monster) => { void addNpc(monster); }}/>}
+      {tab === "library" && <LibraryPanel entries={library.entries} activeId={activeId} members={partyMembers} player={player} onSelect={(id) => { setActiveId(id); setTab("sheet"); }} onImport={() => fileRef.current?.click()} onCreate={(sheet) => { void createCharacter(sheet); }} onExport={exportCharacter} onExportPack={exportPack} onAclChange={(id, acl) => { try { libraryRef.current?.update(id, (entry) => ({ ...entry, acl })); } catch (error) { setSyncNotice(error instanceof Error ? error.message : "Permessi non salvati"); } }} onDelete={(id) => { void runAction(async () => { await libraryRef.current?.remove(id); }); }}/>}
+      {tab === "compendium" && section === "actions" && selectedMonster && <><div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel("compendium", undefined, new URLSearchParams(window.location.search).get("token") ?? undefined).then(() => OBR.popover.close(TOKEN_ACTIONS_ID))}>Apri scheda completa ↗</Button></div><h2>Azioni · {selectedMonster.name}</h2><MonsterStatblock actionsOnly readOnly={!canRollMonster(selectedMonster.id)} monster={selectedMonster} onRoll={performRoll} onShare={shareEntry}/></>}
+      {tab === "compendium" && player.role !== "GM" && !section && <Bestiary folders={visibleFolders(bestiaryFolders, sharedMonsters, false)} onMove={() => undefined} onSaveFolder={async () => undefined} onDeleteFolder={async () => undefined} canManage={false} canManageTurns={!phone && permissions.playersManageTurns} canRoll={canRollMonster} monsters={sharedMonsters} pending={[]} onPending={() => undefined} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => undefined} onImported={() => undefined} onDelete={() => undefined} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target }))); }} onAddTurn={(monster) => void addMonsterToTurns(monster)} aclOf={() => ({ view: [], edit: [] })} aclCandidates={[]} onAclChange={() => undefined}/>}
+      {tab === "compendium" && player.role === "GM" && !section && <Bestiary folders={bestiaryFolders} onMove={moveInBestiary} onSaveFolder={(draft) => runAction(() => saveBestiaryFolder(draft))} onDeleteFolder={(id) => runAction(() => deleteBestiaryFolder(id))} canManage={player.role === "GM"} canManageTurns={!phone && (player.role === "GM" || permissions.playersManageTurns)} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { const added = next.filter((item) => !monsters.includes(item)); setMonsters(next); storage.monsters.set(next); syncMonsters((room, token) => putMonsters(room, token, added)); }} onDelete={(id) => void runAction(async () => {
+        // Prima la voce condivisa: finché esiste, il mostro tornerebbe nel bestiario (vedi la migrazione degli NPC).
+        if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === id)) await libraryRef.current?.remove(id);
+        const next = storage.monsters.get().filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id));
+      })} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={(monster) => void addMonsterToTurns(monster)} aclOf={(id) => library.entries.find((entry) => entry.kind === "npc" && entry.sheet.id === id)?.acl ?? { view: [], edit: [] }} aclCandidates={aclCandidates(library.entries, partyMembers)} onAclChange={setMonsterAcl}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
       {tab === "settings" && player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso da telefono</h2><p>Su Vercel imposta PHONE_ROOM con questo ID stanza, PHONE_PASSWORD con la password per i giocatori e PHONE_GM_PASSWORD con quella del GM.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/><GmChatLink room={OBR.room.id} linked={!!gmToken} onLink={(token) => { storage.gmToken.set(token); setGmToken(token); }}/></Card>}
@@ -744,9 +797,10 @@ function ContentShare({ label, onShare }: { label: string; onShare: (target: "ev
   return <div className="content-share"><span>{label} · privato su questo browser</span><Select aria-label={`Destinatari ${label}`} value={target} onChange={(event) => setTarget(event.target.value as Visibility)}><option value="self">Privato</option><option value="everyone">Tutto il party</option><option value="gm">Solo GM</option></Select><Button variant="outline" disabled={target === "self"} onClick={() => { if (target !== "self") onShare(target); }}>Invia copia</Button></div>;
 }
 
-function Bestiary({ monsters, pending, onPending, selectedId, canManage, canManageTurns, onSelect, onImport, onImported, onDelete, onRoll, onShare, onShareContent, onAddTurn, onAddNpc }: { monsters: MonsterSheet[]; pending: MonsterSheet[]; onPending: (items: MonsterSheet[]) => void; selectedId: string | null; canManage: boolean; canManageTurns: boolean; onSelect: (id: string | null) => void; onImport: () => void; onImported: (items: MonsterSheet[]) => void; onDelete: (id: string) => void; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; onShareContent: (title: string, body: string, target: "everyone" | "gm") => void; onAddTurn: (monster: MonsterSheet) => void; onAddNpc: (monster: MonsterSheet) => void }) {
+function Bestiary({ folders, onMove, onSaveFolder, onDeleteFolder, monsters, pending, onPending, selectedId, canManage, canManageTurns, onSelect, onImport, onImported, onDelete, onRoll, onShare, onShareContent, onAddTurn, canRoll = () => true, aclOf, aclCandidates: candidates, onAclChange }: { folders: JournalFolder[]; onMove: (id: string, folderId: string | undefined) => void; onSaveFolder: (draft: FolderDraft) => Promise<void>; onDeleteFolder: (id: string) => Promise<void>; canRoll?: (id: string) => boolean; aclOf: (id: string) => CloudSheet["acl"]; aclCandidates: string[]; onAclChange: (monster: MonsterSheet, acl: CloudSheet["acl"]) => void; monsters: MonsterSheet[]; pending: MonsterSheet[]; onPending: (items: MonsterSheet[]) => void; selectedId: string | null; canManage: boolean; canManageTurns: boolean; onSelect: (id: string | null) => void; onImport: () => void; onImported: (items: MonsterSheet[]) => void; onDelete: (id: string) => void; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; onShareContent: (title: string, body: string, target: "everyone" | "gm") => void; onAddTurn: (monster: MonsterSheet) => void }) {
   const removeSelected = () => { const selected = monsters.find((monster) => monster.id === selectedId); if (selected && canManage && window.confirm(`Eliminare ${selected.name}?`)) onDelete(selected.id); };
   const [searching, setSearching] = useState(false);
+  const [folderDraft, setFolderDraft] = useState<FolderDraft | null>(null);
   const [sources, setSources] = useState<FiveToolsSource[]>([]); const [sourceId, setSourceId] = useState(""); const [pickerOpen, setPickerOpen] = useState(false); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
   useEffect(() => { if (!canManage) return; listBestiarySources().then((rows) => { setSources(rows); setSourceId(rows.find((row) => row.id === "XMM")?.id ?? rows[0]?.id ?? ""); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Catalogo non disponibile")); }, [canManage]);
   async function remoteImport() { const source = sources.find((row) => row.id === sourceId); if (!source) return; setLoading(true); setError(""); try { onPending(await loadBestiarySource(source)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Importazione fallita"); } finally { setLoading(false); } }
@@ -761,12 +815,25 @@ function Bestiary({ monsters, pending, onPending, selectedId, canManage, canMana
   }
   const selected = monsters.find((monster) => monster.id === selectedId);
   // Ricerca come per i manuali: il risultato scelto apre il mostro.
-  const grid = <>{monsters.length > 0 && <div className="library-actions"><Button variant="outline" className="picker-button" onClick={() => setSearching(true)}><span>Cerca nel bestiario</span><span>⌕</span></Button></div>}
+  const grid = <>{monsters.length > 0 && <div className="library-actions"><Button variant="outline" className="picker-button" onClick={() => setSearching(true)}><span>Cerca nel bestiario</span><span>⌕</span></Button>{canManage && <Button variant="outline" onClick={() => setFolderDraft({ id: null, name: "", parentId: "" })}>Nuova cartella</Button>}</div>}
     <CatalogDialog open={searching} title="Cerca nel bestiario" description="Cerca per nome, tipo, GS o manuale" items={monsters.map((monster) => ({ id: monster.id, label: monster.name, detail: `${monster.creatureType} · GS ${monster.challengeRating} · ${monster.source}` }))} selectedId={selectedId ?? ""} onSelect={(id) => { setSearching(false); onSelect(id); }} onClose={() => setSearching(false)}/>
-    <section className="monster-grid">{monsters.map((monster) => <button key={monster.id} onClick={() => onSelect(monster.id)}><strong>{monster.name}</strong><small>{monster.creatureType} · GS {monster.challengeRating}</small><span>CA {monster.ac} · PF {monster.hp.average}</span></button>)}</section>{monsters.length === 0 && <Empty/>}</>;
-  if (!selected && !canManage) return <div className="stack"><Alert>Il GM ha riservato importazione ed eliminazione dei contenuti.</Alert>{grid}</div>;
-  if (selected) return <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => onSelect(null)}>← Bestiario</Button>{canManage && <Button variant="outline" onClick={() => onAddNpc(selected)}>Aggiungi agli NPC</Button>}{canManage && <Button variant="destructive" onClick={removeSelected}>Elimina mostro</Button>}</div><MonsterStatblock monster={selected} onRoll={onRoll} onShare={onShare}><ContentShare key={selected.id} label="Riepilogo mostro" onShare={(target) => onShareContent(selected.name, `${selected.creatureType} · GS ${selected.challengeRating} · CA ${selected.ac} · PF ${selected.hp.average} · ${selected.speed}`, target)}/><button className="primary" disabled={!canManageTurns} onClick={() => onAddTurn(selected)}>Collega al token e aggiungi ai turni</button></MonsterStatblock></div>;
+    {canManage && monsters.length > 0 && <p className="library-hint">Trascina mostri e cartelle per spostarli; rilasciali qui sotto per portarli fuori da ogni cartella.</p>}
+    <FolderTree folders={folders} items={monsters} canOrganize={canManage} onMove={onMove} onEditFolder={(folder) => setFolderDraft({ id: folder.id, name: folder.name, parentId: folder.parentId ?? "" })}
+      renderItem={(monster) => <><button className="journal-open" onClick={() => onSelect(monster.id)}>{monster.name}</button>{canManage && <SharedTag acl={aclOf(monster.id)}/>}<small>{monster.creatureType} · GS {monster.challengeRating} · CA {monster.ac} · PF {monster.hp.average}</small></>}
+      empty={<Empty/>}/>
+    <FolderDialog draft={folderDraft} folders={folders} onChange={setFolderDraft} onSave={(draft) => void onSaveFolder(draft).then(() => setFolderDraft(null))} onDelete={(id) => void onDeleteFolder(id).then(() => setFolderDraft(null))} onClose={() => setFolderDraft(null)}/></>;
+  // Giocatore: solo i mostri che il GM gli ha condiviso.
+  if (!selected && !canManage) return <div className="stack">{monsters.length === 0 ? <p className="assign-empty">Il GM non ti ha ancora condiviso nessun mostro.</p> : grid}</div>;
+  if (selected) return <div className="stack"><div className="library-actions"><Button variant="ghost" onClick={() => onSelect(null)}>← Bestiario</Button>{canManage && <Button variant="destructive" onClick={removeSelected}>Elimina mostro</Button>}</div>{canManage && <FolderPick label="Cartella" value={selected.folderId ?? ""} targets={folderTargets(folders)} onChange={(folderId) => onMove(selected.id, folderId || undefined)}/>}{canManage && <div className="acl-row"><AclPicker title="Può vedere" names={aclOf(selected.id).view} candidates={candidates} onChange={(view) => onAclChange(selected, { ...aclOf(selected.id), view })}/><AclPicker title="Può modificare" names={aclOf(selected.id).edit} candidates={candidates} onChange={(edit) => onAclChange(selected, { ...aclOf(selected.id), edit })}/></div>}<MonsterStatblock monster={selected} readOnly={!canRoll(selected.id)} onRoll={onRoll} onShare={onShare}><ContentShare key={selected.id} label="Riepilogo mostro" onShare={(target) => onShareContent(selected.name, `${selected.creatureType} · GS ${selected.challengeRating} · CA ${selected.ac} · PF ${selected.hp.average} · ${selected.speed}`, target)}/><button className="primary" disabled={!canManageTurns} onClick={() => onAddTurn(selected)}>Collega al token e aggiungi ai turni</button></MonsterStatblock></div>;
   return <div className="stack"><Card className="remote-import"><h2>Catalogo 5e.tools</h2><p>Scegli un manuale, poi seleziona i mostri da importare come schede e token.</p><Button variant="outline" className="picker-button" onClick={() => setPickerOpen(true)}><span>{sources.find((source) => source.id === sourceId)?.label ?? "Scegli una sorgente"}</span><span>⌕</span></Button><Button onClick={remoteImport} disabled={loading || !sourceId}>{loading && <Spinner/>}{loading ? "Caricamento…" : "Scegli mostri"}</Button>{error && <Alert tone="danger">{error}</Alert>}</Card><CatalogDialog open={pickerOpen} title="Scegli un manuale" description="Cerca per sigla sorgente 5e.tools" items={sources.map((source) => ({ id: source.id, label: source.label, detail: source.file }))} selectedId={sourceId} onSelect={(id) => { setSourceId(id); setPickerOpen(false); }} onClose={() => setPickerOpen(false)}/>{pending.length > 0 && <MonsterImportDialog key={pending[0].id} monsters={pending} onImport={(items) => void importSelected(items)} onClose={() => onPending([])}/>}<section className="library-actions"><Button variant="outline" onClick={onImport}>Importa file 5e.tools</Button></section>{grid}</div>;
+}
+
+// Etichetta (come quelle degli oggetti nello zaino) per i mostri condivisi: chi li modifica, oppure chi li vede.
+function SharedTag({ acl }: { acl: CloudSheet["acl"] }) {
+  if (!acl.view.length && !acl.edit.length) return null;
+  const names = (list: string[]) => list.map((name) => name === EVERYONE ? "Tutti" : name).join(", ");
+  const title = [acl.view.length > 0 && `Può vedere: ${names(acl.view)}`, acl.edit.length > 0 && `Può modificare: ${names(acl.edit)}`].filter(Boolean).join("\n");
+  return <small className="inventory-mods" title={title}><span>{acl.edit.length ? "Modificabile" : "Visibile"}</span></small>;
 }
 
 function MonsterImportDialog({ monsters, onImport, onClose }: { monsters: MonsterSheet[]; onImport: (items: MonsterSheet[]) => void; onClose: () => void }) {
@@ -819,11 +886,12 @@ function Permissions({ value, onChange }: { value: PermissionSettings; onChange:
 type RollAs = { author: string; visibility: Visibility };
 type PerformRoll = (title: string, formula: string, attack?: AttackRoll, mode?: RollMode, as?: RollAs) => void;
 
-// I tiri dei mostri (bestiario e NPC) vanno sempre e solo al GM, a nome del mostro.
+// I tiri dei mostri vanno sempre e solo al GM (e a chi tira), a nome del mostro.
 // actionsOnly: finestra "Azioni" del menu del token, senza intestazione, valori e tratti.
-function MonsterStatblock({ monster, actionsOnly, onRoll: performRoll, onShare, children }: { actionsOnly?: boolean; monster: MonsterSheet; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; children?: ReactNode }) {
-  const onRoll = (title: string, formula: string, attack?: AttackRoll) => performRoll(title, formula, attack, undefined, { author: monster.name, visibility: "gm" });
-  return <>{!actionsOnly && <><section className="hero">{monster.image && <img src={monster.image} alt=""/>}<div><h1>{monster.name}</h1><p>{monster.size} {monster.creatureType} · GS {monster.challengeRating}</p><small>{monster.source} · {getRuleset(monster.ruleset.id).label}</small></div></section><section className="combat-grid"><Metric label="CA" value={monster.ac}/><Metric label="PF medi" value={monster.hp.average}/><Metric label="Dadi vita" value={monster.hp.formula}/><Metric label="Velocità" value={monster.speed}/><Metric label="Percezione" value={monster.passivePerception}/><Metric label="GS" value={monster.challengeRating}/></section>{children}{monster.traits.length > 0 && <section><h2>Tratti</h2><EntryList entries={monster.traits} onRoll={onRoll} onShare={onShare}/></section>}</>}<section><h2>Azioni</h2><EntryList entries={monster.actions} onRoll={onRoll} onShare={onShare}/></section>{monster.reactions.length > 0 && <section><h2>Reazioni</h2><EntryList entries={monster.reactions} onRoll={onRoll} onShare={onShare}/></section>}{monster.legendaryActions.length > 0 && <section><h2>Azioni leggendarie</h2><EntryList entries={monster.legendaryActions} onRoll={onRoll} onShare={onShare}/></section>}</>;
+// readOnly: giocatore che può solo vedere il mostro, niente tiri.
+function MonsterStatblock({ monster, actionsOnly, readOnly, onRoll: performRoll, onShare, children }: { actionsOnly?: boolean; readOnly?: boolean; monster: MonsterSheet; onRoll: PerformRoll; onShare: (entry: ActionEntry) => void; children?: ReactNode }) {
+  const onRoll = (title: string, formula: string, attack?: AttackRoll) => { if (!readOnly) performRoll(title, formula, attack, undefined, { author: monster.name, visibility: "gm" }); };
+  return <div className={readOnly ? "monster-readonly" : undefined}>{!actionsOnly && <><section className="hero">{monster.image && <img src={monster.image} alt=""/>}<div><h1>{monster.name}</h1><p>{monster.size} {monster.creatureType} · GS {monster.challengeRating}</p><small>{monster.source} · {getRuleset(monster.ruleset.id).label}</small></div></section><section className="combat-grid"><Metric label="CA" value={monster.ac}/><Metric label="PF medi" value={monster.hp.average}/><Metric label="Dadi vita" value={monster.hp.formula}/><Metric label="Velocità" value={monster.speed}/><Metric label="Percezione" value={monster.passivePerception}/><Metric label="GS" value={monster.challengeRating}/></section>{children}{monster.traits.length > 0 && <section><h2>Tratti</h2><EntryList entries={monster.traits} onRoll={onRoll} onShare={onShare}/></section>}</>}<section><h2>Azioni</h2><EntryList entries={monster.actions} onRoll={onRoll} onShare={onShare}/></section>{monster.reactions.length > 0 && <section><h2>Reazioni</h2><EntryList entries={monster.reactions} onRoll={onRoll} onShare={onShare}/></section>}{monster.legendaryActions.length > 0 && <section><h2>Azioni leggendarie</h2><EntryList entries={monster.legendaryActions} onRoll={onRoll} onShare={onShare}/></section>}</div>;
 }
 
 function Empty({ onImport }: { onImport?: () => void }) { return <section className="empty"><img src="/icon.svg" alt=""/><h2>Niente da mostrare</h2><p>{onImport ? "Importa una scheda JSON per iniziare." : "Qui non ci sono ancora contenuti."}</p>{onImport && <button className="primary" onClick={onImport}>Importa JSON</button>}</section>; }

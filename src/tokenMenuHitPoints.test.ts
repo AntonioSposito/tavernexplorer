@@ -94,6 +94,19 @@ it("NPC e mostri: il GM cambia i PF della voce del turn order senza chiamare il 
   expect(mock.written).toEqual([{ [TURN_META_KEY]: expect.objectContaining({ entries: [expect.objectContaining({ hp: { current: 4, max: 15 } })] }) }]);
 });
 
+it("un mostro condiviso: chi può modificarlo ne cambia i PF nel turn order, chi può solo vederlo no", async () => {
+  const orc = (edit: string[]) => ({ kind: "npc", sheet: { id: "orco", name: "Orco", challengeRating: "1" }, acl: { view: ["Anna"], edit }, rev: 1, updatedAt: 0, updatedBy: "GM" }) as unknown as CloudSheet;
+  mock.metadata = { [TURN_META_KEY]: { round: 1, activeIndex: 0, entries: [{ id: "e1", tokenId: "t1", name: "Orco", initiative: 10, hp: { current: 15, max: 15 } }] } };
+  cache([orc(["Anna"])]);
+  expect(await setTokenHitPoints(token("orco"), 4)).toBe(4);
+  expect(mock.written).toEqual([{ [TURN_META_KEY]: expect.objectContaining({ entries: [expect.objectContaining({ hp: { current: 4, max: 15 } })] }) }]);
+  mock.written = [];
+  cache([orc([])]);
+  serve(pc(["Anna"]));
+  await expect(setTokenHitPoints(token("orco"), 4)).rejects.toThrow("Non puoi cambiare i PF di questo mostro");
+  expect(mock.written).toEqual([]);
+});
+
 it("il background salva le richieste di questo browser e ignora quelle degli altri", async () => {
   const entry = pc(["Anna"]);
   cache([entry]);

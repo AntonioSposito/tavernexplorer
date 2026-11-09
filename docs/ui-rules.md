@@ -15,7 +15,7 @@ Preferenze decise con l'utente. Valgono per ogni modifica futura.
 ## Barra delle tab principali
 
 - Solo icone (`public/tab-icons/<tab>.png`), colorate con `mask` e `currentColor`. Il nome della tab va in `aria-label` e `title`.
-- Prima le tab che vedono tutti; poi, dopo una linea separatrice, le tab solo GM (Bestiario, Avventure, Permessi).
+- Prima le tab che vedono tutti; poi, dopo una linea separatrice, le tab solo GM (Avventure, Permessi). Il Bestiario lo vedono tutti: i giocatori solo i mostri condivisi con loro.
 - I contatori sono badge sovrapposti all'icona, in alto a destra, e spariscono quando valgono 0.
 - La tab Messaggi mostra i non letti, contando tutto ciò che compare in chat. Il contatore non sale se la chat è già aperta, anche in una finestra separata.
 - La barra non deve mai avere scroll orizzontale.

@@ -134,32 +134,100 @@ it("il GM assegna la vista dalla Libreria e il giocatore vede solo quella scheda
   expect(host.querySelector('select[aria-label="Può vedere: aggiungi giocatore"]')).toBeNull();
 });
 
-it("il GM crea un NPC dal bestiario e un giocatore con permesso ne vede lo statblock", async () => {
+it("il GM condivide un mostro del bestiario dai permessi del mostro", async () => {
   const wolf = { schemaVersion: 1, id: "wolf", name: "Lupo", source: "XMM", creatureType: "Bestia", challengeRating: "1/4", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 13, hp: { average: 11, formula: "2d8+2" }, speed: "40 ft.", abilities: { dex: 15 }, saves: {}, skills: {}, passivePerception: 13, traits: [], actions: [{ id: "bite", name: "Morso", description: "" }], reactions: [], legendaryActions: [], importWarnings: [] };
   localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
-  vi.stubGlobal("prompt", () => "Lupo Grigio");
   await act(async () => root.render(<App/>));
   await settle();
   await click("Bestiario");
   await click("Lupo");
-  await click("Aggiungi agli NPC");
+  expect(host.textContent).not.toContain("Aggiungi agli NPC");
+  await choose("Può vedere: aggiungi giocatore", "Marco");
   await settle();
-  const npc = [...store.get("te:room:r1:sheets")!.values()].map((value) => JSON.parse(value))[0];
-  expect(npc).toMatchObject({ kind: "npc", rev: 1, acl: { view: [], edit: [] }, sheet: { name: "Lupo Grigio", ac: 13 } });
-  expect(npc.sheet.id).not.toBe("wolf");
-  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 1, entry: { ...npc, acl: { view: ["Marco"], edit: [] } } }) });
+  expect(cloudEntries()).toEqual([expect.objectContaining({ kind: "npc", acl: { view: ["Marco"], edit: [] }, sheet: expect.objectContaining({ id: "wolf", name: "Lupo" }) })]);
+  // Il giocatore che può solo vedere legge lo statblock nel Bestiario, senza tiri.
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = "Marco"; viewer.role = "PLAYER";
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Lupo");
+  expect(host.textContent).toContain("Morso");
+  expect(host.querySelector(".monster-readonly")).toBeTruthy();
+  expect(host.querySelector('select[aria-label="Può vedere: aggiungi giocatore"]')).toBeNull();
+
+  // Con il permesso di modifica può tirare.
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = "GM"; viewer.role = "GM";
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Lupo");
+  await choose("Può modificare: aggiungi giocatore", "Marco");
+  await settle(1_700);
+  expect(cloudEntries()[0].acl).toEqual({ view: ["Marco"], edit: ["Marco"] });
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = "Marco"; viewer.role = "PLAYER";
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Lupo");
+  expect(host.querySelector(".monster-readonly")).toBeNull();
+}, 15_000);
+
+it("il Bestiario ha cartelle come il Journal: il GM sposta un mostro, il giocatore vede la cartella del mostro condiviso", async () => {
+  const wolf = { schemaVersion: 1, id: "wolf", name: "Lupo", source: "XMM", creatureType: "Bestia", challengeRating: "1/4", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 13, hp: { average: 11, formula: "2d8+2" }, speed: "40 ft.", abilities: { dex: 15 }, saves: {}, skills: {}, passivePerception: 13, traits: [], actions: [{ id: "bite", name: "Morso", description: "" }], reactions: [], legendaryActions: [], importWarnings: [] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([wolf]));
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Bestiario");
+  await click("Nuova cartella");
+  await type('input[aria-label="Nome della cartella"]', "Foresta");
+  await click("Salva");
+  await settle();
+  const folder = cloudEntries().find((entry) => entry.kind === "folder");
+  expect(folder).toMatchObject({ sheet: { name: "Foresta", area: "bestiary" } });
+  await click("Lupo");
+  await choose("Cartella", folder.sheet.id);
+  await choose("Può vedere: aggiungi giocatore", "Marco");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MONSTERS)!)[0].folderId).toBe(folder.sheet.id);
+  await click("← Bestiario");
+  expect(host.querySelector(".journal-folder summary")?.textContent).toContain("Foresta");
+  expect(host.querySelector(".journal-folder .journal-open")?.textContent).toBe("Lupo");
+  const tag = host.querySelector(".journal-folder .inventory-mods");
+  expect(tag?.textContent).toBe("Visibile");
+  expect(tag?.getAttribute("title")).toBe("Può vedere: Marco");
+  await click("Note");
+  expect(host.textContent).not.toContain("Foresta");
 
   await act(async () => root.unmount());
   localStorage.clear(); viewer.name = "Marco"; viewer.role = "PLAYER";
   root = createRoot(host);
   await act(async () => root.render(<App/>));
   await settle();
+  await click("Bestiario");
+  expect(host.querySelector(".journal-folder summary")?.textContent).toContain("Foresta");
+  expect(host.querySelector(".journal-folder .journal-open")?.textContent).toBe("Lupo");
+  expect(host.querySelector(".inventory-mods")).toBeNull();
+}, 15_000);
+
+it("gli NPC già nella libreria passano nel bestiario e la Libreria mostra solo il party", async () => {
+  const innkeeper = { ...{ schemaVersion: 1, ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, source: "XMM", size: "M", alignment: "N", ac: 10, hp: { average: 4, formula: "1d8" }, speed: "30 ft.", abilities: { dex: 10 }, saves: {}, skills: {}, passivePerception: 10, traits: [], actions: [], reactions: [], legendaryActions: [], importWarnings: [] }, id: "oste", name: "Oste", creatureType: "Umanoide", challengeRating: "0" };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "npc", sheet: innkeeper, acl: { view: ["Marco"], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MONSTERS) ?? "[]").map((monster: { id: string }) => monster.id)).toEqual(["oste"]);
   await click("Libreria");
-  await click("NPC");
-  await click("Lupo Grigio");
-  expect(host.textContent).toContain("PF medi");
-  expect(host.textContent).toContain("Morso");
-  expect(host.textContent).not.toContain("Aggiungi agli NPC");
+  expect(host.textContent).not.toContain("Oste");
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent === "NPC")).toBe(false);
+  await click("Bestiario");
+  await click("Oste");
+  expect(host.textContent).toContain("Marco");
 });
 
 it("un giocatore crea un personaggio da zero, lo modifica e il punteggio aggiorna i derivati", async () => {

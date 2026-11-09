@@ -1,11 +1,14 @@
-import type { JournalFolder, JournalNote } from "./types";
+import type { JournalFolder } from "./types";
+
+// Voce dentro una cartella: nota del Journal o mostro del Bestiario.
+type Item = { id: string; name: string; folderId?: string };
 
 // Albero del Journal (come Roll20). Una nota o cartella con un genitore che non esiste più sta nella radice.
 
 const parentOf = (folders: Map<string, JournalFolder>, id: string | undefined) => id && folders.has(id) ? id : undefined;
 
 // Cartelle da mostrare: al GM tutte; al giocatore solo quelle che contengono, anche in sottocartelle, una nota che vede.
-export function visibleFolders(folders: JournalFolder[], notes: JournalNote[], isGm: boolean): JournalFolder[] {
+export function visibleFolders(folders: JournalFolder[], notes: Item[], isGm: boolean): JournalFolder[] {
   if (isGm) return folders;
   const byId = new Map(folders.map((folder) => [folder.id, folder]));
   const shown = new Set<string>();
@@ -16,7 +19,7 @@ export function visibleFolders(folders: JournalFolder[], notes: JournalNote[], i
 }
 
 // Contenuto diretto di una cartella (undefined = radice), in ordine alfabetico.
-export function folderChildren(folders: JournalFolder[], notes: JournalNote[], parentId: string | undefined) {
+export function folderChildren<T extends Item>(folders: JournalFolder[], notes: T[], parentId: string | undefined) {
   const byId = new Map(folders.map((folder) => [folder.id, folder]));
   const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "it", { sensitivity: "base" });
   return {

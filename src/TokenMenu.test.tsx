@@ -5,21 +5,21 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import { storage } from "./storage";
 
-const mock = vi.hoisted(() => ({ deselect: vi.fn(async () => undefined), openSheet: vi.fn(async () => undefined), toggle: vi.fn(async () => undefined), openActions: vi.fn(async () => undefined), hp: null as { total: number; max: number; cap: number } | null, setHp: vi.fn(async () => undefined), linked: false, selection: ["t1"], turnIds: [] as string[] }));
+const mock = vi.hoisted(() => ({ deselect: vi.fn(async () => undefined), openSheet: vi.fn(async () => undefined), toggle: vi.fn(async () => undefined), openActions: vi.fn(async () => undefined), hp: null as { total: number; max: number; cap: number } | null, setHp: vi.fn(async () => undefined), linked: false, monster: false, selection: ["t1"], turnIds: [] as string[] }));
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   onReady: (callback: () => void) => callback(),
   theme: { getTheme: async () => ({ mode: "DARK", text: { primary: "#fff", secondary: "#aaa", disabled: "#888" } }) },
   room: { id: "room1", getMetadata: async () => ({ [TURN_META_KEY]: { round: 1, activeIndex: 0, entries: mock.turnIds.map((tokenId) => ({ tokenId })) } }) },
-  player: { getSelection: async () => mock.selection, deselect: mock.deselect },
+  player: { getSelection: async () => mock.selection, deselect: mock.deselect, getName: async () => "Anna", getRole: async () => "GM" },
   scene: { items: { getItems: async (ids: string[]) => ids.map((id) => ({ id, name: id, metadata: mock.linked ? { [TOKEN_META_KEY]: { characterId: "pc1" } } : {} })) } },
 } }));
-vi.mock("./tokenMenuActions", () => ({ openTokenSheet: mock.openSheet, toggleTokenInitiative: mock.toggle, openTokenActions: mock.openActions, TOKEN_SHEET_SECTIONS: { actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove caratteristica", saves: "Tiri salvezza", skills: "Abilità" }, getTokenHitPoints: async () => mock.hp, requestTokenHitPoints: mock.setHp }));
+vi.mock("./tokenMenuActions", () => ({ canEditMonster: () => mock.monster, openTokenSheet: mock.openSheet, toggleTokenInitiative: mock.toggle, openTokenActions: mock.openActions, TOKEN_SHEET_SECTIONS: { actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove caratteristica", saves: "Tiri salvezza", skills: "Abilità" }, getTokenHitPoints: async () => mock.hp, requestTokenHitPoints: mock.setHp }));
 
 import { parseHitPoints, TokenHpMenu, TokenMenu } from "./TokenMenu";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-beforeEach(() => { localStorage.clear(); storage.cloudCache.set("room1", [{ kind: "pc", sheet: { id: "pc1" } } as never]); mock.hp = null; mock.setHp.mockClear(); mock.linked = false; mock.openActions.mockClear(); mock.toggle.mockClear(); mock.openSheet.mockClear(); mock.deselect.mockClear(); });
+beforeEach(() => { mock.monster = false; localStorage.clear(); storage.cloudCache.set("room1", [{ kind: "pc", sheet: { id: "pc1" } } as never]); mock.hp = null; mock.setHp.mockClear(); mock.linked = false; mock.openActions.mockClear(); mock.toggle.mockClear(); mock.openSheet.mockClear(); mock.deselect.mockClear(); });
 
 async function renderMenu() {
   document.body.innerHTML = "<div id='root'></div>";
@@ -72,12 +72,12 @@ it("apre magia, risorse, prove caratteristica, tiri salvezza e abilità del toke
   expect(mock.openActions).toHaveBeenCalledWith(expect.objectContaining({ id: "t1" }), "skills");
 });
 
-it("per un mostro del bestiario apre solo le azioni; una scheda non della stanza non apre niente", async () => {
+it("per un mostro modificabile apre solo le azioni; una scheda non della stanza non apre niente", async () => {
   mock.selection = ["t1"]; mock.turnIds = []; mock.linked = true;
   storage.cloudCache.set("room1", []);
   let menu = await renderMenu();
   expect([menu.actions, menu.spells, menu.skills].every((button) => button.disabled)).toBe(true);
-  storage.monsters.set([{ id: "pc1" } as never]);
+  mock.monster = true;
   menu = await renderMenu();
   expect(menu.actions.disabled).toBe(false);
   expect([menu.spells, menu.resources, menu.abilities, menu.saves, menu.skills].every((button) => button.disabled)).toBe(true);

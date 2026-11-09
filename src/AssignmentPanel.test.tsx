@@ -14,15 +14,14 @@ vi.mock("./obr", () => ({
 }));
 
 const sheets = [{ id: "eroe", name: "Eroe", ownerId: "marco" }];
-const monsters = [{ id: "goblin", name: "Goblin", challengeRating: "1/4" }];
-const npcs = [{ id: "oste", name: "Oste", challengeRating: "1" }];
+const monsters = [{ id: "goblin", name: "Goblin", challengeRating: "1/4" }, { id: "oste", name: "Oste", challengeRating: "1" }];
 
 async function renderPanel(panelMonsters = monsters) {
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
   const { AssignmentPanel } = await import("./AssignmentPanel");
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(<AssignmentPanel sheets={sheets} monsters={panelMonsters} npcs={npcs} members={[{ id: "gm", name: "Master", role: "GM" }]}/>));
+  await act(async () => root.render(<AssignmentPanel sheets={sheets} monsters={panelMonsters} members={[{ id: "gm", name: "Master", role: "GM" }]}/>));
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
   return { host, root };
 }
@@ -50,7 +49,7 @@ it("mostra per primi i token del party", async () => {
   await act(async () => root.unmount());
 });
 
-it("collega da solo i token con il nome di una scheda, PG prima di NPC e mostri, ignorando maiuscole", async () => {
+it("collega da solo i token con il nome di una scheda, PG prima dei mostri, ignorando maiuscole", async () => {
   mock.tokens = [
     { tokenId: "t1", tokenName: " eroe ", ownerId: "gm" },
     { tokenId: "t2", tokenName: "OSTE", ownerId: "gm" },

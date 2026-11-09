@@ -18,8 +18,18 @@ export async function openTokenSheet(token: Item): Promise<void> {
   // Come "Apri … in finestra": pannello spostabile e chiudibile. Mostro del bestiario (solo nel browser del GM)
   // nel Bestiario, token senza scheda nella Libreria.
   const characterId = linkedCharacterId(token);
-  const view = !characterId ? "library" : storage.monsters.get().some((monster) => monster.id === characterId) ? "compendium" : "sheet";
+  const view = !characterId ? "library" : isMonster(characterId) ? "compendium" : "sheet";
   await openFloatingPanel(view, undefined, token.id);
+}
+
+// Mostro del bestiario del GM, oppure (per un giocatore) mostro che il GM gli ha condiviso.
+const isMonster = (id: string) => storage.monsters.get().some((monster) => monster.id === id) || storage.cloudCache.get(OBR.room.id).some((entry) => entry.kind === "npc" && entry.sheet.id === id);
+
+// Mostro condiviso che questo giocatore può modificare: ne cambia i PF e ne tira le azioni.
+export function canEditMonster(id: string, player: { name: string; role: "GM" | "PLAYER" }): boolean {
+  if (player.role === "GM") return storage.monsters.get().some((monster) => monster.id === id);
+  const entry = storage.cloudCache.get(OBR.room.id).find((item) => item.kind === "npc" && item.sheet.id === id);
+  return !!entry && canEditCloudSheet(entry, player);
 }
 
 export const TOKEN_ACTIONS_ID = `${EXTENSION_ID}/token-actions`;
@@ -83,7 +93,7 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
 }
 
 // PF del token nella tendina: totale (attuali + temporanei) come nel turn order.
-// PG: dalla scheda, per chi può modificarla. NPC e mostri: dalla voce del turn order, solo il GM.
+// PG: dalla scheda, per chi può modificarla. NPC e mostri: dalla voce del turn order, per il GM e chi può modificare il mostro.
 // cap: il totale più alto raggiungibile curando (per i PG massimo + temporanei; NPC e mostri non hanno limite).
 export interface TokenHitPoints { total: number; max: number; cap: number }
 
@@ -97,7 +107,7 @@ export async function getTokenHitPoints(token: Item): Promise<TokenHitPoints | n
     const { hp } = effectiveSheet(pc.sheet as CharacterSheet).combat;
     return { total: hp.current + hp.temp, max: hp.max, cap: Math.max(hp.max, hp.current) + hp.temp };
   }
-  if (role !== "GM") return null;
+  if (role !== "GM" && !canEditMonster(id, { name: await OBR.player.getName(), role })) return null;
   const turn = ((await OBR.room.getMetadata())[TURN_META_KEY] as TurnState | undefined)?.entries.find((entry) => entry.tokenId === token.id);
   return turn?.hp ? { total: turn.hp.current, max: turn.hp.max, cap: Infinity } : null;
 }
@@ -133,7 +143,7 @@ export async function setTokenHitPoints(token: Item, total: number): Promise<num
   const isPc = (item: CloudSheet) => item.kind === "pc" && item.sheet.id === id && !item.deletedAt;
   let entry = storage.cloudCache.get(room).find(isPc);
   const turns = (await OBR.room.getMetadata())[TURN_META_KEY] as TurnState | undefined;
-  if (!entry && role === "GM" && turns?.entries.some((item) => item.tokenId === token.id && item.hp)) {
+  if (!entry && (role === "GM" || (!!id && canEditMonster(id, { name: await OBR.player.getName(), role }))) && turns?.entries.some((item) => item.tokenId === token.id && item.hp)) {
     await writeRoomMetadata({ [TURN_META_KEY]: { ...turns, entries: turns.entries.map((item) => item.tokenId === token.id && item.hp ? { ...item, hp: { ...item.hp, current: Math.max(0, total) } } : item) } });
     return Math.max(0, total);
   }
@@ -141,7 +151,7 @@ export async function setTokenHitPoints(token: Item, total: number): Promise<num
     const response = await fetch(`${sheetsUrl}?room=${encodeURIComponent(room)}`);
     if (!response.ok) throw new Error("Server non raggiungibile: PF non salvati");
     entry = ((await response.json()) as { sheets: CloudSheet[] }).sheets.find(isPc);
-    if (!entry) throw new Error(role === "GM" ? "Il token non è nel turn order" : "Solo il GM cambia i PF di NPC e mostri");
+    if (!entry) throw new Error(role === "GM" ? "Il token non è nel turn order" : "Non puoi cambiare i PF di questo mostro");
   }
   const name = await OBR.player.getName();
   const put = async (current: CloudSheet) => {

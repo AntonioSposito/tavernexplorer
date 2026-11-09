@@ -74,7 +74,7 @@ it("dopo password e nome mostra solo le schede del giocatore, senza tab GM, e ri
   expect(options).toEqual(["Nessuna scheda", "Aria"]);
   expect(host.querySelector('[aria-label="Turni"]')).toBeTruthy();
   expect(host.querySelector('[aria-label="Inventario comune"]')).toBeTruthy();
-  expect(host.querySelector('[aria-label="Bestiario"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Bestiario"]')).toBeTruthy();
   expect(JSON.parse(localStorage.getItem(STORAGE_PHONE_SESSION)!)).toEqual({ room: "r1", name: "Marco" });
 });
 
@@ -167,8 +167,7 @@ it("il giocatore vede turni e inventario comune dal cloud e, se autorizzato, ava
   localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "Marco" }));
   await act(async () => root.render(<PhoneApp/>));
   await settle();
-  expect(tabs()).toEqual(expect.arrayContaining(["Turni", "Inventario comune"]));
-  expect(tabs()).not.toContain("Bestiario");
+  expect(tabs()).toEqual(expect.arrayContaining(["Turni", "Inventario comune", "Bestiario"]));
   expect(tabs()).not.toContain("Permessi");
   await openTab("Inventario comune");
   expect(host.textContent).toContain("Corda");

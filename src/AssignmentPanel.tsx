@@ -7,16 +7,14 @@ interface PartyMember { id: string; name: string; role: "GM" | "PLAYER" }
 interface AssignmentPanelProps {
   // ownerId: giocatore connesso che riceve i token collegati alla scheda.
   sheets: Array<{ id: string; name: string; ownerId?: string }>;
-  // Mostri del bestiario del GM: il token si collega senza cambiare proprietario.
+  // Mostri del bestiario del GM (anche quelli condivisi con i giocatori): il token si collega senza cambiare proprietario.
   monsters: Array<{ id: string; name: string; challengeRating: string }>;
-  // NPC della Libreria: come i mostri, il token non cambia proprietario.
-  npcs: Array<{ id: string; name: string; challengeRating: string }>;
   members: PartyMember[];
 }
 
 const normalizedName = (name: string) => name.trim().toLocaleLowerCase("it");
 
-export function AssignmentPanel({ sheets, monsters, npcs, members }: AssignmentPanelProps) {
+export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelProps) {
   const [tokens, setTokens] = useState<CharacterToken[]>([]);
   const [sceneReady, setSceneReady] = useState(false);
   const [ownerOnly, setOwnerOnly] = useState(false);
@@ -64,9 +62,9 @@ export function AssignmentPanel({ sheets, monsters, npcs, members }: AssignmentP
     }
   }, [refresh]);
 
-  // Token libero con il nome di una scheda: si collega da solo. A parità di nome vincono i PG, poi NPC e mostri.
+  // Token libero con il nome di una scheda: si collega da solo. A parità di nome vincono i PG, poi i mostri.
   useEffect(() => {
-    const candidates: Array<{ id: string; name: string; ownerId?: string }> = [...sheets, ...npcs, ...monsters];
+    const candidates: Array<{ id: string; name: string; ownerId?: string }> = [...sheets, ...monsters];
     const matches = tokens.flatMap((token) => {
       if (token.characterId || token.unlinked || autoLinked.current.has(token.tokenId)) return [];
       const sheet = candidates.find((candidate) => normalizedName(candidate.name) === normalizedName(token.tokenName));
@@ -78,9 +76,9 @@ export function AssignmentPanel({ sheets, monsters, npcs, members }: AssignmentP
     void run(async () => {
       for (const { token, sheet } of matches) await setTokenCharacter(token.tokenId, sheet.id, sheet.ownerId);
     }, matches.length === 1 ? `${matches[0].token.tokenName} collegato a ${matches[0].sheet.name}.` : `${matches.length} token collegati alle schede con lo stesso nome.`);
-  }, [tokens, sheets, npcs, monsters, run]);
+  }, [tokens, sheets, monsters, run]);
 
-  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? npcs.find((npc) => npc.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;
+  const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;
   const isParty = (token: CharacterToken) => sheets.some((sheet) => sheet.id === token.characterId);
   const visibleTokens = tokens.filter((token) => `${token.tokenName} ${sheetName(token.characterId ?? "") ?? ""}`.toLocaleLowerCase("it").includes(search.toLocaleLowerCase("it"))).sort((a, b) => Number(isParty(b)) - Number(isParty(a)));
 
@@ -106,7 +104,6 @@ export function AssignmentPanel({ sheets, monsters, npcs, members }: AssignmentP
               <option value="">Nessuna scheda</option>
               {token.characterId && !sheetName(token.characterId) && <option value={token.characterId}>Scheda non disponibile</option>}
               <optgroup label="Personaggi">{sheets.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}</optgroup>
-              {npcs.length > 0 && <optgroup label="NPC">{npcs.map((npc) => <option key={npc.id} value={npc.id}>{npc.name} · GS {npc.challengeRating}</option>)}</optgroup>}
               {monsters.length > 0 && <optgroup label="Bestiario">{monsters.map((monster) => <option key={monster.id} value={monster.id}>{monster.name} · GS {monster.challengeRating}</option>)}</optgroup>}
             </Select></label>
             <label><small>Proprietario token</small><Select aria-label={`Proprietario token ${token.tokenName}`} value={token.ownerId} disabled={busy} onChange={(event) => {

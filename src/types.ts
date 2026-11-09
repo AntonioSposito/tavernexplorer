@@ -346,6 +346,8 @@ export interface MonsterSheet {
   legendaryActions: ActionEntry[];
   image?: string;
   importWarnings: string[];
+  // Cartella del Bestiario (voce "folder" con area "bestiary" della libreria).
+  folderId?: string;
 }
 
 export interface CampaignChapter {
@@ -358,7 +360,8 @@ export interface CampaignChapter {
 
 // Journal come su Roll20: note in cartelle, salvate nel cloud della stanza. Solo il GM crea e organizza.
 export interface JournalNote { schemaVersion: 1; id: string; name: string; body: string; folderId?: string }
-export interface JournalFolder { schemaVersion: 1; id: string; name: string; parentId?: string }
+// area: "bestiary" per le cartelle del Bestiario; senza, cartella del Journal.
+export interface JournalFolder { schemaVersion: 1; id: string; name: string; parentId?: string; area?: "bestiary" }
 
 // Scheda condivisa nella room: visibile a tutti, scrivibile da owner, GM e delegati.
 // Copia di una scheda salvata nel cloud per una stanza.
