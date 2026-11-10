@@ -33,6 +33,7 @@ vi.mock("./obr", () => ({
 }));
 
 const { default: App } = await import("./App");
+const { diagramText } = await import("./journalTree");
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
@@ -1278,7 +1279,7 @@ it("Journal: il GM crea cartelle e note con i permessi, il giocatore vede solo c
   await click("Note");
   expect(host.querySelector(".journal-folder strong")?.textContent).toBe("Avventura");
   expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Indizio"]);
-  expect(host.textContent).not.toContain("Nuova nota");
+  expect(host.textContent).not.toContain("Nuova cartella");
   expect(host.querySelector('button[aria-label="Modifica Indizio"]')).toBeNull();
   await click("Indizio");
   expect(host.querySelector(".ui-dialog")?.textContent).toContain("La chiave è nel pozzo.");
@@ -1302,4 +1303,21 @@ it("Journal: eliminando una cartella il suo contenuto sale di un livello", async
   expect(byId.n1.sheet.folderId).toBe("outer");
   expect([...host.querySelectorAll(".journal-folder strong")].map((item) => item.textContent)).toEqual(["Fuori"]);
   vi.restoreAllMocks();
+});
+
+it("Journal: il giocatore crea un diagramma che vedono solo lui e il GM e lo manda in chat", async () => {
+  viewer.name = "Marco"; viewer.role = "PLAYER";
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Note");
+  await click("Nuova nota");
+  await type('input[aria-label="Titolo della nota"]', "Sospetti");
+  await choose("Tipo di nota", "diagram");
+  expect(host.querySelector('textarea[aria-label="Testo della nota"]')).toBeNull();
+  await click("Salva");
+  await settle();
+  const note = cloudEntries().find((entry) => entry.kind === "note");
+  expect(note).toMatchObject({ sheet: { name: "Sospetti", body: "", diagram: { nodes: [], edges: [] } }, acl: { view: [], edit: ["Marco"] } });
+  expect(diagramText({ nodes: [{ id: "a", x: 0, y: 0, label: "Barone" }, { id: "b", x: 0, y: 0, label: "Locandiere" }, { id: "c", x: 0, y: 0, label: "Pozzo" }], edges: [{ id: "e", source: "a", target: "b", label: "ricatta" }] }))
+    .toBe("Barone → Locandiere (ricatta)\nPozzo");
 });

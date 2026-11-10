@@ -1,4 +1,4 @@
-import type { JournalFolder } from "./types";
+import type { JournalFolder, JournalNote } from "./types";
 
 // Voce dentro una cartella: nota del Journal o mostro del Bestiario.
 type Item = { id: string; name: string; folderId?: string };
@@ -41,4 +41,12 @@ export function folderTargets(folders: JournalFolder[], movingFolderId?: string)
   const path = (folder: JournalFolder): string => { const parent = byId.get(folder.parentId ?? ""); return parent && parent.id !== folder.id ? `${path(parent)} / ${folder.name}` : folder.name; };
   return folders.filter((folder) => !movingFolderId || canMoveFolder(folders, movingFolderId, folder.id))
     .map((folder) => ({ id: folder.id, path: path(folder) })).sort((a, b) => a.path.localeCompare(b.path, "it", { sensitivity: "base" }));
+}
+
+// Testo del diagramma per la chat: riquadri e frecce.
+export function diagramText(diagram: NonNullable<JournalNote["diagram"]>): string {
+  const label = new Map(diagram.nodes.map((node) => [node.id, node.label]));
+  const links = diagram.edges.map((edge) => `${label.get(edge.source) ?? "?"} → ${label.get(edge.target) ?? "?"}${edge.label ? ` (${edge.label})` : ""}`);
+  const linked = new Set(diagram.edges.flatMap((edge) => [edge.source, edge.target]));
+  return [...links, ...diagram.nodes.filter((node) => !linked.has(node.id)).map((node) => node.label)].join("\n");
 }

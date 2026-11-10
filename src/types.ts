@@ -387,8 +387,11 @@ export interface CampaignChapter {
   images: Array<{ title: string; url: string; kind: "map" | "mapPlayer" | "image" }>;
 }
 
-// Journal come su Roll20: note in cartelle, salvate nel cloud della stanza. Solo il GM crea e organizza.
-export interface JournalNote { schemaVersion: 1; id: string; name: string; body: string; folderId?: string }
+// Journal come su Roll20: note in cartelle, salvate nel cloud della stanza. Il GM organizza; anche i giocatori creano le proprie note.
+// Con diagram la nota è un diagramma (React Flow): riquadri con un testo, collegati da frecce.
+export interface DiagramNode { id: string; x: number; y: number; label: string }
+export interface DiagramEdge { id: string; source: string; target: string; label?: string }
+export interface JournalNote { schemaVersion: 1; id: string; name: string; body: string; folderId?: string; diagram?: { nodes: DiagramNode[]; edges: DiagramEdge[] } }
 // area: "bestiary" per le cartelle del Bestiario; senza, cartella del Journal.
 export interface JournalFolder { schemaVersion: 1; id: string; name: string; parentId?: string; area?: "bestiary" }
 

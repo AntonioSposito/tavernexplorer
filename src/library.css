@@ -193,3 +193,7 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 /* Incantesimi: icona alta quanto la riga, a destra nome e sotto il tipo. */
 .entry summary > span.entry-with-icon { flex-direction: row; align-items: center; gap: .6rem; }
 .entry-with-icon > span { display: flex; flex-direction: column; min-width: 0; }
+.diagram{display:grid;gap:.5rem}
+.diagram-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}.diagram-actions small{color:hsl(var(--muted-foreground))}
+.diagram-canvas{height:min(24rem,55vh);border:1px solid hsl(var(--border));border-radius:var(--radius);overflow:hidden}
+.diagram-canvas .react-flow{--xy-background-color:hsl(var(--background));--xy-node-background-color:hsl(var(--card));--xy-node-border:1px solid hsl(var(--primary) / .6);--xy-node-color:hsl(var(--foreground));--xy-edge-stroke:hsl(var(--muted-foreground));--xy-handle-background-color:hsl(var(--primary))}
