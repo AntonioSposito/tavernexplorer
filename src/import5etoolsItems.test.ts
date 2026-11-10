@@ -8,7 +8,7 @@ it("converte gli oggetti 5e.tools nei campi dello zaino, edizione 2024 prima", (
       { name: "Leather Armor", source: "XPHB", type: "LA|XPHB", ac: 11, weight: 10 },
       { name: "Shield", source: "XPHB", type: "S|XPHB", ac: 2, weight: 6 },
       { name: "Dagger", source: "XPHB", type: "M|XPHB", weight: 1, dmg1: "1d4", dmgType: "P", property: ["F|XPHB", { uid: "T|XPHB" }], range: "20/60", mastery: ["Nick|XPHB"] },
-    ] },
+    ], itemMastery: [{ name: "Nick", source: "XPHB", entries: ["The extra attack of the {@variantrule Light|XPHB} property is part of the Attack action."] }] },
     { item: [
       { name: "Ring of Protection", source: "XDMG", type: "RG|XDMG", rarity: "rare", bonusAc: "+1", bonusSavingThrow: "+1", entries: ["You gain a {@b +1} bonus."] },
       { name: "Copia", source: "X", _copy: { name: "Shield" } },
@@ -18,6 +18,7 @@ it("converte gli oggetti 5e.tools nei campi dello zaino, edizione 2024 prima", (
   expect(items.find((item) => item.name === "Leather Armor")!.item).toMatchObject({ weight: 10, modifiersText: "Item Type: Light Armor, AC 11" });
   expect(items.find((item) => item.name === "Shield")!.item.modifiersText).toBe("Item Type: Shield, AC +2");
   expect(items.find((item) => item.name === "Dagger")!.item.properties).toBe("1d4 Perforante, Finesse, Thrown, Gittata 20/60, Mastery: Nick");
+  expect(items.find((item) => item.name === "Dagger")!.item.description).toBe("Mastery: Nick. The extra attack of the Light property is part of the Attack action.");
   const ring = items.find((item) => item.name === "Ring of Protection")!;
   expect(ring.detail).toBe("XDMG · Ring · rare");
   expect(ring.item).toMatchObject({ weight: null, modifiersText: "AC +1, Saving Throws +1", description: "You gain a +1 bonus." });

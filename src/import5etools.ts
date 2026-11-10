@@ -295,6 +295,8 @@ function itemProperties(row: Obj): string | undefined {
 export function import5eToolsItems(baseFile: unknown, itemsFile: unknown): FiveToolsItem[] {
   const rows = [...array(obj(baseFile).baseitem), ...array(obj(itemsFile).item)].map(obj)
     .filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
+  // Regole delle maestrie delle armi (items-base.json → itemMastery), per nome.
+  const masteries = new Map(array(obj(baseFile).itemMastery).map(obj).map((row) => [text(row.name), renderEntries(row.entries)]));
   return rows.map((row) => {
     const type = code(row.type);
     const name = text(row.name);
@@ -305,7 +307,7 @@ export function import5eToolsItems(baseFile: unknown, itemsFile: unknown): FiveT
     return {
       id: `${name}|${source}`, name, source,
       detail: [source, kind, rarity && rarity !== "none" && rarity, weight != null && `${weight} lb`].filter(Boolean).join(" · "),
-      item: { name, weight, properties: itemProperties(row), modifiersText: itemModifiers(row, type), description: renderEntries(row.entries) || undefined },
+      item: { name, weight, properties: itemProperties(row), modifiersText: itemModifiers(row, type), description: [renderEntries(row.entries), ...array(row.mastery).map(code).map((mastery) => `Mastery: ${mastery}. ${masteries.get(mastery) ?? ""}`.trim())].filter(Boolean).join("\n\n") || undefined },
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
