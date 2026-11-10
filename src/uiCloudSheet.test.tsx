@@ -1321,3 +1321,118 @@ it("Journal: il giocatore crea un diagramma che vedono solo lui e il GM e lo man
   expect(diagramText({ nodes: [{ id: "a", x: 0, y: 0, label: "Barone" }, { id: "b", x: 0, y: 0, label: "Locandiere" }, { id: "c", x: 0, y: 0, label: "Pozzo" }], edges: [{ id: "e", source: "a", target: "b", label: "ricatta" }] }))
     .toBe("Barone → Locandiere (ricatta)\nPozzo");
 });
+
+// React Flow in jsdom: servono ResizeObserver e DOMMatrixReadOnly (come da documentazione di xyflow).
+const stubReactFlow = () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  vi.stubGlobal("DOMMatrixReadOnly", class { m22 = 1; constructor(transform?: string) { const scale = transform?.match(/scale\(([^)]+)\)/); this.m22 = scale ? Number(scale[1]) : 1; } });
+};
+const putNote = (id: string, sheet: Record<string, unknown>, acl: { view: string[]; edit: string[] }) =>
+  apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "note", sheet: { schemaVersion: 1, id, body: "", ...sheet }, acl, updatedBy: "GM" } }) });
+const asPlayer = async (name: string) => {
+  await act(async () => root.unmount());
+  localStorage.clear(); viewer.name = name; viewer.role = "PLAYER";
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Note");
+};
+// Il diagramma è caricato con lazy: si aspetta che React Flow mostri i riquadri.
+const openDiagram = async (name: string) => { await click(name); await vi.waitFor(() => expect(host.querySelector(".react-flow__node")).not.toBeNull(), { timeout: 10_000 }); await settle(); };
+const noteById = (id: string) => cloudEntries().find((entry) => entry.sheet.id === id);
+const diagram = { nodes: [{ id: "a", x: 0, y: 0, label: "Barone" }, { id: "b", x: 200, y: 120, label: "Locandiere" }], edges: [{ id: "e", source: "a", target: "b", label: "ricatta" }] };
+
+it("Diagramma: chi può solo vedere lo legge senza modificarlo e lo manda in chat come testo", async () => {
+  stubReactFlow();
+  await putNote("d1", { name: "Intrighi", diagram }, { view: ["Marco"], edit: [] });
+  await asPlayer("Marco");
+  await openDiagram("Intrighi");
+  const dialog = host.querySelector(".ui-dialog")!;
+  expect([...dialog.querySelectorAll(".react-flow__node")].map((node) => node.textContent)).toEqual(["Barone", "Locandiere"]);
+  expect(dialog.textContent).not.toContain("Aggiungi riquadro");
+  expect(dialog.textContent).not.toContain("Modifica");
+  expect(dialog.querySelector(".react-flow__node.draggable")).toBeNull();
+  await click("Mostra in chat");
+  await settle();
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Intrighi", body: "Barone → Locandiere (ricatta)" });
+});
+
+it("Diagramma: chi può modificare aggiunge e rinomina riquadri; si salva da solo e resta dopo la riapertura", async () => {
+  stubReactFlow();
+  await putNote("d1", { name: "Intrighi", diagram }, { view: [], edit: ["Marco"] });
+  await asPlayer("Marco");
+  await openDiagram("Intrighi");
+  await click("Aggiungi riquadro");
+  await type('input[aria-label="Testo del riquadro"]', "Pozzo");
+  await click("Salva");
+  // Riquadro vuoto: il popup non salva.
+  await click("Aggiungi riquadro");
+  await click("Salva");
+  expect(host.querySelector('input[aria-label="Testo del riquadro"]')).not.toBeNull();
+  await click("Annulla");
+  // Doppio clic su un riquadro: popup di modifica.
+  const barone = [...host.querySelectorAll(".react-flow__node")].find((node) => node.textContent === "Barone")!;
+  await act(async () => barone.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Testo del riquadro"]')?.value).toBe("Barone");
+  await type('input[aria-label="Testo del riquadro"]', "Barone Vex");
+  await click("Salva");
+  await settle(1_700);
+  expect(noteById("d1").sheet.diagram.nodes.map((node: { label: string }) => node.label)).toEqual(["Barone Vex", "Locandiere", "Pozzo"]);
+  expect(noteById("d1").sheet.diagram.edges).toEqual(diagram.edges);
+  expect(noteById("d1").updatedBy).toBe("Marco");
+  // Esc chiude tutto ma le modifiche sono già salvate; riaprendo ci sono.
+  await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+  expect(host.querySelector(".ui-dialog")).toBeNull();
+  await openDiagram("Intrighi");
+  expect([...host.querySelectorAll(".react-flow__node")].map((node) => node.textContent)).toEqual(["Barone Vex", "Locandiere", "Pozzo"]);
+});
+
+it("Diagramma: eliminare un riquadro toglie anche le sue frecce; rinominare la nota non perde il diagramma", async () => {
+  stubReactFlow();
+  await putNote("d1", { name: "Intrighi", diagram }, { view: [], edit: ["Marco"] });
+  await asPlayer("Marco");
+  await openDiagram("Intrighi");
+  const locandiere = [...host.querySelectorAll(".react-flow__node")].find((node) => node.textContent === "Locandiere")!;
+  await act(async () => locandiere.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+  await click("Elimina");
+  await settle(1_700);
+  expect(noteById("d1").sheet.diagram).toEqual({ nodes: [diagram.nodes[0]], edges: [] });
+  await click("Chiudi");
+  await click("Modifica Intrighi");
+  expect(host.querySelector('select[aria-label="Tipo di nota"]')).toBeNull();
+  expect(host.querySelector('textarea[aria-label="Testo della nota"]')).toBeNull();
+  await type('input[aria-label="Titolo della nota"]', "Intrighi di corte");
+  await click("Salva");
+  await settle(1_700);
+  expect(noteById("d1").sheet).toMatchObject({ name: "Intrighi di corte", diagram: { nodes: [diagram.nodes[0]], edges: [] } });
+});
+
+it("Journal: il giocatore elimina le proprie note ma non quelle del GM che può solo modificare", async () => {
+  await putNote("mine", { name: "Mia", body: "x" }, { view: [], edit: ["Marco"] });
+  await putNote("shared", { name: "Del GM", body: "y" }, { view: [], edit: ["*"] });
+  await putNote("other", { name: "Di Luca", body: "z" }, { view: [], edit: ["Luca"] });
+  await asPlayer("Marco");
+  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Del GM", "Mia"]);
+  await click("Modifica Del GM");
+  expect([...host.querySelectorAll(".ui-dialog button")].map((button) => button.textContent)).not.toContain("Elimina");
+  await click("Annulla");
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  await click("Modifica Mia");
+  await click("Elimina");
+  await settle();
+  expect(noteById("mine").deletedAt).toEqual(expect.any(Number));
+  expect(noteById("shared").deletedAt).toBeUndefined();
+  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Del GM"]);
+  vi.restoreAllMocks();
+});
+
+it("API note: accetta note senza diagramma o con diagramma valido, rifiuta diagrammi malformati", async () => {
+  const acl = { view: [], edit: [] };
+  expect((await putNote("t1", { name: "Testo", body: "ciao" }, acl)).status).toBe(200);
+  expect((await putNote("t2", { name: "Diag", diagram }, acl)).status).toBe(200);
+  expect((await putNote("t3", { name: "Rotto", diagram: { nodes: "x", edges: [] } }, acl)).status).toBe(400);
+  expect((await putNote("t4", { name: "Rotto", diagram: null }, acl)).status).toBe(400);
+  expect((await putNote("t5", { name: "Rotto", diagram: { nodes: [] } }, acl)).status).toBe(400);
+  const huge = { nodes: Array.from({ length: 3_000 }, (_, index) => ({ id: `n${index}`, x: 0, y: 0, label: "x".repeat(60) })), edges: [] };
+  expect((await putNote("t6", { name: "Enorme", diagram: huge }, acl)).status).toBe(413);
+});
