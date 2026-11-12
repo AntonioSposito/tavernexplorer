@@ -964,6 +964,31 @@ it("spende e guadagna monete dal popup e lo scrive in chat", async () => {
   expect(lastMessage()).toMatchObject({ title: "Monete guadagnate", card: { stats: [{ label: "Guadagnate", value: "1 mp" }, { label: "Borsa", value: "1 mp, 1 mo, 7 ma" }] } });
 });
 
+it("in chat si sceglie se parlare come personaggio o col proprio nome", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Messaggi");
+  const lastMessage = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1);
+  const select = host.querySelector<HTMLSelectElement>('select[aria-label="Parla come"]')!;
+  expect([...select.options].map((option) => option.textContent)).toEqual(["GM", "Eroe"]);
+  const send = async (text: string) => {
+    const box = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Nuovo messaggio"]')!;
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(box, text); box.dispatchEvent(new Event("input", { bubbles: true })); });
+    await click("Invia");
+    await settle();
+  };
+
+  await act(async () => { select.value = select.options[1].value; select.dispatchEvent(new Event("change", { bubbles: true })); });
+  await send("Avanti!");
+  expect(lastMessage()).toMatchObject({ kind: "text", author: "Eroe", body: "Avanti!" });
+
+  await act(async () => { select.value = ""; select.dispatchEvent(new Event("change", { bubbles: true })); });
+  await send("Pausa pizza");
+  expect(lastMessage()).toMatchObject({ kind: "text", author: "GM", body: "Pausa pizza" });
+});
+
 it("la CA si passa al calcolo automatico dal popup e mostra da cosa è data", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { ac: 12 }, abilities: { dexterity: { score: 14, mod: 2 } }, inventory: [{ name: "Cuoio", equipped: true, modifiers: "Item Type: Light Armor, AC 11", _rowid: "leather" }] } });
   sheet.combat.acMode = "manual";

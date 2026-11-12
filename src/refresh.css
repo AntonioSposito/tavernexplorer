@@ -96,3 +96,6 @@ body {
 .app-body.tabs-top > .app-tabs button { flex:1; border-left:0; border-bottom:3px solid transparent; }
 .app-body.tabs-top > .app-tabs button.active { border-bottom-color:hsl(var(--primary)); }
 .app-body.tabs-top > main:has(> .messages) { height:calc(100vh - var(--topbar-height) - var(--tabs-top-height)); }
+/* Parla come, destinatari e Invia su una riga: i menu si stringono. */
+.composer div { align-items: center; }
+.composer div select { flex: 0 1 11rem; min-width: 0; }

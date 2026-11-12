@@ -27,9 +27,14 @@ export async function resizeFloatingPanel(view: AppTab, size: PanelSize, persist
 // size: dimensioni attuali (es. finestra ridotta), altrimenti quelle salvate.
 export async function openFloatingPanel(view: AppTab, position?: { left: number; top: number }, token?: string, size?: PanelSize): Promise<void> {
   if (!OBR.isAvailable) return;
-  const anchorPosition = position ?? getFloatingPanelPosition(view);
+  const panelSize = size ?? getFloatingPanelSize(view);
+  // Owlbear tiene il popover dentro lo schermo: se la posizione salvata lo fa uscire, la finestra si vede più in alto
+  // ma il trascinamento riparte da quella salvata e sembra ancorata al bordo. Si salva quindi quella visibile.
+  const [screenWidth, screenHeight] = await Promise.all([OBR.viewport.getWidth(), OBR.viewport.getHeight()]);
+  const wanted = position ?? getFloatingPanelPosition(view);
+  const anchorPosition = { left: Math.max(0, Math.min(wanted.left, screenWidth - panelSize.width)), top: Math.max(0, Math.min(wanted.top, screenHeight - panelSize.height)) };
   try { localStorage.setItem(`${EXTENSION_ID}/${view}-position`, JSON.stringify(anchorPosition)); } catch { /* storage non disponibile */ }
-  await OBR.popover.open({ id: `${EXTENSION_ID}/${view}-panel`, url: `/?view=${view}${token ? `&token=${encodeURIComponent(token)}` : ""}`, ...(size ?? getFloatingPanelSize(view)), anchorReference: "POSITION", anchorPosition, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" }, disableClickAway: true });
+  await OBR.popover.open({ id: `${EXTENSION_ID}/${view}-panel`, url: `/?view=${view}${token ? `&token=${encodeURIComponent(token)}` : ""}`, ...panelSize, anchorReference: "POSITION", anchorPosition, anchorOrigin: { horizontal: "LEFT", vertical: "TOP" }, transformOrigin: { horizontal: "LEFT", vertical: "TOP" }, disableClickAway: true });
 }
 
 // Il GM chiede a tutti gli altri partecipanti di aprire un pannello (es. il turn order a inizio combattimento).

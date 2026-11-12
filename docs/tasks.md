@@ -25,7 +25,7 @@
 
 ## Chat
 
-- [ ] Scegliere per chi si sta parlando (come "Parla come" di Roll20).
+- [x] Scegliere per chi si sta parlando (come "Parla come" di Roll20): menu "Parla come" nella chat.
 
 ## Schede e oggetti
 
