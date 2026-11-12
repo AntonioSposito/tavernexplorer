@@ -71,6 +71,11 @@
    "file": "spells/arcane-eye.svg"
   },
   {
+   "id": "arcane-gate",
+   "name": "Arcane Gate",
+   "file": "spells/arcane-gate.svg"
+  },
+  {
    "id": "arcane-hand",
    "name": "Arcane Hand",
    "file": "spells/arcane-hand.svg"
@@ -86,9 +91,24 @@
    "file": "spells/arcane-sword.svg"
   },
   {
+   "id": "arcane-vigor",
+   "name": "Arcane Vigor",
+   "file": "spells/arcane-vigor.svg"
+  },
+  {
    "id": "arcanists-magic-aura",
    "name": "Arcanist's Magic Aura",
    "file": "spells/arcanists-magic-aura.svg"
+  },
+  {
+   "id": "armor-of-agathys",
+   "name": "Armor of Agathys",
+   "file": "spells/armor-of-agathys.svg"
+  },
+  {
+   "id": "arms-of-hadar",
+   "name": "Arms of Hadar",
+   "file": "spells/arms-of-hadar.svg"
   },
   {
    "id": "astral-projection",
@@ -106,6 +126,16 @@
    "file": "spells/aura-of-life.svg"
   },
   {
+   "id": "aura-of-purity",
+   "name": "Aura of Purity",
+   "file": "spells/aura-of-purity.svg"
+  },
+  {
+   "id": "aura-of-vitality",
+   "name": "Aura of Vitality",
+   "file": "spells/aura-of-vitality.svg"
+  },
+  {
    "id": "awaken",
    "name": "Awaken",
    "file": "spells/awaken.svg"
@@ -114,6 +144,11 @@
    "id": "bane",
    "name": "Bane",
    "file": "spells/bane.svg"
+  },
+  {
+   "id": "banishing-smite",
+   "name": "Banishing Smite",
+   "file": "spells/banishing-smite.svg"
   },
   {
    "id": "banishment",
@@ -131,6 +166,11 @@
    "file": "spells/beacon-of-hope.svg"
   },
   {
+   "id": "beast-sense",
+   "name": "Beast Sense",
+   "file": "spells/beast-sense.svg"
+  },
+  {
    "id": "befuddlement",
    "name": "Befuddlement",
    "file": "spells/befuddlement.svg"
@@ -139,6 +179,11 @@
    "id": "bestow-curse",
    "name": "Bestow Curse",
    "file": "spells/bestow-curse.svg"
+  },
+  {
+   "id": "bigbys-hand",
+   "name": "Bigby's Hand",
+   "file": "spells/bigbys-hand.svg"
   },
   {
    "id": "black-tentacles",
@@ -151,6 +196,11 @@
    "file": "spells/blade-barrier.svg"
   },
   {
+   "id": "blade-ward",
+   "name": "Blade Ward",
+   "file": "spells/blade-ward.svg"
+  },
+  {
    "id": "bless",
    "name": "Bless",
    "file": "spells/bless.svg"
@@ -159,6 +209,11 @@
    "id": "blight",
    "name": "Blight",
    "file": "spells/blight.svg"
+  },
+  {
+   "id": "blinding-smite",
+   "name": "Blinding Smite",
+   "file": "spells/blinding-smite.svg"
   },
   {
    "id": "blindness-deafness",
@@ -226,6 +281,11 @@
    "file": "spells/circle-of-death.svg"
   },
   {
+   "id": "circle-of-power",
+   "name": "Circle of Power",
+   "file": "spells/circle-of-power.svg"
+  },
+  {
    "id": "clairvoyance",
    "name": "Clairvoyance",
    "file": "spells/clairvoyance.svg"
@@ -234,6 +294,11 @@
    "id": "clone",
    "name": "Clone",
    "file": "spells/clone.svg"
+  },
+  {
+   "id": "cloud-of-daggers",
+   "name": "Cloud of Daggers",
+   "file": "spells/cloud-of-daggers.svg"
   },
   {
    "id": "cloudkill",
@@ -261,6 +326,11 @@
    "file": "spells/commune-with-nature.svg"
   },
   {
+   "id": "compelled-duel",
+   "name": "Compelled Duel",
+   "file": "spells/compelled-duel.svg"
+  },
+  {
    "id": "comprehend-languages",
    "name": "Comprehend Languages",
    "file": "spells/comprehend-languages.svg"
@@ -286,6 +356,11 @@
    "file": "spells/conjure-animals.svg"
   },
   {
+   "id": "conjure-barrage",
+   "name": "Conjure Barrage",
+   "file": "spells/conjure-barrage.svg"
+  },
+  {
    "id": "conjure-celestial",
    "name": "Conjure Celestial",
    "file": "spells/conjure-celestial.svg"
@@ -304,6 +379,11 @@
    "id": "conjure-minor-elementals",
    "name": "Conjure Minor Elementals",
    "file": "spells/conjure-minor-elementals.svg"
+  },
+  {
+   "id": "conjure-volley",
+   "name": "Conjure Volley",
+   "file": "spells/conjure-volley.svg"
   },
   {
    "id": "conjure-woodland-beings",
@@ -341,6 +421,11 @@
    "file": "spells/control-weather.svg"
   },
   {
+   "id": "cordon-of-arrows",
+   "name": "Cordon of Arrows",
+   "file": "spells/cordon-of-arrows.svg"
+  },
+  {
    "id": "counterspell",
    "name": "Counterspell",
    "file": "spells/counterspell.svg"
@@ -364,6 +449,16 @@
    "id": "creation",
    "name": "Creation",
    "file": "spells/creation.svg"
+  },
+  {
+   "id": "crown-of-madness",
+   "name": "Crown of Madness",
+   "file": "spells/crown-of-madness.svg"
+  },
+  {
+   "id": "crusaders-mantle",
+   "name": "Crusader's Mantle",
+   "file": "spells/crusaders-mantle.svg"
   },
   {
    "id": "cure-wounds",
@@ -404,6 +499,11 @@
    "id": "demiplane",
    "name": "Demiplane",
    "file": "spells/demiplane.svg"
+  },
+  {
+   "id": "destructive-wave",
+   "name": "Destructive Wave",
+   "file": "spells/destructive-wave.svg"
   },
   {
    "id": "detect-evil-and-good",
@@ -496,6 +596,11 @@
    "file": "spells/dragons-breath.svg"
   },
   {
+   "id": "drawmijs-instant-summons",
+   "name": "Drawmij's Instant Summons",
+   "file": "spells/drawmijs-instant-summons.svg"
+  },
+  {
    "id": "dream",
    "name": "Dream",
    "file": "spells/dream.svg"
@@ -514,6 +619,11 @@
    "id": "eldritch-blast",
    "name": "Eldritch Blast",
    "file": "spells/eldritch-blast.svg"
+  },
+  {
+   "id": "elemental-weapon",
+   "name": "Elemental Weapon",
+   "file": "spells/elemental-weapon.svg"
   },
   {
    "id": "elementalism",
@@ -549,6 +659,11 @@
    "id": "etherealness",
    "name": "Etherealness",
    "file": "spells/etherealness.svg"
+  },
+  {
+   "id": "evards-black-tentacles",
+   "name": "Evard's Black Tentacles",
+   "file": "spells/evards-black-tentacles.svg"
   },
   {
    "id": "expeditious-retreat",
@@ -594,6 +709,11 @@
    "id": "feeblemind",
    "name": "Feeblemind",
    "file": "spells/feeblemind.svg"
+  },
+  {
+   "id": "feign-death",
+   "name": "Feign Death",
+   "file": "spells/feign-death.svg"
   },
   {
    "id": "find-familiar",
@@ -691,6 +811,11 @@
    "file": "spells/foresight.svg"
   },
   {
+   "id": "fount-of-moonlight",
+   "name": "Fount of Moonlight",
+   "file": "spells/fount-of-moonlight.svg"
+  },
+  {
    "id": "freedom-of-movement",
    "name": "Freedom of Movement",
    "file": "spells/freedom-of-movement.svg"
@@ -699,6 +824,11 @@
    "id": "freezing-sphere",
    "name": "Freezing Sphere",
    "file": "spells/freezing-sphere.svg"
+  },
+  {
+   "id": "friends",
+   "name": "Friends",
+   "file": "spells/friends.svg"
   },
   {
    "id": "gaseous-form",
@@ -746,6 +876,11 @@
    "file": "spells/goodberry.svg"
   },
   {
+   "id": "grasping-vine",
+   "name": "Grasping Vine",
+   "file": "spells/grasping-vine.svg"
+  },
+  {
    "id": "grease",
    "name": "Grease",
    "file": "spells/grease.svg"
@@ -784,6 +919,11 @@
    "id": "gust-of-wind",
    "name": "Gust of Wind",
    "file": "spells/gust-of-wind.svg"
+  },
+  {
+   "id": "hail-of-thorns",
+   "name": "Hail of Thorns",
+   "file": "spells/hail-of-thorns.svg"
   },
   {
    "id": "hallow",
@@ -861,6 +1001,11 @@
    "file": "spells/holy-aura.svg"
   },
   {
+   "id": "hunger-of-hadar",
+   "name": "Hunger of Hadar",
+   "file": "spells/hunger-of-hadar.svg"
+  },
+  {
    "id": "hunters-mark",
    "name": "Hunter's Mark",
    "file": "spells/hunters-mark.svg"
@@ -926,6 +1071,11 @@
    "file": "spells/irresistible-dance.svg"
   },
   {
+   "id": "jallarzis-storm-of-radiance",
+   "name": "Jallarzi's Storm of Radiance",
+   "file": "spells/jallarzis-storm-of-radiance.svg"
+  },
+  {
    "id": "jump",
    "name": "Jump",
    "file": "spells/jump.svg"
@@ -941,6 +1091,16 @@
    "file": "spells/legend-lore.svg"
   },
   {
+   "id": "leomunds-secret-chest",
+   "name": "Leomund's Secret Chest",
+   "file": "spells/leomunds-secret-chest.svg"
+  },
+  {
+   "id": "leomunds-tiny-hut",
+   "name": "Leomund's Tiny Hut",
+   "file": "spells/leomunds-tiny-hut.svg"
+  },
+  {
    "id": "lesser-restoration",
    "name": "Lesser Restoration",
    "file": "spells/lesser-restoration.svg"
@@ -954,6 +1114,11 @@
    "id": "light",
    "name": "Light",
    "file": "spells/light.svg"
+  },
+  {
+   "id": "lightning-arrow",
+   "name": "Lightning Arrow",
+   "file": "spells/lightning-arrow.svg"
   },
   {
    "id": "lightning-bolt",
@@ -1056,6 +1221,11 @@
    "file": "spells/meld-into-stone.svg"
   },
   {
+   "id": "melfs-acid-arrow",
+   "name": "Melf's Acid Arrow",
+   "file": "spells/melfs-acid-arrow.svg"
+  },
+  {
    "id": "mending",
    "name": "Mending",
    "file": "spells/mending.svg"
@@ -1074,6 +1244,11 @@
    "id": "mind-blank",
    "name": "Mind Blank",
    "file": "spells/mind-blank.svg"
+  },
+  {
+   "id": "mind-sliver",
+   "name": "Mind Sliver",
+   "file": "spells/mind-sliver.svg"
   },
   {
    "id": "mind-spike",
@@ -1116,6 +1291,26 @@
    "file": "spells/moonbeam.svg"
   },
   {
+   "id": "mordenkainens-faithful-hound",
+   "name": "Mordenkainen's Faithful Hound",
+   "file": "spells/mordenkainens-faithful-hound.svg"
+  },
+  {
+   "id": "mordenkainens-magnificent-mansion",
+   "name": "Mordenkainen's Magnificent Mansion",
+   "file": "spells/mordenkainens-magnificent-mansion.svg"
+  },
+  {
+   "id": "mordenkainens-private-sanctum",
+   "name": "Mordenkainen's Private Sanctum",
+   "file": "spells/mordenkainens-private-sanctum.svg"
+  },
+  {
+   "id": "mordenkainens-sword",
+   "name": "Mordenkainen's Sword",
+   "file": "spells/mordenkainens-sword.svg"
+  },
+  {
    "id": "move-earth",
    "name": "Move Earth",
    "file": "spells/move-earth.svg"
@@ -1124,6 +1319,26 @@
    "id": "nondetection",
    "name": "Nondetection",
    "file": "spells/nondetection.svg"
+  },
+  {
+   "id": "nystuls-magic-aura",
+   "name": "Nystul's Magic Aura",
+   "file": "spells/nystuls-magic-aura.svg"
+  },
+  {
+   "id": "otilukes-freezing-sphere",
+   "name": "Otiluke's Freezing Sphere",
+   "file": "spells/otilukes-freezing-sphere.svg"
+  },
+  {
+   "id": "otilukes-resilient-sphere",
+   "name": "Otiluke's Resilient Sphere",
+   "file": "spells/otilukes-resilient-sphere.svg"
+  },
+  {
+   "id": "ottos-irresistible-dance",
+   "name": "Otto's Irresistible Dance",
+   "file": "spells/ottos-irresistible-dance.svg"
   },
   {
    "id": "pass-without-trace",
@@ -1179,6 +1394,11 @@
    "id": "polymorph",
    "name": "Polymorph",
    "file": "spells/polymorph.svg"
+  },
+  {
+   "id": "power-word-fortify",
+   "name": "Power Word Fortify",
+   "file": "spells/power-word-fortify.svg"
   },
   {
    "id": "power-word-heal",
@@ -1259,6 +1479,11 @@
    "id": "raise-dead",
    "name": "Raise Dead",
    "file": "spells/raise-dead.svg"
+  },
+  {
+   "id": "rarys-telepathic-bond",
+   "name": "Rary's Telepathic Bond",
+   "file": "spells/rarys-telepathic-bond.svg"
   },
   {
    "id": "ray-of-enfeeblement",
@@ -1481,9 +1706,19 @@
    "file": "spells/spiritual-weapon.svg"
   },
   {
+   "id": "staggering-smite",
+   "name": "Staggering Smite",
+   "file": "spells/staggering-smite.svg"
+  },
+  {
    "id": "starry-wisp",
    "name": "Starry Wisp",
    "file": "spells/starry-wisp.svg"
+  },
+  {
+   "id": "steel-wind-strike",
+   "name": "Steel Wind Strike",
+   "file": "spells/steel-wind-strike.svg"
   },
   {
    "id": "stinking-cloud",
@@ -1511,9 +1746,49 @@
    "file": "spells/suggestion.svg"
   },
   {
+   "id": "summon-aberration",
+   "name": "Summon Aberration",
+   "file": "spells/summon-aberration.svg"
+  },
+  {
+   "id": "summon-beast",
+   "name": "Summon Beast",
+   "file": "spells/summon-beast.svg"
+  },
+  {
+   "id": "summon-celestial",
+   "name": "Summon Celestial",
+   "file": "spells/summon-celestial.svg"
+  },
+  {
+   "id": "summon-construct",
+   "name": "Summon Construct",
+   "file": "spells/summon-construct.svg"
+  },
+  {
    "id": "summon-dragon",
    "name": "Summon Dragon",
    "file": "spells/summon-dragon.svg"
+  },
+  {
+   "id": "summon-elemental",
+   "name": "Summon Elemental",
+   "file": "spells/summon-elemental.svg"
+  },
+  {
+   "id": "summon-fey",
+   "name": "Summon Fey",
+   "file": "spells/summon-fey.svg"
+  },
+  {
+   "id": "summon-fiend",
+   "name": "Summon Fiend",
+   "file": "spells/summon-fiend.svg"
+  },
+  {
+   "id": "summon-undead",
+   "name": "Summon Undead",
+   "file": "spells/summon-undead.svg"
   },
   {
    "id": "sunbeam",
@@ -1526,9 +1801,29 @@
    "file": "spells/sunburst.svg"
   },
   {
+   "id": "swift-quiver",
+   "name": "Swift Quiver",
+   "file": "spells/swift-quiver.svg"
+  },
+  {
    "id": "symbol",
    "name": "Symbol",
    "file": "spells/symbol.svg"
+  },
+  {
+   "id": "synaptic-static",
+   "name": "Synaptic Static",
+   "file": "spells/synaptic-static.svg"
+  },
+  {
+   "id": "tashas-bubbling-cauldron",
+   "name": "Tasha's Bubbling Cauldron",
+   "file": "spells/tashas-bubbling-cauldron.svg"
+  },
+  {
+   "id": "tashas-hideous-laughter",
+   "name": "Tasha's Hideous Laughter",
+   "file": "spells/tashas-hideous-laughter.svg"
   },
   {
    "id": "telekinesis",
@@ -1541,6 +1836,11 @@
    "file": "spells/telepathic-bond.svg"
   },
   {
+   "id": "telepathy",
+   "name": "Telepathy",
+   "file": "spells/telepathy.svg"
+  },
+  {
    "id": "teleport",
    "name": "Teleport",
    "file": "spells/teleport.svg"
@@ -1551,9 +1851,29 @@
    "file": "spells/teleportation-circle.svg"
   },
   {
+   "id": "tensers-floating-disk",
+   "name": "Tenser's Floating Disk",
+   "file": "spells/tensers-floating-disk.svg"
+  },
+  {
    "id": "thaumaturgy",
    "name": "Thaumaturgy",
    "file": "spells/thaumaturgy.svg"
+  },
+  {
+   "id": "thorn-whip",
+   "name": "Thorn Whip",
+   "file": "spells/thorn-whip.svg"
+  },
+  {
+   "id": "thunderclap",
+   "name": "Thunderclap",
+   "file": "spells/thunderclap.svg"
+  },
+  {
+   "id": "thunderous-smite",
+   "name": "Thunderous Smite",
+   "file": "spells/thunderous-smite.svg"
   },
   {
    "id": "thunderwave",
@@ -1569,6 +1889,11 @@
    "id": "tiny-hut",
    "name": "Tiny Hut",
    "file": "spells/tiny-hut.svg"
+  },
+  {
+   "id": "toll-the-dead",
+   "name": "Toll the Dead",
+   "file": "spells/toll-the-dead.svg"
   },
   {
    "id": "tongues",
@@ -1696,9 +2021,29 @@
    "file": "spells/wish.svg"
   },
   {
+   "id": "witch-bolt",
+   "name": "Witch Bolt",
+   "file": "spells/witch-bolt.svg"
+  },
+  {
+   "id": "word-of-radiance",
+   "name": "Word of Radiance",
+   "file": "spells/word-of-radiance.svg"
+  },
+  {
    "id": "word-of-recall",
    "name": "Word of Recall",
    "file": "spells/word-of-recall.svg"
+  },
+  {
+   "id": "wrathful-smite",
+   "name": "Wrathful Smite",
+   "file": "spells/wrathful-smite.svg"
+  },
+  {
+   "id": "yolandes-regal-presence",
+   "name": "Yolande's Regal Presence",
+   "file": "spells/yolandes-regal-presence.svg"
   },
   {
    "id": "zone-of-truth",
@@ -1721,6 +2066,11 @@
    ]
   },
   {
+   "id": "airship",
+   "name": "Airship",
+   "file": "items/airship.svg"
+  },
+  {
    "id": "alchemists-fire",
    "name": "Alchemist's Fire",
    "file": "items/alchemists-fire.svg",
@@ -1734,9 +2084,29 @@
    "file": "items/alchemists-supplies.svg"
   },
   {
+   "id": "ale-mug",
+   "name": "Ale (mug)",
+   "file": "items/ale-mug.svg"
+  },
+  {
+   "id": "alexandrite",
+   "name": "Alexandrite",
+   "file": "items/alexandrite.svg"
+  },
+  {
    "id": "alms-box",
    "name": "Alms box",
    "file": "items/alms-box.svg"
+  },
+  {
+   "id": "amber",
+   "name": "Amber",
+   "file": "items/amber.svg"
+  },
+  {
+   "id": "amethyst",
+   "name": "Amethyst",
+   "file": "items/amethyst.svg"
   },
   {
    "id": "amulet",
@@ -1757,12 +2127,37 @@
    ]
   },
   {
+   "id": "aquamarine",
+   "name": "Aquamarine",
+   "file": "items/aquamarine.svg"
+  },
+  {
+   "id": "arrow",
+   "name": "Arrow",
+   "file": "items/arrow.svg"
+  },
+  {
    "id": "arrows",
    "name": "Arrows",
    "file": "items/arrows.svg",
    "aliases": [
     "arrow"
    ]
+  },
+  {
+   "id": "arrows-20",
+   "name": "Arrows (20)",
+   "file": "items/arrows-20.svg"
+  },
+  {
+   "id": "assassins-blood",
+   "name": "Assassin's Blood",
+   "file": "items/assassins-blood.svg"
+  },
+  {
+   "id": "azurite",
+   "name": "Azurite",
+   "file": "items/azurite.svg"
   },
   {
    "id": "backpack",
@@ -1781,6 +2176,11 @@
    "aliases": [
     "ball-bearings-bag-of-1000"
    ]
+  },
+  {
+   "id": "banded-agate",
+   "name": "Banded Agate",
+   "file": "items/banded-agate.svg"
   },
   {
    "id": "barding-breastplate",
@@ -1848,6 +2248,11 @@
    "file": "items/barrel.svg"
   },
   {
+   "id": "basic-poison",
+   "name": "Basic Poison",
+   "file": "items/basic-poison.svg"
+  },
+  {
    "id": "basket",
    "name": "Basket",
    "file": "items/basket.svg"
@@ -1863,6 +2268,16 @@
    "file": "items/bedroll.svg"
   },
   {
+   "id": "bejeweled-gold-bracelet",
+   "name": "Bejeweled gold bracelet",
+   "file": "items/bejeweled-gold-bracelet.svg"
+  },
+  {
+   "id": "bejeweled-ivory-drinking-horn-with-gold-filigree",
+   "name": "Bejeweled ivory drinking horn with gold filigree",
+   "file": "items/bejeweled-ivory-drinking-horn-with-gold-filigree.svg"
+  },
+  {
    "id": "bell",
    "name": "Bell",
    "file": "items/bell.svg"
@@ -1871,6 +2286,26 @@
    "id": "bit-and-bridle",
    "name": "Bit and bridle",
    "file": "items/bit-and-bridle.svg"
+  },
+  {
+   "id": "black-opal",
+   "name": "Black Opal",
+   "file": "items/black-opal.svg"
+  },
+  {
+   "id": "black-pearl",
+   "name": "Black Pearl",
+   "file": "items/black-pearl.svg"
+  },
+  {
+   "id": "black-sapphire",
+   "name": "Black Sapphire",
+   "file": "items/black-sapphire.svg"
+  },
+  {
+   "id": "black-velvet-mask-stitched-with-silver-thread",
+   "name": "Black velvet mask stitched with silver thread",
+   "file": "items/black-velvet-mask-stitched-with-silver-thread.svg"
   },
   {
    "id": "blanket",
@@ -1888,9 +2323,34 @@
    "file": "items/block-of-incense.svg"
   },
   {
+   "id": "bloodstone",
+   "name": "Bloodstone",
+   "file": "items/bloodstone.svg"
+  },
+  {
    "id": "blowgun",
    "name": "Blowgun",
    "file": "items/blowgun.svg"
+  },
+  {
+   "id": "blue-quartz",
+   "name": "Blue Quartz",
+   "file": "items/blue-quartz.svg"
+  },
+  {
+   "id": "blue-sapphire",
+   "name": "Blue Sapphire",
+   "file": "items/blue-sapphire.svg"
+  },
+  {
+   "id": "blue-spinel",
+   "name": "Blue Spinel",
+   "file": "items/blue-spinel.svg"
+  },
+  {
+   "id": "bolt",
+   "name": "Bolt",
+   "file": "items/bolt.svg"
   },
   {
    "id": "bolts",
@@ -1899,6 +2359,16 @@
    "aliases": [
     "crossbow-bolt"
    ]
+  },
+  {
+   "id": "bolts-20",
+   "name": "Bolts (20)",
+   "file": "items/bolts-20.svg"
+  },
+  {
+   "id": "bomb",
+   "name": "Bomb",
+   "file": "items/bomb.svg"
   },
   {
    "id": "book",
@@ -1911,6 +2381,26 @@
    "file": "items/bottle-glass.svg"
   },
   {
+   "id": "bottle-stopper-cork-embossed-with-gold-leaf-and-set-with-amethysts",
+   "name": "Bottle stopper cork embossed with gold leaf and set with amethysts",
+   "file": "items/bottle-stopper-cork-embossed-with-gold-leaf-and-set-with-amethysts.svg"
+  },
+  {
+   "id": "box-of-turquoise-animal-figurines",
+   "name": "Box of turquoise animal figurines",
+   "file": "items/box-of-turquoise-animal-figurines.svg"
+  },
+  {
+   "id": "brass-mug-with-jade-inlay",
+   "name": "Brass mug with jade inlay",
+   "file": "items/brass-mug-with-jade-inlay.svg"
+  },
+  {
+   "id": "bread-loaf",
+   "name": "Bread (loaf)",
+   "file": "items/bread-loaf.svg"
+  },
+  {
    "id": "breastplate",
    "name": "Breastplate",
    "file": "items/breastplate.svg"
@@ -1919,6 +2409,11 @@
    "id": "brewers-supplies",
    "name": "Brewer's Supplies",
    "file": "items/brewers-supplies.svg"
+  },
+  {
+   "id": "bronze-crown",
+   "name": "Bronze crown",
+   "file": "items/bronze-crown.svg"
   },
   {
    "id": "bucket",
@@ -1939,9 +2434,24 @@
    ]
   },
   {
+   "id": "bullseye-lantern",
+   "name": "Bullseye Lantern",
+   "file": "items/bullseye-lantern.svg"
+  },
+  {
+   "id": "bundle-of-sheet-music-representing-the-lost-dirges-of-a-famous-composer",
+   "name": "Bundle of sheet music representing the lost dirges of a famous composer",
+   "file": "items/bundle-of-sheet-music-representing-the-lost-dirges-of-a-famous-composer.svg"
+  },
+  {
    "id": "burglars-pack",
    "name": "Burglar's Pack",
    "file": "items/burglars-pack.svg"
+  },
+  {
+   "id": "burnt-othur-fumes",
+   "name": "Burnt Othur Fumes",
+   "file": "items/burnt-othur-fumes.svg"
   },
   {
    "id": "calligraphers-supplies",
@@ -1964,6 +2474,16 @@
    "file": "items/candle.svg"
   },
   {
+   "id": "canvas-1-sq-yd",
+   "name": "Canvas (1 sq. yd.)",
+   "file": "items/canvas-1-sq-yd.svg"
+  },
+  {
+   "id": "carnelian",
+   "name": "Carnelian",
+   "file": "items/carnelian.svg"
+  },
+  {
    "id": "carpenters-tools",
    "name": "Carpenter's Tools",
    "file": "items/carpenters-tools.svg"
@@ -1972,6 +2492,11 @@
    "id": "carriage",
    "name": "Carriage",
    "file": "items/carriage.svg"
+  },
+  {
+   "id": "carrion-crawler-mucus",
+   "name": "Carrion Crawler Mucus",
+   "file": "items/carrion-crawler-mucus.svg"
   },
   {
    "id": "cart",
@@ -1987,6 +2512,21 @@
    ]
   },
   {
+   "id": "carved-bone-statuette",
+   "name": "Carved bone statuette",
+   "file": "items/carved-bone-statuette.svg"
+  },
+  {
+   "id": "carved-ivory-statuette",
+   "name": "Carved ivory statuette",
+   "file": "items/carved-ivory-statuette.svg"
+  },
+  {
+   "id": "carved-wooden-harp-with-ivory-inlay-and-zircon-gems",
+   "name": "Carved wooden harp with ivory inlay and zircon gems",
+   "file": "items/carved-wooden-harp-with-ivory-inlay-and-zircon-gems.svg"
+  },
+  {
    "id": "case-crossbow-bolt",
    "name": "Case, Crossbow Bolt",
    "file": "items/case-crossbow-bolt.svg"
@@ -2000,6 +2540,11 @@
    "id": "censer",
    "name": "Censer",
    "file": "items/censer.svg"
+  },
+  {
+   "id": "ceremonial-gold-armor-with-black-pearls",
+   "name": "Ceremonial gold armor with black pearls",
+   "file": "items/ceremonial-gold-armor-with-black-pearls.svg"
   },
   {
    "id": "chain",
@@ -2020,6 +2565,11 @@
    "file": "items/chain-shirt.svg"
   },
   {
+   "id": "chalcedony",
+   "name": "Chalcedony",
+   "file": "items/chalcedony.svg"
+  },
+  {
    "id": "chalk-1-piece",
    "name": "Chalk (1 piece)",
    "file": "items/chalk-1-piece.svg"
@@ -2030,14 +2580,49 @@
    "file": "items/chariot.svg"
   },
   {
+   "id": "cheese-wedge",
+   "name": "Cheese (wedge)",
+   "file": "items/cheese-wedge.svg"
+  },
+  {
    "id": "chest",
    "name": "Chest",
    "file": "items/chest.svg"
   },
   {
+   "id": "chicken",
+   "name": "Chicken",
+   "file": "items/chicken.svg"
+  },
+  {
+   "id": "chrysoberyl",
+   "name": "Chrysoberyl",
+   "file": "items/chrysoberyl.svg"
+  },
+  {
+   "id": "chrysoprase",
+   "name": "Chrysoprase",
+   "file": "items/chrysoprase.svg"
+  },
+  {
+   "id": "cinnamon",
+   "name": "Cinnamon",
+   "file": "items/cinnamon.svg"
+  },
+  {
+   "id": "citrine",
+   "name": "Citrine",
+   "file": "items/citrine.svg"
+  },
+  {
    "id": "climbers-kit",
    "name": "Climber's Kit",
    "file": "items/climbers-kit.svg"
+  },
+  {
+   "id": "cloth-of-gold-vestments",
+   "name": "Cloth-of-gold vestments",
+   "file": "items/cloth-of-gold-vestments.svg"
   },
   {
    "id": "clothes-common",
@@ -2055,6 +2640,11 @@
    "file": "items/clothes-travelers.svg"
   },
   {
+   "id": "cloves",
+   "name": "Cloves",
+   "file": "items/cloves.svg"
+  },
+  {
    "id": "club",
    "name": "Club",
    "file": "items/club.svg"
@@ -2063,6 +2653,11 @@
    "id": "cobblers-tools",
    "name": "Cobbler's Tools",
    "file": "items/cobblers-tools.svg"
+  },
+  {
+   "id": "common-wine-bottle",
+   "name": "Common Wine (bottle)",
+   "file": "items/common-wine-bottle.svg"
   },
   {
    "id": "component-pouch",
@@ -2075,12 +2670,42 @@
    "file": "items/cooks-utensils.svg"
   },
   {
+   "id": "copper",
+   "name": "Copper",
+   "file": "items/copper.svg"
+  },
+  {
+   "id": "copper-chalice-with-silver-filigree",
+   "name": "Copper chalice with silver filigree",
+   "file": "items/copper-chalice-with-silver-filigree.svg"
+  },
+  {
+   "id": "coral",
+   "name": "Coral",
+   "file": "items/coral.svg"
+  },
+  {
    "id": "costume",
    "name": "Costume",
    "file": "items/costume.svg",
    "aliases": [
     "clothes-costume"
    ]
+  },
+  {
+   "id": "cotton-cloth-1-sq-yd",
+   "name": "Cotton Cloth (1 sq. yd.)",
+   "file": "items/cotton-cloth-1-sq-yd.svg"
+  },
+  {
+   "id": "cow",
+   "name": "Cow",
+   "file": "items/cow.svg"
+  },
+  {
+   "id": "crossbow-bolt-case",
+   "name": "Crossbow Bolt Case",
+   "file": "items/crossbow-bolt-case.svg"
   },
   {
    "id": "crowbar",
@@ -2103,12 +2728,27 @@
    "file": "items/dart.svg"
   },
   {
+   "id": "detailed-life-sized-dragonborn-skull-cast-in-electrum",
+   "name": "Detailed, life-sized dragonborn skull cast in electrum",
+   "file": "items/detailed-life-sized-dragonborn-skull-cast-in-electrum.svg"
+  },
+  {
+   "id": "diamond",
+   "name": "Diamond",
+   "file": "items/diamond.svg"
+  },
+  {
    "id": "dice",
    "name": "Dice",
    "file": "items/dice.svg",
    "aliases": [
     "dice-set"
    ]
+  },
+  {
+   "id": "dice-set",
+   "name": "Dice Set",
+   "file": "items/dice-set.svg"
   },
   {
    "id": "diplomat-pack",
@@ -2129,9 +2769,19 @@
    "file": "items/donkey.svg"
   },
   {
+   "id": "draft-horse",
+   "name": "Draft Horse",
+   "file": "items/draft-horse.svg"
+  },
+  {
    "id": "dragonchess",
    "name": "Dragonchess",
    "file": "items/dragonchess.svg"
+  },
+  {
+   "id": "dragonchess-set",
+   "name": "Dragonchess Set",
+   "file": "items/dragonchess-set.svg"
   },
   {
    "id": "drum",
@@ -2152,6 +2802,11 @@
    ]
   },
   {
+   "id": "dynamite-stick",
+   "name": "Dynamite Stick",
+   "file": "items/dynamite-stick.svg"
+  },
+  {
    "id": "elephant",
    "name": "Elephant",
    "file": "items/elephant.svg"
@@ -2162,14 +2817,89 @@
    "file": "items/emblem.svg"
   },
   {
+   "id": "embroidered-glove-set-with-jewel-chips",
+   "name": "Embroidered glove set with jewel chips",
+   "file": "items/embroidered-glove-set-with-jewel-chips.svg"
+  },
+  {
+   "id": "embroidered-silk-and-velvet-mantle-set-with-numerous-moonstones",
+   "name": "Embroidered silk and velvet mantle set with numerous moonstones",
+   "file": "items/embroidered-silk-and-velvet-mantle-set-with-numerous-moonstones.svg"
+  },
+  {
+   "id": "embroidered-silk-handkerchief",
+   "name": "Embroidered silk handkerchief",
+   "file": "items/embroidered-silk-handkerchief.svg"
+  },
+  {
+   "id": "emerald",
+   "name": "Emerald",
+   "file": "items/emerald.svg"
+  },
+  {
    "id": "entertainers-pack",
    "name": "Entertainer's Pack",
    "file": "items/entertainers-pack.svg"
   },
   {
+   "id": "essence-of-ether",
+   "name": "Essence of Ether",
+   "file": "items/essence-of-ether.svg"
+  },
+  {
+   "id": "exotic-saddle",
+   "name": "Exotic Saddle",
+   "file": "items/exotic-saddle.svg"
+  },
+  {
    "id": "explorers-pack",
    "name": "Explorer's Pack",
    "file": "items/explorers-pack.svg"
+  },
+  {
+   "id": "eye-agate",
+   "name": "Eye Agate",
+   "file": "items/eye-agate.svg"
+  },
+  {
+   "id": "eye-patch-decorated-with-tiny-blue-sapphires-and-moonstones",
+   "name": "Eye patch decorated with tiny blue sapphires and moonstones",
+   "file": "items/eye-patch-decorated-with-tiny-blue-sapphires-and-moonstones.svg"
+  },
+  {
+   "id": "feed-per-day",
+   "name": "Feed (per day)",
+   "file": "items/feed-per-day.svg"
+  },
+  {
+   "id": "fine-clothes",
+   "name": "Fine Clothes",
+   "file": "items/fine-clothes.svg"
+  },
+  {
+   "id": "fine-gold-chain-set-with-a-fire-opal",
+   "name": "Fine gold chain set with a fire opal",
+   "file": "items/fine-gold-chain-set-with-a-fire-opal.svg"
+  },
+  {
+   "id": "fine-wine-bottle",
+   "name": "Fine Wine (bottle)",
+   "file": "items/fine-wine-bottle.svg"
+  },
+  {
+   "id": "fire-opal",
+   "name": "Fire Opal",
+   "file": "items/fire-opal.svg"
+  },
+  {
+   "id": "firearm-bullet",
+   "name": "Firearm Bullet",
+   "file": "items/firearm-bullet.svg"
+  },
+  {
+   "id": "firearm-bullets-10",
+   "name": "Firearm Bullets (10)",
+   "file": "items/firearm-bullets-10.svg"
   },
   {
    "id": "fishing-tackle",
@@ -2190,6 +2920,11 @@
    ]
   },
   {
+   "id": "flour",
+   "name": "Flour",
+   "file": "items/flour.svg"
+  },
+  {
    "id": "flute",
    "name": "Flute",
    "file": "items/flute.svg"
@@ -2200,9 +2935,29 @@
    "file": "items/forgery-kit.svg"
   },
   {
+   "id": "fragmentation-grenade",
+   "name": "Fragmentation Grenade",
+   "file": "items/fragmentation-grenade.svg"
+  },
+  {
    "id": "galley",
    "name": "Galley",
    "file": "items/galley.svg"
+  },
+  {
+   "id": "garnet",
+   "name": "Garnet",
+   "file": "items/garnet.svg"
+  },
+  {
+   "id": "gilded-royal-coach-or-funeral-barge",
+   "name": "Gilded royal coach or funeral barge",
+   "file": "items/gilded-royal-coach-or-funeral-barge.svg"
+  },
+  {
+   "id": "ginger",
+   "name": "Ginger",
+   "file": "items/ginger.svg"
   },
   {
    "id": "glaive",
@@ -2210,9 +2965,84 @@
    "file": "items/glaive.svg"
   },
   {
+   "id": "glass-bottle",
+   "name": "Glass Bottle",
+   "file": "items/glass-bottle.svg"
+  },
+  {
    "id": "glassblowers-tools",
    "name": "Glassblower's Tools",
    "file": "items/glassblowers-tools.svg"
+  },
+  {
+   "id": "goat",
+   "name": "Goat",
+   "file": "items/goat.svg"
+  },
+  {
+   "id": "gold",
+   "name": "Gold",
+   "file": "items/gold.svg"
+  },
+  {
+   "id": "gold-bar-5-pound",
+   "name": "Gold Bar (5-pound)",
+   "file": "items/gold-bar-5-pound.svg"
+  },
+  {
+   "id": "gold-birdcage-with-electrum-filigree",
+   "name": "Gold birdcage with electrum filigree",
+   "file": "items/gold-birdcage-with-electrum-filigree.svg"
+  },
+  {
+   "id": "gold-bracelet",
+   "name": "Gold bracelet",
+   "file": "items/gold-bracelet.svg"
+  },
+  {
+   "id": "gold-circlet-set-with-four-aquamarines",
+   "name": "Gold circlet set with four aquamarines",
+   "file": "items/gold-circlet-set-with-four-aquamarines.svg"
+  },
+  {
+   "id": "gold-comb-shaped-like-a-dragon-with-red-garnets-as-eyes",
+   "name": "Gold comb shaped like a dragon with red garnets as eyes",
+   "file": "items/gold-comb-shaped-like-a-dragon-with-red-garnets-as-eyes.svg"
+  },
+  {
+   "id": "gold-cup-set-with-emeralds",
+   "name": "Gold cup set with emeralds",
+   "file": "items/gold-cup-set-with-emeralds.svg"
+  },
+  {
+   "id": "gold-idol",
+   "name": "Gold idol",
+   "file": "items/gold-idol.svg"
+  },
+  {
+   "id": "gold-jewelry-box-with-platinum-filigree",
+   "name": "Gold jewelry box with platinum filigree",
+   "file": "items/gold-jewelry-box-with-platinum-filigree.svg"
+  },
+  {
+   "id": "gold-locket-with-a-painted-portrait-inside",
+   "name": "Gold locket with a painted portrait inside",
+   "file": "items/gold-locket-with-a-painted-portrait-inside.svg"
+  },
+  {
+   "id": "gold-music-box",
+   "name": "Gold music box",
+   "file": "items/gold-music-box.svg"
+  },
+  {
+   "id": "gold-ring-set-with-bloodstones",
+   "name": "Gold ring set with bloodstones",
+   "file": "items/gold-ring-set-with-bloodstones.svg"
+  },
+  {
+   "id": "gold-statuette-set-with-rubies",
+   "name": "Gold statuette set with rubies",
+   "file": "items/gold-statuette-set-with-rubies.svg"
   },
   {
    "id": "grappling-hook",
@@ -2233,6 +3063,21 @@
    "id": "greatsword",
    "name": "Greatsword",
    "file": "items/greatsword.svg"
+  },
+  {
+   "id": "grenade-launcher",
+   "name": "Grenade Launcher",
+   "file": "items/grenade-launcher.svg"
+  },
+  {
+   "id": "gunpowder-keg",
+   "name": "Gunpowder (keg)",
+   "file": "items/gunpowder-keg.svg"
+  },
+  {
+   "id": "gunpowder-powder-horn",
+   "name": "Gunpowder (powder horn)",
+   "file": "items/gunpowder-powder-horn.svg"
   },
   {
    "id": "halberd",
@@ -2268,6 +3113,11 @@
    "file": "items/handaxe.svg"
   },
   {
+   "id": "handheld-mirror-set-in-a-painted-wooden-frame",
+   "name": "Handheld mirror set in a painted wooden frame",
+   "file": "items/handheld-mirror-set-in-a-painted-wooden-frame.svg"
+  },
+  {
    "id": "healers-kit",
    "name": "Healer's Kit",
    "file": "items/healers-kit.svg"
@@ -2279,6 +3129,11 @@
    "aliases": [
     "crossbow-heavy"
    ]
+  },
+  {
+   "id": "hematite",
+   "name": "Hematite",
+   "file": "items/hematite.svg"
   },
   {
    "id": "herbalism-kit",
@@ -2297,6 +3152,11 @@
    "aliases": [
     "holy-water-flask"
    ]
+  },
+  {
+   "id": "hooded-lantern",
+   "name": "Hooded Lantern",
+   "file": "items/hooded-lantern.svg"
   },
   {
    "id": "horn",
@@ -2337,9 +3197,69 @@
    "file": "items/ink-pen.svg"
   },
   {
+   "id": "iron",
+   "name": "Iron",
+   "file": "items/iron.svg"
+  },
+  {
+   "id": "iron-pot",
+   "name": "Iron Pot",
+   "file": "items/iron-pot.svg"
+  },
+  {
+   "id": "iron-spike",
+   "name": "Iron Spike",
+   "file": "items/iron-spike.svg"
+  },
+  {
+   "id": "iron-spikes",
+   "name": "Iron Spikes",
+   "file": "items/iron-spikes.svg"
+  },
+  {
+   "id": "jacinth",
+   "name": "Jacinth",
+   "file": "items/jacinth.svg"
+  },
+  {
+   "id": "jade",
+   "name": "Jade",
+   "file": "items/jade.svg"
+  },
+  {
+   "id": "jade-game-board-with-gold-playing-pieces",
+   "name": "Jade game board with gold playing pieces",
+   "file": "items/jade-game-board-with-gold-playing-pieces.svg"
+  },
+  {
+   "id": "jasper",
+   "name": "Jasper",
+   "file": "items/jasper.svg"
+  },
+  {
    "id": "javelin",
    "name": "Javelin",
    "file": "items/javelin.svg"
+  },
+  {
+   "id": "jet",
+   "name": "Jet",
+   "file": "items/jet.svg"
+  },
+  {
+   "id": "jeweled-anklet",
+   "name": "Jeweled anklet",
+   "file": "items/jeweled-anklet.svg"
+  },
+  {
+   "id": "jeweled-gold-crown",
+   "name": "Jeweled gold crown",
+   "file": "items/jeweled-gold-crown.svg"
+  },
+  {
+   "id": "jeweled-platinum-ring",
+   "name": "Jeweled platinum ring",
+   "file": "items/jeweled-platinum-ring.svg"
   },
   {
    "id": "jewelers-tools",
@@ -2388,6 +3308,11 @@
    "file": "items/lantern-hooded.svg"
   },
   {
+   "id": "lapis-lazuli",
+   "name": "Lapis Lazuli",
+   "file": "items/lapis-lazuli.svg"
+  },
+  {
    "id": "leather-armor",
    "name": "Leather Armor",
    "file": "items/leather-armor.svg"
@@ -2409,6 +3334,11 @@
    "id": "light-hammer",
    "name": "Light Hammer",
    "file": "items/light-hammer.svg"
+  },
+  {
+   "id": "linen-1-sq-yd",
+   "name": "Linen (1 sq. yd.)",
+   "file": "items/linen-1-sq-yd.svg"
   },
   {
    "id": "little-bag-of-sand",
@@ -2456,6 +3386,16 @@
    "file": "items/magnifying-glass.svg"
   },
   {
+   "id": "malachite",
+   "name": "Malachite",
+   "file": "items/malachite.svg"
+  },
+  {
+   "id": "malice",
+   "name": "Malice",
+   "file": "items/malice.svg"
+  },
+  {
    "id": "manacles",
    "name": "Manacles",
    "file": "items/manacles.svg"
@@ -2464,6 +3404,11 @@
    "id": "map",
    "name": "Map",
    "file": "items/map.svg"
+  },
+  {
+   "id": "map-or-scroll-case",
+   "name": "Map or Scroll Case",
+   "file": "items/map-or-scroll-case.svg"
   },
   {
    "id": "masons-tools",
@@ -2486,6 +3431,16 @@
    "file": "items/mess-kit.svg"
   },
   {
+   "id": "midnight-tears",
+   "name": "Midnight Tears",
+   "file": "items/midnight-tears.svg"
+  },
+  {
+   "id": "military-saddle",
+   "name": "Military Saddle",
+   "file": "items/military-saddle.svg"
+  },
+  {
    "id": "mirror",
    "name": "Mirror",
    "file": "items/mirror.svg",
@@ -2494,9 +3449,19 @@
    ]
   },
   {
+   "id": "moonstone",
+   "name": "Moonstone",
+   "file": "items/moonstone.svg"
+  },
+  {
    "id": "morningstar",
    "name": "Morningstar",
    "file": "items/morningstar.svg"
+  },
+  {
+   "id": "moss-agate",
+   "name": "Moss Agate",
+   "file": "items/moss-agate.svg"
   },
   {
    "id": "mule",
@@ -2514,6 +3479,16 @@
    "file": "items/navigators-tools.svg"
   },
   {
+   "id": "necklace-string-of-small-pink-pearls",
+   "name": "Necklace string of small pink pearls",
+   "file": "items/necklace-string-of-small-pink-pearls.svg"
+  },
+  {
+   "id": "needle",
+   "name": "Needle",
+   "file": "items/needle.svg"
+  },
+  {
    "id": "needles",
    "name": "Needles",
    "file": "items/needles.svg",
@@ -2522,9 +3497,24 @@
    ]
   },
   {
+   "id": "needles-50",
+   "name": "Needles (50)",
+   "file": "items/needles-50.svg"
+  },
+  {
    "id": "net",
    "name": "Net",
    "file": "items/net.svg"
+  },
+  {
+   "id": "obsidian",
+   "name": "Obsidian",
+   "file": "items/obsidian.svg"
+  },
+  {
+   "id": "obsidian-statuette-with-gold-fittings-and-inlay",
+   "name": "Obsidian statuette with gold fittings and inlay",
+   "file": "items/obsidian-statuette-with-gold-fittings-and-inlay.svg"
   },
   {
    "id": "oil",
@@ -2535,9 +3525,34 @@
    ]
   },
   {
+   "id": "oil-of-taggit",
+   "name": "Oil of Taggit",
+   "file": "items/oil-of-taggit.svg"
+  },
+  {
+   "id": "old-masterpiece-painting",
+   "name": "Old masterpiece painting",
+   "file": "items/old-masterpiece-painting.svg"
+  },
+  {
+   "id": "onyx",
+   "name": "Onyx",
+   "file": "items/onyx.svg"
+  },
+  {
+   "id": "opal",
+   "name": "Opal",
+   "file": "items/opal.svg"
+  },
+  {
    "id": "orb",
    "name": "Orb",
    "file": "items/orb.svg"
+  },
+  {
+   "id": "ox",
+   "name": "Ox",
+   "file": "items/ox.svg"
   },
   {
    "id": "padded-armor",
@@ -2545,9 +3560,24 @@
    "file": "items/padded-armor.svg"
   },
   {
+   "id": "painted-gold-war-mask",
+   "name": "Painted gold war mask",
+   "file": "items/painted-gold-war-mask.svg"
+  },
+  {
    "id": "painters-supplies",
    "name": "Painter's Supplies",
    "file": "items/painters-supplies.svg"
+  },
+  {
+   "id": "pair-of-engraved-bone-dice",
+   "name": "Pair of engraved bone dice",
+   "file": "items/pair-of-engraved-bone-dice.svg"
+  },
+  {
+   "id": "pale-tincture",
+   "name": "Pale Tincture",
+   "file": "items/pale-tincture.svg"
   },
   {
    "id": "pan-flute",
@@ -2571,6 +3601,16 @@
    ]
   },
   {
+   "id": "pearl",
+   "name": "Pearl",
+   "file": "items/pearl.svg"
+  },
+  {
+   "id": "pepper",
+   "name": "Pepper",
+   "file": "items/pepper.svg"
+  },
+  {
    "id": "perfume",
    "name": "Perfume",
    "file": "items/perfume.svg",
@@ -2579,9 +3619,19 @@
    ]
   },
   {
+   "id": "peridot",
+   "name": "Peridot",
+   "file": "items/peridot.svg"
+  },
+  {
    "id": "pick-miners",
    "name": "Pick, miner's",
    "file": "items/pick-miners.svg"
+  },
+  {
+   "id": "pig",
+   "name": "Pig",
+   "file": "items/pig.svg"
   },
   {
    "id": "pike",
@@ -2602,6 +3652,16 @@
    "id": "plate-armor",
    "name": "Plate Armor",
    "file": "items/plate-armor.svg"
+  },
+  {
+   "id": "platinum",
+   "name": "Platinum",
+   "file": "items/platinum.svg"
+  },
+  {
+   "id": "platinum-bracelet-set-with-an-emerald",
+   "name": "Platinum bracelet set with an emerald",
+   "file": "items/platinum-bracelet-set-with-an-emerald.svg"
   },
   {
    "id": "playing-cards",
@@ -2638,6 +3698,11 @@
    "file": "items/pony.svg"
   },
   {
+   "id": "portable-ram",
+   "name": "Portable Ram",
+   "file": "items/portable-ram.svg"
+  },
+  {
    "id": "pot-iron",
    "name": "Pot, Iron",
    "file": "items/pot-iron.svg"
@@ -2663,9 +3728,24 @@
    "file": "items/priests-pack.svg"
   },
   {
+   "id": "psychic-blade",
+   "name": "Psychic Blade",
+   "file": "items/psychic-blade.svg"
+  },
+  {
+   "id": "purple-worm-poison",
+   "name": "Purple Worm Poison",
+   "file": "items/purple-worm-poison.svg"
+  },
+  {
    "id": "quarterstaff",
    "name": "Quarterstaff",
    "file": "items/quarterstaff.svg"
+  },
+  {
+   "id": "quartz",
+   "name": "Quartz",
+   "file": "items/quartz.svg"
   },
   {
    "id": "quiver",
@@ -2694,6 +3774,21 @@
    "id": "reliquary",
    "name": "Reliquary",
    "file": "items/reliquary.svg"
+  },
+  {
+   "id": "rhodochrosite",
+   "name": "Rhodochrosite",
+   "file": "items/rhodochrosite.svg"
+  },
+  {
+   "id": "riding-horse",
+   "name": "Riding Horse",
+   "file": "items/riding-horse.svg"
+  },
+  {
+   "id": "riding-saddle",
+   "name": "Riding Saddle",
+   "file": "items/riding-saddle.svg"
   },
   {
    "id": "ring-mail",
@@ -2728,6 +3823,11 @@
    "file": "items/rowboat.svg"
   },
   {
+   "id": "ruby",
+   "name": "Ruby",
+   "file": "items/ruby.svg"
+  },
+  {
    "id": "sack",
    "name": "Sack",
    "file": "items/sack.svg"
@@ -2758,9 +3858,24 @@
    "file": "items/saddlebags.svg"
   },
   {
+   "id": "saffron",
+   "name": "Saffron",
+   "file": "items/saffron.svg"
+  },
+  {
    "id": "sailing-ship",
    "name": "Sailing ship",
    "file": "items/sailing-ship.svg"
+  },
+  {
+   "id": "salt",
+   "name": "Salt",
+   "file": "items/salt.svg"
+  },
+  {
+   "id": "sardonyx",
+   "name": "Sardonyx",
+   "file": "items/sardonyx.svg"
   },
   {
    "id": "scale-mail",
@@ -2788,9 +3903,24 @@
    "file": "items/sealing-wax.svg"
   },
   {
+   "id": "serpent-venom",
+   "name": "Serpent Venom",
+   "file": "items/serpent-venom.svg"
+  },
+  {
+   "id": "set-of-gold-nesting-dolls",
+   "name": "Set of gold nesting dolls",
+   "file": "items/set-of-gold-nesting-dolls.svg"
+  },
+  {
    "id": "shawm",
    "name": "Shawm",
    "file": "items/shawm.svg"
+  },
+  {
+   "id": "sheep",
+   "name": "Sheep",
+   "file": "items/sheep.svg"
   },
   {
    "id": "shield",
@@ -2828,6 +3958,51 @@
    "file": "items/signet-ring.svg"
   },
   {
+   "id": "silk",
+   "name": "Silk",
+   "file": "items/silk.svg"
+  },
+  {
+   "id": "silk-vestments-with-gold-embroidery",
+   "name": "Silk vestments with gold embroidery",
+   "file": "items/silk-vestments-with-gold-embroidery.svg"
+  },
+  {
+   "id": "silver",
+   "name": "Silver",
+   "file": "items/silver.svg"
+  },
+  {
+   "id": "silver-and-gold-brooch",
+   "name": "Silver and gold brooch",
+   "file": "items/silver-and-gold-brooch.svg"
+  },
+  {
+   "id": "silver-bar-2-pound",
+   "name": "Silver Bar (2-pound)",
+   "file": "items/silver-bar-2-pound.svg"
+  },
+  {
+   "id": "silver-bar-5-pound",
+   "name": "Silver Bar (5-pound)",
+   "file": "items/silver-bar-5-pound.svg"
+  },
+  {
+   "id": "silver-chalice-set-with-moonstones",
+   "name": "Silver chalice set with moonstones",
+   "file": "items/silver-chalice-set-with-moonstones.svg"
+  },
+  {
+   "id": "silver-ewer",
+   "name": "Silver ewer",
+   "file": "items/silver-ewer.svg"
+  },
+  {
+   "id": "silver-necklace-with-a-gemstone-pendant",
+   "name": "Silver necklace with a gemstone pendant",
+   "file": "items/silver-necklace-with-a-gemstone-pendant.svg"
+  },
+  {
    "id": "sled",
    "name": "Sled",
    "file": "items/sled.svg"
@@ -2838,6 +4013,16 @@
    "file": "items/sling.svg"
   },
   {
+   "id": "sling-bullet",
+   "name": "Sling Bullet",
+   "file": "items/sling-bullet.svg"
+  },
+  {
+   "id": "sling-bullets-20",
+   "name": "Sling Bullets (20)",
+   "file": "items/sling-bullets-20.svg"
+  },
+  {
    "id": "small-knife",
    "name": "Small knife",
    "file": "items/small-knife.svg"
@@ -2846,6 +4031,11 @@
    "id": "smiths-tools",
    "name": "Smith's Tools",
    "file": "items/smiths-tools.svg"
+  },
+  {
+   "id": "smoke-grenade",
+   "name": "Smoke Grenade",
+   "file": "items/smoke-grenade.svg"
   },
   {
    "id": "soap",
@@ -2881,6 +4071,11 @@
    ]
   },
   {
+   "id": "spinel",
+   "name": "Spinel",
+   "file": "items/spinel.svg"
+  },
+  {
    "id": "splint-armor",
    "name": "Splint Armor",
    "file": "items/splint-armor.svg"
@@ -2901,9 +4096,29 @@
    "file": "items/stabling-1-day.svg"
   },
   {
+   "id": "stabling-per-day",
+   "name": "Stabling (per day)",
+   "file": "items/stabling-per-day.svg"
+  },
+  {
    "id": "staff",
    "name": "Staff",
    "file": "items/staff.svg"
+  },
+  {
+   "id": "star-rose-quartz",
+   "name": "Star rose quartz",
+   "file": "items/star-rose-quartz.svg"
+  },
+  {
+   "id": "star-ruby",
+   "name": "Star Ruby",
+   "file": "items/star-ruby.svg"
+  },
+  {
+   "id": "star-sapphire",
+   "name": "Star Sapphire",
+   "file": "items/star-sapphire.svg"
   },
   {
    "id": "string",
@@ -2937,6 +4152,16 @@
    "file": "items/three-dragon-ante.svg"
   },
   {
+   "id": "three-dragon-ante-set",
+   "name": "Three-Dragon Ante Set",
+   "file": "items/three-dragon-ante-set.svg"
+  },
+  {
+   "id": "tiger-eye",
+   "name": "Tiger Eye",
+   "file": "items/tiger-eye.svg"
+  },
+  {
    "id": "tinderbox",
    "name": "Tinderbox",
    "file": "items/tinderbox.svg"
@@ -2947,9 +4172,19 @@
    "file": "items/tinkers-tools.svg"
   },
   {
+   "id": "topaz",
+   "name": "Topaz",
+   "file": "items/topaz.svg"
+  },
+  {
    "id": "torch",
    "name": "Torch",
    "file": "items/torch.svg"
+  },
+  {
+   "id": "torpor",
+   "name": "Torpor",
+   "file": "items/torpor.svg"
   },
   {
    "id": "totem",
@@ -2957,9 +4192,34 @@
    "file": "items/totem.svg"
   },
   {
+   "id": "tourmaline",
+   "name": "Tourmaline",
+   "file": "items/tourmaline.svg"
+  },
+  {
+   "id": "travelers-clothes",
+   "name": "Traveler's Clothes",
+   "file": "items/travelers-clothes.svg"
+  },
+  {
    "id": "trident",
    "name": "Trident",
    "file": "items/trident.svg"
+  },
+  {
+   "id": "trinket",
+   "name": "Trinket",
+   "file": "items/trinket.svg"
+  },
+  {
+   "id": "truth-serum",
+   "name": "Truth Serum",
+   "file": "items/truth-serum.svg"
+  },
+  {
+   "id": "turquoise",
+   "name": "Turquoise",
+   "file": "items/turquoise.svg"
   },
   {
    "id": "vestments",
@@ -3017,6 +4277,16 @@
    "file": "items/weavers-tools.svg"
   },
   {
+   "id": "well-made-tapestry-that-is-10-feet-by-10-feet",
+   "name": "Well-made tapestry that is 10 feet by 10 feet",
+   "file": "items/well-made-tapestry-that-is-10-feet-by-10-feet.svg"
+  },
+  {
+   "id": "wheat",
+   "name": "Wheat",
+   "file": "items/wheat.svg"
+  },
+  {
    "id": "whetstone",
    "name": "Whetstone",
    "file": "items/whetstone.svg"
@@ -3037,16 +4307,66 @@
    "file": "items/wooden-staff.svg"
   },
   {
+   "id": "wyvern-poison",
+   "name": "Wyvern Poison",
+   "file": "items/wyvern-poison.svg"
+  },
+  {
+   "id": "yellow-sapphire",
+   "name": "Yellow Sapphire",
+   "file": "items/yellow-sapphire.svg"
+  },
+  {
    "id": "yew-wand",
    "name": "Yew Wand",
    "file": "items/yew-wand.svg"
+  },
+  {
+   "id": "zircon",
+   "name": "Zircon",
+   "file": "items/zircon.svg"
   }
  ],
  "magic-items": [
   {
+   "id": "1-rod-of-the-pact-keeper",
+   "name": "+1 Rod of the Pact Keeper",
+   "file": "magic-items/1-rod-of-the-pact-keeper.svg"
+  },
+  {
+   "id": "1-wraps-of-unarmed-power",
+   "name": "+1 Wraps of Unarmed Power",
+   "file": "magic-items/1-wraps-of-unarmed-power.svg"
+  },
+  {
+   "id": "2-rod-of-the-pact-keeper",
+   "name": "+2 Rod of the Pact Keeper",
+   "file": "magic-items/2-rod-of-the-pact-keeper.svg"
+  },
+  {
+   "id": "2-wraps-of-unarmed-power",
+   "name": "+2 Wraps of Unarmed Power",
+   "file": "magic-items/2-wraps-of-unarmed-power.svg"
+  },
+  {
+   "id": "3-rod-of-the-pact-keeper",
+   "name": "+3 Rod of the Pact Keeper",
+   "file": "magic-items/3-rod-of-the-pact-keeper.svg"
+  },
+  {
+   "id": "3-wraps-of-unarmed-power",
+   "name": "+3 Wraps of Unarmed Power",
+   "file": "magic-items/3-wraps-of-unarmed-power.svg"
+  },
+  {
    "id": "adamantine-armor",
    "name": "Adamantine Armor",
    "file": "magic-items/adamantine-armor.svg"
+  },
+  {
+   "id": "alchemy-jug",
+   "name": "Alchemy Jug",
+   "file": "magic-items/alchemy-jug.svg"
   },
   {
    "id": "ammunition",
@@ -3092,6 +4412,11 @@
    "id": "animated-shield",
    "name": "Animated Shield",
    "file": "magic-items/animated-shield.svg"
+  },
+  {
+   "id": "apparatus-of-kwalish",
+   "name": "Apparatus of Kwalish",
+   "file": "magic-items/apparatus-of-kwalish.svg"
   },
   {
    "id": "apparatus-of-the-crab",
@@ -3144,6 +4469,16 @@
    "file": "magic-items/arrow-of-slaying.svg"
   },
   {
+   "id": "axe-of-the-dwarvish-lords",
+   "name": "Axe of the Dwarvish Lords",
+   "file": "magic-items/axe-of-the-dwarvish-lords.svg"
+  },
+  {
+   "id": "baba-yagas-dancing-broom",
+   "name": "Baba Yaga's Dancing Broom",
+   "file": "magic-items/baba-yagas-dancing-broom.svg"
+  },
+  {
    "id": "bag-of-beans",
    "name": "Bag of Beans",
    "file": "magic-items/bag-of-beans.svg"
@@ -3165,23 +4500,33 @@
   },
   {
    "id": "bag-of-tricks-gray",
-   "name": "Gray Bag of Tricks",
+   "name": "Bag of Tricks, Gray",
    "file": "magic-items/bag-of-tricks-gray.svg"
   },
   {
    "id": "bag-of-tricks-rust",
-   "name": "Rust Bag of Tricks",
+   "name": "Bag of Tricks, Rust",
    "file": "magic-items/bag-of-tricks-rust.svg"
   },
   {
    "id": "bag-of-tricks-tan",
-   "name": "Tan Bag of Tricks",
+   "name": "Bag of Tricks, Tan",
    "file": "magic-items/bag-of-tricks-tan.svg"
   },
   {
    "id": "bead-of-force",
    "name": "Bead of Force",
    "file": "magic-items/bead-of-force.svg"
+  },
+  {
+   "id": "bead-of-nourishment",
+   "name": "Bead of Nourishment",
+   "file": "magic-items/bead-of-nourishment.svg"
+  },
+  {
+   "id": "bead-of-refreshment",
+   "name": "Bead of Refreshment",
+   "file": "magic-items/bead-of-refreshment.svg"
   },
   {
    "id": "belt-of-dwarvenkind",
@@ -3229,9 +4574,29 @@
    "file": "magic-items/berserker-axe.svg"
   },
   {
+   "id": "blackrazor",
+   "name": "Blackrazor",
+   "file": "magic-items/blackrazor.svg"
+  },
+  {
+   "id": "book-of-exalted-deeds",
+   "name": "Book of Exalted Deeds",
+   "file": "magic-items/book-of-exalted-deeds.svg"
+  },
+  {
+   "id": "book-of-vile-darkness",
+   "name": "Book of Vile Darkness",
+   "file": "magic-items/book-of-vile-darkness.svg"
+  },
+  {
    "id": "boots-of-elvenkind",
    "name": "Boots of Elvenkind",
    "file": "magic-items/boots-of-elvenkind.svg"
+  },
+  {
+   "id": "boots-of-false-tracks",
+   "name": "Boots of False Tracks",
+   "file": "magic-items/boots-of-false-tracks.svg"
   },
   {
    "id": "boots-of-levitation",
@@ -3289,6 +4654,16 @@
    "file": "magic-items/candle-of-invocation.svg"
   },
   {
+   "id": "candle-of-the-deep",
+   "name": "Candle of the Deep",
+   "file": "magic-items/candle-of-the-deep.svg"
+  },
+  {
+   "id": "cap-of-water-breathing",
+   "name": "Cap of Water Breathing",
+   "file": "magic-items/cap-of-water-breathing.svg"
+  },
+  {
    "id": "cape-of-the-mountebank",
    "name": "Cape of the Mountebank",
    "file": "magic-items/cape-of-the-mountebank.svg"
@@ -3319,9 +4694,19 @@
    "file": "magic-items/carpet-of-flying-6x9.svg"
   },
   {
+   "id": "cauldron-of-rebirth",
+   "name": "Cauldron of Rebirth",
+   "file": "magic-items/cauldron-of-rebirth.svg"
+  },
+  {
    "id": "censer-of-controlling-air-elementals",
    "name": "Censer of Controlling Air Elementals",
    "file": "magic-items/censer-of-controlling-air-elementals.svg"
+  },
+  {
+   "id": "charlatans-die",
+   "name": "Charlatan's Die",
+   "file": "magic-items/charlatans-die.svg"
   },
   {
    "id": "chime-of-opening",
@@ -3339,6 +4724,11 @@
    "file": "magic-items/cloak-of-arachnida.svg"
   },
   {
+   "id": "cloak-of-billowing",
+   "name": "Cloak of Billowing",
+   "file": "magic-items/cloak-of-billowing.svg"
+  },
+  {
    "id": "cloak-of-displacement",
    "name": "Cloak of Displacement",
    "file": "magic-items/cloak-of-displacement.svg"
@@ -3347,6 +4737,16 @@
    "id": "cloak-of-elvenkind",
    "name": "Cloak of Elvenkind",
    "file": "magic-items/cloak-of-elvenkind.svg"
+  },
+  {
+   "id": "cloak-of-invisibility",
+   "name": "Cloak of Invisibility",
+   "file": "magic-items/cloak-of-invisibility.svg"
+  },
+  {
+   "id": "cloak-of-many-fashions",
+   "name": "Cloak of Many Fashions",
+   "file": "magic-items/cloak-of-many-fashions.svg"
   },
   {
    "id": "cloak-of-protection",
@@ -3362,6 +4762,16 @@
    "id": "cloak-of-the-manta-ray",
    "name": "Cloak of the Manta Ray",
    "file": "magic-items/cloak-of-the-manta-ray.svg"
+  },
+  {
+   "id": "clockwork-amulet",
+   "name": "Clockwork Amulet",
+   "file": "magic-items/clockwork-amulet.svg"
+  },
+  {
+   "id": "clothes-of-mending",
+   "name": "Clothes of Mending",
+   "file": "magic-items/clothes-of-mending.svg"
   },
   {
    "id": "crystal-ball",
@@ -3389,9 +4799,19 @@
    "file": "magic-items/cube-of-force.svg"
   },
   {
+   "id": "cube-of-summoning",
+   "name": "Cube of Summoning",
+   "file": "magic-items/cube-of-summoning.svg"
+  },
+  {
    "id": "cubic-gate",
    "name": "Cubic Gate",
    "file": "magic-items/cubic-gate.svg"
+  },
+  {
+   "id": "daerns-instant-fortress",
+   "name": "Daern's Instant Fortress",
+   "file": "magic-items/daerns-instant-fortress.svg"
   },
   {
    "id": "dagger-of-venom",
@@ -3402,6 +4822,11 @@
    "id": "dancing-sword",
    "name": "Dancing Sword",
    "file": "magic-items/dancing-sword.svg"
+  },
+  {
+   "id": "dark-shard-amulet",
+   "name": "Dark Shard Amulet",
+   "file": "magic-items/dark-shard-amulet.svg"
   },
   {
    "id": "decanter-of-endless-water",
@@ -3427,6 +4852,11 @@
    "id": "demon-armor",
    "name": "Demon Armor",
    "file": "magic-items/demon-armor.svg"
+  },
+  {
+   "id": "demonomicon-of-iggwilv",
+   "name": "Demonomicon of Iggwilv",
+   "file": "magic-items/demonomicon-of-iggwilv.svg"
   },
   {
    "id": "dimensional-shackles",
@@ -3499,6 +4929,16 @@
    "file": "magic-items/dragon-slayer.svg"
   },
   {
+   "id": "dread-helm",
+   "name": "Dread Helm",
+   "file": "magic-items/dread-helm.svg"
+  },
+  {
+   "id": "driftglobe",
+   "name": "Driftglobe",
+   "file": "magic-items/driftglobe.svg"
+  },
+  {
    "id": "dust-of-disappearance",
    "name": "Dust of Disappearance",
    "file": "magic-items/dust-of-disappearance.svg"
@@ -3524,6 +4964,11 @@
    "file": "magic-items/dwarven-thrower.svg"
   },
   {
+   "id": "ear-horn-of-hearing",
+   "name": "Ear Horn of Hearing",
+   "file": "magic-items/ear-horn-of-hearing.svg"
+  },
+  {
    "id": "efficient-quiver",
    "name": "Efficient Quiver",
    "file": "magic-items/efficient-quiver.svg"
@@ -3544,9 +4989,19 @@
    "file": "magic-items/elemental-gem-air.svg"
   },
   {
+   "id": "elemental-gem-blue-sapphire",
+   "name": "Elemental Gem, Blue Sapphire",
+   "file": "magic-items/elemental-gem-blue-sapphire.svg"
+  },
+  {
    "id": "elemental-gem-earth",
    "name": "Earth Elemental Gem",
    "file": "magic-items/elemental-gem-earth.svg"
+  },
+  {
+   "id": "elemental-gem-emerald",
+   "name": "Elemental Gem, Emerald",
+   "file": "magic-items/elemental-gem-emerald.svg"
   },
   {
    "id": "elemental-gem-fire",
@@ -3554,9 +5009,24 @@
    "file": "magic-items/elemental-gem-fire.svg"
   },
   {
+   "id": "elemental-gem-red-corundum",
+   "name": "Elemental Gem, Red Corundum",
+   "file": "magic-items/elemental-gem-red-corundum.svg"
+  },
+  {
    "id": "elemental-gem-water",
    "name": "Water Elemental Gem",
    "file": "magic-items/elemental-gem-water.svg"
+  },
+  {
+   "id": "elemental-gem-yellow-diamond",
+   "name": "Elemental Gem, Yellow Diamond",
+   "file": "magic-items/elemental-gem-yellow-diamond.svg"
+  },
+  {
+   "id": "elixir-of-health",
+   "name": "Elixir of Health",
+   "file": "magic-items/elixir-of-health.svg"
   },
   {
    "id": "elven-chain",
@@ -3564,9 +5034,69 @@
    "file": "magic-items/elven-chain.svg"
   },
   {
+   "id": "enduring-spellbook",
+   "name": "Enduring Spellbook",
+   "file": "magic-items/enduring-spellbook.svg"
+  },
+  {
+   "id": "enspelled-staff-cantrip",
+   "name": "Enspelled Staff (Cantrip)",
+   "file": "magic-items/enspelled-staff-cantrip.svg"
+  },
+  {
+   "id": "enspelled-staff-level-1",
+   "name": "Enspelled Staff (Level 1)",
+   "file": "magic-items/enspelled-staff-level-1.svg"
+  },
+  {
+   "id": "enspelled-staff-level-2",
+   "name": "Enspelled Staff (Level 2)",
+   "file": "magic-items/enspelled-staff-level-2.svg"
+  },
+  {
+   "id": "enspelled-staff-level-3",
+   "name": "Enspelled Staff (Level 3)",
+   "file": "magic-items/enspelled-staff-level-3.svg"
+  },
+  {
+   "id": "enspelled-staff-level-4",
+   "name": "Enspelled Staff (Level 4)",
+   "file": "magic-items/enspelled-staff-level-4.svg"
+  },
+  {
+   "id": "enspelled-staff-level-5",
+   "name": "Enspelled Staff (Level 5)",
+   "file": "magic-items/enspelled-staff-level-5.svg"
+  },
+  {
+   "id": "enspelled-staff-level-6",
+   "name": "Enspelled Staff (Level 6)",
+   "file": "magic-items/enspelled-staff-level-6.svg"
+  },
+  {
+   "id": "enspelled-staff-level-7",
+   "name": "Enspelled Staff (Level 7)",
+   "file": "magic-items/enspelled-staff-level-7.svg"
+  },
+  {
+   "id": "enspelled-staff-level-8",
+   "name": "Enspelled Staff (Level 8)",
+   "file": "magic-items/enspelled-staff-level-8.svg"
+  },
+  {
+   "id": "ersatz-eye",
+   "name": "Ersatz Eye",
+   "file": "magic-items/ersatz-eye.svg"
+  },
+  {
    "id": "eversmoking-bottle",
    "name": "Eversmoking Bottle",
    "file": "magic-items/eversmoking-bottle.svg"
+  },
+  {
+   "id": "eye-of-vecna",
+   "name": "Eye of Vecna",
+   "file": "magic-items/eye-of-vecna.svg"
   },
   {
    "id": "eyes-of-charming",
@@ -3625,47 +5155,47 @@
   },
   {
    "id": "figurine-of-wondrous-power-bronze-griffon",
-   "name": "Bronze Griffon Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Bronze Griffon",
    "file": "magic-items/figurine-of-wondrous-power-bronze-griffon.svg"
   },
   {
    "id": "figurine-of-wondrous-power-ebony-fly",
-   "name": "Ebony Fly Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Ebony Fly",
    "file": "magic-items/figurine-of-wondrous-power-ebony-fly.svg"
   },
   {
    "id": "figurine-of-wondrous-power-golden-lions",
-   "name": "Golden Lions Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Golden Lions",
    "file": "magic-items/figurine-of-wondrous-power-golden-lions.svg"
   },
   {
    "id": "figurine-of-wondrous-power-ivory-goats",
-   "name": "Ivory Goats Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Ivory Goats",
    "file": "magic-items/figurine-of-wondrous-power-ivory-goats.svg"
   },
   {
    "id": "figurine-of-wondrous-power-marble-elephant",
-   "name": "Marble Elephant Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Marble Elephant",
    "file": "magic-items/figurine-of-wondrous-power-marble-elephant.svg"
   },
   {
    "id": "figurine-of-wondrous-power-obsidian-steed",
-   "name": "Obsidian Steed Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Obsidian Steed",
    "file": "magic-items/figurine-of-wondrous-power-obsidian-steed.svg"
   },
   {
    "id": "figurine-of-wondrous-power-onyx-dog",
-   "name": "Onyx Dog Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Onyx Dog",
    "file": "magic-items/figurine-of-wondrous-power-onyx-dog.svg"
   },
   {
    "id": "figurine-of-wondrous-power-serpentine-owl",
-   "name": "Serpentine Owl Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Serpentine Owl",
    "file": "magic-items/figurine-of-wondrous-power-serpentine-owl.svg"
   },
   {
    "id": "figurine-of-wondrous-power-silver-raven",
-   "name": "Silver Raven Figurine of Wondrous Power",
+   "name": "Figurine of Wondrous Power, Silver Raven",
    "file": "magic-items/figurine-of-wondrous-power-silver-raven.svg"
   },
   {
@@ -3722,14 +5252,29 @@
    "file": "magic-items/gloves-of-swimming-and-climbing.svg"
   },
   {
+   "id": "gloves-of-thievery",
+   "name": "Gloves of Thievery",
+   "file": "magic-items/gloves-of-thievery.svg"
+  },
+  {
    "id": "goggles-of-night",
    "name": "Goggles of Night",
    "file": "magic-items/goggles-of-night.svg"
   },
   {
+   "id": "hag-eye",
+   "name": "Hag Eye",
+   "file": "magic-items/hag-eye.svg"
+  },
+  {
    "id": "hammer-of-thunderbolts",
    "name": "Hammer of Thunderbolts",
    "file": "magic-items/hammer-of-thunderbolts.svg"
+  },
+  {
+   "id": "hand-of-vecna",
+   "name": "Hand of Vecna",
+   "file": "magic-items/hand-of-vecna.svg"
   },
   {
    "id": "handy-haversack",
@@ -3740,6 +5285,21 @@
    "id": "hat-of-disguise",
    "name": "Hat of Disguise",
    "file": "magic-items/hat-of-disguise.svg"
+  },
+  {
+   "id": "hat-of-many-spells",
+   "name": "Hat of Many Spells",
+   "file": "magic-items/hat-of-many-spells.svg"
+  },
+  {
+   "id": "hat-of-vermin",
+   "name": "Hat of Vermin",
+   "file": "magic-items/hat-of-vermin.svg"
+  },
+  {
+   "id": "hat-of-wizardry",
+   "name": "Hat of Wizardry",
+   "file": "magic-items/hat-of-wizardry.svg"
   },
   {
    "id": "headband-of-intellect",
@@ -3767,6 +5327,16 @@
    "file": "magic-items/helm-of-teleportation.svg"
   },
   {
+   "id": "hewards-handy-haversack",
+   "name": "Heward's Handy Haversack",
+   "file": "magic-items/hewards-handy-haversack.svg"
+  },
+  {
+   "id": "hewards-handy-spice-pouch",
+   "name": "Heward's Handy Spice Pouch",
+   "file": "magic-items/hewards-handy-spice-pouch.svg"
+  },
+  {
    "id": "holy-avenger",
    "name": "Holy Avenger",
    "file": "magic-items/holy-avenger.svg"
@@ -3775,6 +5345,11 @@
    "id": "horn-of-blasting",
    "name": "Horn of Blasting",
    "file": "magic-items/horn-of-blasting.svg"
+  },
+  {
+   "id": "horn-of-silent-alarm",
+   "name": "Horn of Silent Alarm",
+   "file": "magic-items/horn-of-silent-alarm.svg"
   },
   {
    "id": "horn-of-valhalla",
@@ -3803,22 +5378,22 @@
   },
   {
    "id": "horn-of-valhalla-brass",
-   "name": "Brass Horn of Valhalla",
+   "name": "Horn of Valhalla, Brass",
    "file": "magic-items/horn-of-valhalla-brass.svg"
   },
   {
    "id": "horn-of-valhalla-bronze",
-   "name": "Bronze Horn of Valhalla",
+   "name": "Horn of Valhalla, Bronze",
    "file": "magic-items/horn-of-valhalla-bronze.svg"
   },
   {
    "id": "horn-of-valhalla-iron",
-   "name": "Iron Horn of Valhalla",
+   "name": "Horn of Valhalla, Iron",
    "file": "magic-items/horn-of-valhalla-iron.svg"
   },
   {
    "id": "horn-of-valhalla-silver",
-   "name": "Silver Horn of Valhalla",
+   "name": "Horn of Valhalla, Silver",
    "file": "magic-items/horn-of-valhalla-silver.svg"
   },
   {
@@ -3842,9 +5417,99 @@
    "file": "magic-items/instant-fortress.svg"
   },
   {
+   "id": "instrument-of-illusions",
+   "name": "Instrument of Illusions",
+   "file": "magic-items/instrument-of-illusions.svg"
+  },
+  {
+   "id": "instrument-of-scribing",
+   "name": "Instrument of Scribing",
+   "file": "magic-items/instrument-of-scribing.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-anstruth-harp",
+   "name": "Instrument of the Bards, Anstruth Harp",
+   "file": "magic-items/instrument-of-the-bards-anstruth-harp.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-canaith-mandolin",
+   "name": "Instrument of the Bards, Canaith Mandolin",
+   "file": "magic-items/instrument-of-the-bards-canaith-mandolin.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-cli-lyre",
+   "name": "Instrument of the Bards, Cli Lyre",
+   "file": "magic-items/instrument-of-the-bards-cli-lyre.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-doss-lute",
+   "name": "Instrument of the Bards, Doss Lute",
+   "file": "magic-items/instrument-of-the-bards-doss-lute.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-fochlucan-bandore",
+   "name": "Instrument of the Bards, Fochlucan Bandore",
+   "file": "magic-items/instrument-of-the-bards-fochlucan-bandore.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-mac-fuirmidh-cittern",
+   "name": "Instrument of the Bards, Mac-Fuirmidh Cittern",
+   "file": "magic-items/instrument-of-the-bards-mac-fuirmidh-cittern.svg"
+  },
+  {
+   "id": "instrument-of-the-bards-ollamh-harp",
+   "name": "Instrument of the Bards, Ollamh Harp",
+   "file": "magic-items/instrument-of-the-bards-ollamh-harp.svg"
+  },
+  {
    "id": "ioun-stone",
    "name": "Ioun Stone",
    "file": "magic-items/ioun-stone.svg"
+  },
+  {
+   "id": "ioun-stone-absorption",
+   "name": "Ioun Stone, Absorption",
+   "file": "magic-items/ioun-stone-absorption.svg"
+  },
+  {
+   "id": "ioun-stone-agility",
+   "name": "Ioun Stone, Agility",
+   "file": "magic-items/ioun-stone-agility.svg"
+  },
+  {
+   "id": "ioun-stone-awareness",
+   "name": "Ioun Stone, Awareness",
+   "file": "magic-items/ioun-stone-awareness.svg"
+  },
+  {
+   "id": "ioun-stone-fortitude",
+   "name": "Ioun Stone, Fortitude",
+   "file": "magic-items/ioun-stone-fortitude.svg"
+  },
+  {
+   "id": "ioun-stone-greater-absorption",
+   "name": "Ioun Stone, Greater Absorption",
+   "file": "magic-items/ioun-stone-greater-absorption.svg"
+  },
+  {
+   "id": "ioun-stone-insight",
+   "name": "Ioun Stone, Insight",
+   "file": "magic-items/ioun-stone-insight.svg"
+  },
+  {
+   "id": "ioun-stone-intellect",
+   "name": "Ioun Stone, Intellect",
+   "file": "magic-items/ioun-stone-intellect.svg"
+  },
+  {
+   "id": "ioun-stone-leadership",
+   "name": "Ioun Stone, Leadership",
+   "file": "magic-items/ioun-stone-leadership.svg"
+  },
+  {
+   "id": "ioun-stone-mastery",
+   "name": "Ioun Stone, Mastery",
+   "file": "magic-items/ioun-stone-mastery.svg"
   },
   {
    "id": "ioun-stone-of-absorption",
@@ -3917,9 +5582,39 @@
    "file": "magic-items/ioun-stone-of-sustenance.svg"
   },
   {
+   "id": "ioun-stone-protection",
+   "name": "Ioun Stone, Protection",
+   "file": "magic-items/ioun-stone-protection.svg"
+  },
+  {
+   "id": "ioun-stone-regeneration",
+   "name": "Ioun Stone, Regeneration",
+   "file": "magic-items/ioun-stone-regeneration.svg"
+  },
+  {
+   "id": "ioun-stone-reserve",
+   "name": "Ioun Stone, Reserve",
+   "file": "magic-items/ioun-stone-reserve.svg"
+  },
+  {
+   "id": "ioun-stone-strength",
+   "name": "Ioun Stone, Strength",
+   "file": "magic-items/ioun-stone-strength.svg"
+  },
+  {
+   "id": "ioun-stone-sustenance",
+   "name": "Ioun Stone, Sustenance",
+   "file": "magic-items/ioun-stone-sustenance.svg"
+  },
+  {
    "id": "iron-bands",
    "name": "Iron Bands",
    "file": "magic-items/iron-bands.svg"
+  },
+  {
+   "id": "iron-bands-of-bilarro",
+   "name": "Iron Bands of Bilarro",
+   "file": "magic-items/iron-bands-of-bilarro.svg"
   },
   {
    "id": "iron-bands-of-binding",
@@ -3937,14 +5632,34 @@
    "file": "magic-items/javelin-of-lightning.svg"
   },
   {
+   "id": "keoghtoms-ointment",
+   "name": "Keoghtom's Ointment",
+   "file": "magic-items/keoghtoms-ointment.svg"
+  },
+  {
    "id": "lantern-of-revealing",
    "name": "Lantern of Revealing",
    "file": "magic-items/lantern-of-revealing.svg"
   },
   {
+   "id": "lock-of-trickery",
+   "name": "Lock of Trickery",
+   "file": "magic-items/lock-of-trickery.svg"
+  },
+  {
+   "id": "lolths-sting",
+   "name": "Lolth's Sting",
+   "file": "magic-items/lolths-sting.svg"
+  },
+  {
    "id": "luck-blade",
    "name": "Luck Blade",
    "file": "magic-items/luck-blade.svg"
+  },
+  {
+   "id": "lute-of-thunderous-thumping",
+   "name": "Lute of Thunderous Thumping",
+   "file": "magic-items/lute-of-thunderous-thumping.svg"
   },
   {
    "id": "mace-of-disruption",
@@ -4032,6 +5747,16 @@
    "file": "magic-items/mysterious-deck.svg"
   },
   {
+   "id": "mystery-key",
+   "name": "Mystery Key",
+   "file": "magic-items/mystery-key.svg"
+  },
+  {
+   "id": "natures-mantle",
+   "name": "Nature's Mantle",
+   "file": "magic-items/natures-mantle.svg"
+  },
+  {
    "id": "necklace-of-adaptation",
    "name": "Necklace of Adaptation",
    "file": "magic-items/necklace-of-adaptation.svg"
@@ -4050,6 +5775,11 @@
    "id": "nine-lives-stealer",
    "name": "Nine Lives Stealer",
    "file": "magic-items/nine-lives-stealer.svg"
+  },
+  {
+   "id": "nolzurs-marvelous-pigments",
+   "name": "Nolzur's Marvelous Pigments",
+   "file": "magic-items/nolzurs-marvelous-pigments.svg"
   },
   {
    "id": "oathbow",
@@ -4072,14 +5802,29 @@
    "file": "magic-items/oil-of-slipperiness.svg"
   },
   {
+   "id": "orb-of-direction",
+   "name": "Orb of Direction",
+   "file": "magic-items/orb-of-direction.svg"
+  },
+  {
    "id": "orb-of-dragonkind",
    "name": "Orb of Dragonkind",
    "file": "magic-items/orb-of-dragonkind.svg"
   },
   {
+   "id": "orb-of-time",
+   "name": "Orb of Time",
+   "file": "magic-items/orb-of-time.svg"
+  },
+  {
    "id": "pearl-of-power",
    "name": "Pearl of Power",
    "file": "magic-items/pearl-of-power.svg"
+  },
+  {
+   "id": "perfume-of-bewitching",
+   "name": "Perfume of Bewitching",
+   "file": "magic-items/perfume-of-bewitching.svg"
   },
   {
    "id": "periapt-of-health",
@@ -4102,6 +5847,11 @@
    "file": "magic-items/philter-of-love.svg"
   },
   {
+   "id": "pipe-of-smoke-monsters",
+   "name": "Pipe of Smoke Monsters",
+   "file": "magic-items/pipe-of-smoke-monsters.svg"
+  },
+  {
    "id": "pipes-of-haunting",
    "name": "Pipes of Haunting",
    "file": "magic-items/pipes-of-haunting.svg"
@@ -4117,9 +5867,24 @@
    "file": "magic-items/plate-armor-of-etherealness.svg"
   },
   {
+   "id": "pole-of-angling",
+   "name": "Pole of Angling",
+   "file": "magic-items/pole-of-angling.svg"
+  },
+  {
+   "id": "pole-of-collapsing",
+   "name": "Pole of Collapsing",
+   "file": "magic-items/pole-of-collapsing.svg"
+  },
+  {
    "id": "portable-hole",
    "name": "Portable Hole",
    "file": "magic-items/portable-hole.svg"
+  },
+  {
+   "id": "pot-of-awakening",
+   "name": "Pot of Awakening",
+   "file": "magic-items/pot-of-awakening.svg"
   },
   {
    "id": "potion-of-animal-friendship",
@@ -4137,9 +5902,19 @@
    "file": "magic-items/potion-of-climbing.svg"
   },
   {
+   "id": "potion-of-comprehension",
+   "name": "Potion of Comprehension",
+   "file": "magic-items/potion-of-comprehension.svg"
+  },
+  {
    "id": "potion-of-diminution",
    "name": "Potion of Diminution",
    "file": "magic-items/potion-of-diminution.svg"
+  },
+  {
+   "id": "potion-of-fire-breath",
+   "name": "Potion of Fire Breath",
+   "file": "magic-items/potion-of-fire-breath.svg"
   },
   {
    "id": "potion-of-flying",
@@ -4187,6 +5962,11 @@
    "file": "magic-items/potion-of-giant-strength-storm.svg"
   },
   {
+   "id": "potion-of-greater-invisibility",
+   "name": "Potion of Greater Invisibility",
+   "file": "magic-items/potion-of-greater-invisibility.svg"
+  },
+  {
    "id": "potion-of-growth",
    "name": "Potion of Growth",
    "file": "magic-items/potion-of-growth.svg"
@@ -4230,6 +6010,16 @@
    "file": "magic-items/potion-of-invisibility.svg"
   },
   {
+   "id": "potion-of-invulnerability",
+   "name": "Potion of Invulnerability",
+   "file": "magic-items/potion-of-invulnerability.svg"
+  },
+  {
+   "id": "potion-of-longevity",
+   "name": "Potion of Longevity",
+   "file": "magic-items/potion-of-longevity.svg"
+  },
+  {
    "id": "potion-of-mind-reading",
    "name": "Potion of Mind Reading",
    "file": "magic-items/potion-of-mind-reading.svg"
@@ -4238,6 +6028,11 @@
    "id": "potion-of-poison",
    "name": "Potion of Poison",
    "file": "magic-items/potion-of-poison.svg"
+  },
+  {
+   "id": "potion-of-pugilism",
+   "name": "Potion of Pugilism",
+   "file": "magic-items/potion-of-pugilism.svg"
   },
   {
    "id": "potion-of-resistance",
@@ -4300,9 +6095,59 @@
    "file": "magic-items/potion-of-speed.svg"
   },
   {
+   "id": "potion-of-vitality",
+   "name": "Potion of Vitality",
+   "file": "magic-items/potion-of-vitality.svg"
+  },
+  {
    "id": "potion-of-water-breathing",
    "name": "Potion of Water Breathing",
    "file": "magic-items/potion-of-water-breathing.svg"
+  },
+  {
+   "id": "prosthetic-limb",
+   "name": "Prosthetic Limb",
+   "file": "magic-items/prosthetic-limb.svg"
+  },
+  {
+   "id": "quaals-feather-token-anchor",
+   "name": "Quaal's Feather Token, Anchor",
+   "file": "magic-items/quaals-feather-token-anchor.svg"
+  },
+  {
+   "id": "quaals-feather-token-bird",
+   "name": "Quaal's Feather Token, Bird",
+   "file": "magic-items/quaals-feather-token-bird.svg"
+  },
+  {
+   "id": "quaals-feather-token-fan",
+   "name": "Quaal's Feather Token, Fan",
+   "file": "magic-items/quaals-feather-token-fan.svg"
+  },
+  {
+   "id": "quaals-feather-token-swan-boat",
+   "name": "Quaal's Feather Token, Swan Boat",
+   "file": "magic-items/quaals-feather-token-swan-boat.svg"
+  },
+  {
+   "id": "quaals-feather-token-tree",
+   "name": "Quaal's Feather Token, Tree",
+   "file": "magic-items/quaals-feather-token-tree.svg"
+  },
+  {
+   "id": "quaals-feather-token-whip",
+   "name": "Quaal's Feather Token, Whip",
+   "file": "magic-items/quaals-feather-token-whip.svg"
+  },
+  {
+   "id": "quarterstaff-of-the-acrobat",
+   "name": "Quarterstaff of the Acrobat",
+   "file": "magic-items/quarterstaff-of-the-acrobat.svg"
+  },
+  {
+   "id": "quiver-of-ehlonna",
+   "name": "Quiver of Ehlonna",
+   "file": "magic-items/quiver-of-ehlonna.svg"
   },
   {
    "id": "restorative-ointment",
@@ -4326,22 +6171,22 @@
   },
   {
    "id": "ring-of-elemental-command-air",
-   "name": "Ring of Air Elemental Command",
+   "name": "Ring of Elemental Command (Air)",
    "file": "magic-items/ring-of-elemental-command-air.svg"
   },
   {
    "id": "ring-of-elemental-command-earth",
-   "name": "Ring of Earth Elemental Command",
+   "name": "Ring of Elemental Command (Earth)",
    "file": "magic-items/ring-of-elemental-command-earth.svg"
   },
   {
    "id": "ring-of-elemental-command-fire",
-   "name": "Ring of Fire Elemental Command",
+   "name": "Ring of Elemental Command (Fire)",
    "file": "magic-items/ring-of-elemental-command-fire.svg"
   },
   {
    "id": "ring-of-elemental-command-water",
-   "name": "Ring of Water Elemental Command",
+   "name": "Ring of Elemental Command (Water)",
    "file": "magic-items/ring-of-elemental-command-water.svg"
   },
   {
@@ -4490,6 +6335,11 @@
    "file": "magic-items/ring-of-x-ray-vision.svg"
   },
   {
+   "id": "rival-coin",
+   "name": "Rival Coin",
+   "file": "magic-items/rival-coin.svg"
+  },
+  {
    "id": "robe-of-eyes",
    "name": "Robe of Eyes",
    "file": "magic-items/robe-of-eyes.svg"
@@ -4530,6 +6380,11 @@
    "file": "magic-items/rod-of-lordly-might.svg"
   },
   {
+   "id": "rod-of-resurrection",
+   "name": "Rod of Resurrection",
+   "file": "magic-items/rod-of-resurrection.svg"
+  },
+  {
    "id": "rod-of-rulership",
    "name": "Rod of Rulership",
    "file": "magic-items/rod-of-rulership.svg"
@@ -4550,6 +6405,21 @@
    "file": "magic-items/rope-of-entanglement.svg"
   },
   {
+   "id": "rope-of-mending",
+   "name": "Rope of Mending",
+   "file": "magic-items/rope-of-mending.svg"
+  },
+  {
+   "id": "ruby-of-the-war-mage",
+   "name": "Ruby of the War Mage",
+   "file": "magic-items/ruby-of-the-war-mage.svg"
+  },
+  {
+   "id": "saddle-of-the-cavalier",
+   "name": "Saddle of the Cavalier",
+   "file": "magic-items/saddle-of-the-cavalier.svg"
+  },
+  {
    "id": "scarab-of-protection",
    "name": "Scarab of Protection",
    "file": "magic-items/scarab-of-protection.svg"
@@ -4558,6 +6428,121 @@
    "id": "scimitar-of-speed",
    "name": "Scimitar of Speed",
    "file": "magic-items/scimitar-of-speed.svg"
+  },
+  {
+   "id": "scroll-of-protection-aberrations",
+   "name": "Scroll of Protection (Aberrations)",
+   "file": "magic-items/scroll-of-protection-aberrations.svg"
+  },
+  {
+   "id": "scroll-of-protection-beasts",
+   "name": "Scroll of Protection (Beasts)",
+   "file": "magic-items/scroll-of-protection-beasts.svg"
+  },
+  {
+   "id": "scroll-of-protection-celestials",
+   "name": "Scroll of Protection (Celestials)",
+   "file": "magic-items/scroll-of-protection-celestials.svg"
+  },
+  {
+   "id": "scroll-of-protection-constructs",
+   "name": "Scroll of Protection (Constructs)",
+   "file": "magic-items/scroll-of-protection-constructs.svg"
+  },
+  {
+   "id": "scroll-of-protection-dragons",
+   "name": "Scroll of Protection (Dragons)",
+   "file": "magic-items/scroll-of-protection-dragons.svg"
+  },
+  {
+   "id": "scroll-of-protection-elementals",
+   "name": "Scroll of Protection (Elementals)",
+   "file": "magic-items/scroll-of-protection-elementals.svg"
+  },
+  {
+   "id": "scroll-of-protection-fey",
+   "name": "Scroll of Protection (Fey)",
+   "file": "magic-items/scroll-of-protection-fey.svg"
+  },
+  {
+   "id": "scroll-of-protection-fiends",
+   "name": "Scroll of Protection (Fiends)",
+   "file": "magic-items/scroll-of-protection-fiends.svg"
+  },
+  {
+   "id": "scroll-of-protection-giants",
+   "name": "Scroll of Protection (Giants)",
+   "file": "magic-items/scroll-of-protection-giants.svg"
+  },
+  {
+   "id": "scroll-of-protection-humanoids",
+   "name": "Scroll of Protection (Humanoids)",
+   "file": "magic-items/scroll-of-protection-humanoids.svg"
+  },
+  {
+   "id": "scroll-of-protection-monstrosities",
+   "name": "Scroll of Protection (Monstrosities)",
+   "file": "magic-items/scroll-of-protection-monstrosities.svg"
+  },
+  {
+   "id": "scroll-of-protection-oozes",
+   "name": "Scroll of Protection (Oozes)",
+   "file": "magic-items/scroll-of-protection-oozes.svg"
+  },
+  {
+   "id": "scroll-of-protection-plants",
+   "name": "Scroll of Protection (Plants)",
+   "file": "magic-items/scroll-of-protection-plants.svg"
+  },
+  {
+   "id": "scroll-of-protection-undead",
+   "name": "Scroll of Protection (Undead)",
+   "file": "magic-items/scroll-of-protection-undead.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-animal-lord",
+   "name": "Scroll of Titan Summoning (Animal Lord)",
+   "file": "magic-items/scroll-of-titan-summoning-animal-lord.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-blob-of-annihilation",
+   "name": "Scroll of Titan Summoning (Blob of Annihilation)",
+   "file": "magic-items/scroll-of-titan-summoning-blob-of-annihilation.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-colossus",
+   "name": "Scroll of Titan Summoning (Colossus)",
+   "file": "magic-items/scroll-of-titan-summoning-colossus.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-elemental-cataclysm",
+   "name": "Scroll of Titan Summoning (Elemental Cataclysm)",
+   "file": "magic-items/scroll-of-titan-summoning-elemental-cataclysm.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-empyrean",
+   "name": "Scroll of Titan Summoning (Empyrean)",
+   "file": "magic-items/scroll-of-titan-summoning-empyrean.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-kraken",
+   "name": "Scroll of Titan Summoning (Kraken)",
+   "file": "magic-items/scroll-of-titan-summoning-kraken.svg"
+  },
+  {
+   "id": "scroll-of-titan-summoning-tarrasque",
+   "name": "Scroll of Titan Summoning (Tarrasque)",
+   "file": "magic-items/scroll-of-titan-summoning-tarrasque.svg"
+  },
+  {
+   "id": "sending-stones",
+   "name": "Sending Stones",
+   "file": "magic-items/sending-stones.svg"
+  },
+  {
+   "id": "sentinel-shield",
+   "name": "Sentinel Shield",
+   "file": "magic-items/sentinel-shield.svg"
   },
   {
    "id": "shield",
@@ -4580,9 +6565,19 @@
    "file": "magic-items/shield-3.svg"
   },
   {
+   "id": "shield-of-expression",
+   "name": "Shield of Expression",
+   "file": "magic-items/shield-of-expression.svg"
+  },
+  {
    "id": "shield-of-missile-attraction",
    "name": "Shield of Missile Attraction",
    "file": "magic-items/shield-of-missile-attraction.svg"
+  },
+  {
+   "id": "shield-of-the-cavalier",
+   "name": "Shield of the Cavalier",
+   "file": "magic-items/shield-of-the-cavalier.svg"
   },
   {
    "id": "slippers-of-spider-climbing",
@@ -4650,6 +6645,46 @@
    "file": "magic-items/spell-scroll-cantrip.svg"
   },
   {
+   "id": "spell-scroll-level-2",
+   "name": "Spell Scroll (Level 2)",
+   "file": "magic-items/spell-scroll-level-2.svg"
+  },
+  {
+   "id": "spell-scroll-level-3",
+   "name": "Spell Scroll (Level 3)",
+   "file": "magic-items/spell-scroll-level-3.svg"
+  },
+  {
+   "id": "spell-scroll-level-4",
+   "name": "Spell Scroll (Level 4)",
+   "file": "magic-items/spell-scroll-level-4.svg"
+  },
+  {
+   "id": "spell-scroll-level-5",
+   "name": "Spell Scroll (Level 5)",
+   "file": "magic-items/spell-scroll-level-5.svg"
+  },
+  {
+   "id": "spell-scroll-level-6",
+   "name": "Spell Scroll (Level 6)",
+   "file": "magic-items/spell-scroll-level-6.svg"
+  },
+  {
+   "id": "spell-scroll-level-7",
+   "name": "Spell Scroll (Level 7)",
+   "file": "magic-items/spell-scroll-level-7.svg"
+  },
+  {
+   "id": "spell-scroll-level-8",
+   "name": "Spell Scroll (Level 8)",
+   "file": "magic-items/spell-scroll-level-8.svg"
+  },
+  {
+   "id": "spell-scroll-level-9",
+   "name": "Spell Scroll (Level 9)",
+   "file": "magic-items/spell-scroll-level-9.svg"
+  },
+  {
    "id": "spellguard-shield",
    "name": "Spellguard Shield",
    "file": "magic-items/spellguard-shield.svg"
@@ -4660,6 +6695,21 @@
    "file": "magic-items/sphere-of-annihilation.svg"
   },
   {
+   "id": "spirit-board",
+   "name": "Spirit Board",
+   "file": "magic-items/spirit-board.svg"
+  },
+  {
+   "id": "staff-of-adornment",
+   "name": "Staff of Adornment",
+   "file": "magic-items/staff-of-adornment.svg"
+  },
+  {
+   "id": "staff-of-birdcalls",
+   "name": "Staff of Birdcalls",
+   "file": "magic-items/staff-of-birdcalls.svg"
+  },
+  {
    "id": "staff-of-charming",
    "name": "Staff of Charming",
    "file": "magic-items/staff-of-charming.svg"
@@ -4668,6 +6718,11 @@
    "id": "staff-of-fire",
    "name": "Staff of Fire",
    "file": "magic-items/staff-of-fire.svg"
+  },
+  {
+   "id": "staff-of-flowers",
+   "name": "Staff of Flowers",
+   "file": "magic-items/staff-of-flowers.svg"
   },
   {
    "id": "staff-of-frost",
@@ -4693,6 +6748,11 @@
    "id": "staff-of-swarming-insects",
    "name": "Staff of Swarming Insects",
    "file": "magic-items/staff-of-swarming-insects.svg"
+  },
+  {
+   "id": "staff-of-the-adder",
+   "name": "Staff of the Adder",
+   "file": "magic-items/staff-of-the-adder.svg"
   },
   {
    "id": "staff-of-the-magi",
@@ -4725,6 +6785,11 @@
    "file": "magic-items/stone-of-controlling-earth-elementals.svg"
   },
   {
+   "id": "stone-of-good-luck",
+   "name": "Stone of Good Luck",
+   "file": "magic-items/stone-of-good-luck.svg"
+  },
+  {
    "id": "stone-of-good-luck-luckstone",
    "name": "Stone of Good Luck (Luckstone)",
    "file": "magic-items/stone-of-good-luck-luckstone.svg",
@@ -4736,6 +6801,16 @@
    "id": "sun-blade",
    "name": "Sun Blade",
    "file": "magic-items/sun-blade.svg"
+  },
+  {
+   "id": "sword-of-answering",
+   "name": "Sword of Answering",
+   "file": "magic-items/sword-of-answering.svg"
+  },
+  {
+   "id": "sword-of-kas",
+   "name": "Sword of Kas",
+   "file": "magic-items/sword-of-kas.svg"
   },
   {
    "id": "sword-of-life-stealing",
@@ -4768,6 +6843,26 @@
    "file": "magic-items/talisman-of-ultimate-evil.svg"
   },
   {
+   "id": "talking-doll",
+   "name": "Talking Doll",
+   "file": "magic-items/talking-doll.svg"
+  },
+  {
+   "id": "tankard-of-sobriety",
+   "name": "Tankard of Sobriety",
+   "file": "magic-items/tankard-of-sobriety.svg"
+  },
+  {
+   "id": "tentacle-rod",
+   "name": "Tentacle Rod",
+   "file": "magic-items/tentacle-rod.svg"
+  },
+  {
+   "id": "thunderous-greatclub",
+   "name": "Thunderous Greatclub",
+   "file": "magic-items/thunderous-greatclub.svg"
+  },
+  {
    "id": "tome-of-clear-thought",
    "name": "Tome of Clear Thought",
    "file": "magic-items/tome-of-clear-thought.svg"
@@ -4776,6 +6871,11 @@
    "id": "tome-of-leadership-and-influence",
    "name": "Tome of Leadership and Influence",
    "file": "magic-items/tome-of-leadership-and-influence.svg"
+  },
+  {
+   "id": "tome-of-the-stilled-tongue",
+   "name": "Tome of the Stilled Tongue",
+   "file": "magic-items/tome-of-the-stilled-tongue.svg"
   },
   {
    "id": "tome-of-understanding",
@@ -4793,6 +6893,11 @@
    "file": "magic-items/universal-solvent.svg"
   },
   {
+   "id": "veterans-cane",
+   "name": "Veteran's Cane",
+   "file": "magic-items/veterans-cane.svg"
+  },
+  {
    "id": "vicious-weapon",
    "name": "Vicious Weapon",
    "file": "magic-items/vicious-weapon.svg"
@@ -4806,6 +6911,11 @@
    "id": "wand-of-binding",
    "name": "Wand of Binding",
    "file": "magic-items/wand-of-binding.svg"
+  },
+  {
+   "id": "wand-of-conducting",
+   "name": "Wand of Conducting",
+   "file": "magic-items/wand-of-conducting.svg"
   },
   {
    "id": "wand-of-enemy-detection",
@@ -4838,6 +6948,11 @@
    "file": "magic-items/wand-of-magic-missiles.svg"
   },
   {
+   "id": "wand-of-orcus",
+   "name": "Wand of Orcus",
+   "file": "magic-items/wand-of-orcus.svg"
+  },
+  {
    "id": "wand-of-paralysis",
    "name": "Wand of Paralysis",
    "file": "magic-items/wand-of-paralysis.svg"
@@ -4846,6 +6961,11 @@
    "id": "wand-of-polymorph",
    "name": "Wand of Polymorph",
    "file": "magic-items/wand-of-polymorph.svg"
+  },
+  {
+   "id": "wand-of-pyrotechnics",
+   "name": "Wand of Pyrotechnics",
+   "file": "magic-items/wand-of-pyrotechnics.svg"
   },
   {
    "id": "wand-of-secrets",
@@ -4883,6 +7003,11 @@
    "file": "magic-items/wand-of-wonder.svg"
   },
   {
+   "id": "wave",
+   "name": "Wave",
+   "file": "magic-items/wave.svg"
+  },
+  {
    "id": "weapon",
    "name": "Weapon",
    "file": "magic-items/weapon.svg"
@@ -4911,6 +7036,11 @@
    "id": "well-of-many-worlds",
    "name": "Well of Many Worlds",
    "file": "magic-items/well-of-many-worlds.svg"
+  },
+  {
+   "id": "whelm",
+   "name": "Whelm",
+   "file": "magic-items/whelm.svg"
   },
   {
    "id": "wind-fan",

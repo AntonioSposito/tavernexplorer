@@ -193,3 +193,7 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 /* Incantesimi: icona alta quanto la riga, a destra nome e sotto il tipo. */
 .entry summary > span.entry-with-icon { flex-direction: row; align-items: center; gap: .6rem; }
 .entry-with-icon > span { display: flex; flex-direction: column; min-width: 0; }
+
+/* Crediti delle icone (CC BY 3.0) in fondo alla Libreria. */
+.icon-credits { margin-top: 1rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+.icon-credits a { color: inherit; text-decoration: underline; }
