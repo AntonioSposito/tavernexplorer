@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { aclCandidates, canEditCloudSheet } from "./cloudSheets";
 import { FolderDialog, FolderPick, FolderTree, type FolderDraft } from "./FolderTree";
 import { ChatIcon, EditIcon, NoteIcon } from "./icons";
-import { canMoveFolder, folderTargets, visibleFolders } from "./journalTree";
+import { canMoveFolder, diagramText, folderTargets, visibleFolders } from "./journalTree";
 import { AclPicker } from "./LibraryPanel";
-import type { CloudSheet } from "./types";
-import { Button, Dialog, Input, Textarea } from "./ui";
+import type { CloudSheet, JournalNote } from "./types";
+import { Button, Dialog, Input, Select, Textarea } from "./ui";
+
+// React Flow pesa: si carica solo quando si apre un diagramma.
+const DiagramEditor = lazy(() => import("./DiagramEditor"));
 
 // Journal come su Roll20: il GM crea e organizza note e cartelle e sceglie chi vede e chi modifica ogni nota.
+// Anche i giocatori creano note e diagrammi: li vedono e modificano loro e il GM.
 type NoteEntry = Extract<CloudSheet, { kind: "note" }>;
 type Member = { id: string; name: string; role: "GM" | "PLAYER" };
 type Viewer = { name: string; role: "GM" | "PLAYER" };
-type NoteDraft = { id: string | null; name: string; body: string; folderId: string; acl: CloudSheet["acl"] };
+type NoteDraft = { id: string | null; name: string; body: string; folderId: string; acl: CloudSheet["acl"]; diagram: boolean };
+
+const noteText = (note: JournalNote) => note.diagram ? diagramText(note.diagram) : note.body;
 
 interface JournalProps {
   entries: CloudSheet[];
@@ -42,11 +48,11 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
   };
 
   const editNote = (entry: NoteEntry | null, folderId = "") => setNoteDraft(entry
-    ? { id: entry.sheet.id, name: entry.sheet.name, body: entry.sheet.body, folderId: entry.sheet.folderId ?? "", acl: entry.acl }
-    : { id: null, name: "", body: "", folderId, acl: { view: [], edit: [] } });
+    ? { id: entry.sheet.id, name: entry.sheet.name, body: entry.sheet.body, folderId: entry.sheet.folderId ?? "", acl: entry.acl, diagram: !!entry.sheet.diagram }
+    : { id: null, name: "", body: "", folderId, acl: { view: [], edit: isGm ? [] : [player.name] }, diagram: false });
   const saveNote = async (draft: NoteDraft) => {
     const folderId = draft.folderId || undefined;
-    if (!draft.id) await onAdd({ kind: "note", sheet: { schemaVersion: 1, id: crypto.randomUUID(), name: draft.name.trim(), body: draft.body, folderId }, acl: draft.acl, rev: 0, updatedAt: 0, updatedBy: player.name });
+    if (!draft.id) await onAdd({ kind: "note", sheet: { schemaVersion: 1, id: crypto.randomUUID(), name: draft.name.trim(), body: draft.diagram ? "" : draft.body, folderId, ...isGm ? {} : { owner: player.name }, ...draft.diagram ? { diagram: { nodes: [], edges: [] } } : {} }, acl: draft.acl, rev: 0, updatedAt: 0, updatedBy: player.name });
     else onUpdate(draft.id, (entry) => entry.kind !== "note" ? entry : { ...entry, sheet: { ...entry.sheet, name: draft.name.trim(), body: draft.body, ...isGm ? { folderId } : {} }, acl: isGm ? draft.acl : entry.acl });
     setNoteDraft(null);
   };
@@ -66,7 +72,8 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
   };
 
   return <div className="stack">
-    {isGm && <section className="library-actions"><Button onClick={() => editNote(null)}>Nuova nota</Button><Button variant="outline" onClick={() => setFolderDraft({ id: null, name: "", parentId: "" })}>Nuova cartella</Button></section>}
+    <section className="library-actions"><Button onClick={() => editNote(null)}>Nuova nota</Button>{isGm && <Button variant="outline" onClick={() => setFolderDraft({ id: null, name: "", parentId: "" })}>Nuova cartella</Button>}</section>
+    {!isGm && <p className="library-hint">Le note e i diagrammi che crei li vedete solo tu e il GM.</p>}
     {isGm && <p className="library-hint">Trascina note e cartelle per spostarle; rilasciale qui sotto per portarle fuori da ogni cartella. Una nota nuova la vede solo il GM finché non scegli chi può vederla.</p>}
     <FolderTree folders={folders} items={notes.map((entry) => entry.sheet)} canOrganize={isGm} onMove={move}
       onEditFolder={(folder) => setFolderDraft({ id: folder.id, name: folder.name, parentId: folder.parentId ?? "" })}
@@ -74,16 +81,19 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
       renderItem={(note) => { const entry = notes.find((item) => item.sheet.id === note.id)!; return <>
         <span className="journal-icon"><NoteIcon/></span><button className="journal-open" onClick={() => setReadingId(note.id)}>{note.name}</button>
         <span className="entry-icons">
-          <button aria-label={`Mostra in chat ${note.name}`} title="Mostra in chat" onClick={() => onShare(note.name, note.body)}><ChatIcon/></button>
+          <button aria-label={`Mostra in chat ${note.name}`} title="Mostra in chat" onClick={() => onShare(note.name, noteText(note))}><ChatIcon/></button>
           {canEditCloudSheet(entry, player) && <button aria-label={`Modifica ${note.name}`} title="Modifica" onClick={() => editNote(entry)}><EditIcon/></button>}
         </span>
       </>; }}
-      empty={<p className="assign-empty">{isGm ? "Nessuna nota: crea una nota o una cartella." : "Il GM non ha ancora condiviso nessuna nota con te."}</p>}/>
+      empty={<p className="assign-empty">{isGm ? "Nessuna nota: crea una nota o una cartella." : "Nessuna nota: creane una o aspetta che il GM ne condivida qualcuna."}</p>}/>
 
     <Dialog open={!!reading} title={reading?.sheet.name ?? ""} onClose={() => setReadingId(null)}>{reading && <div className="action-form">
-      <p className="prose">{reading.sheet.body || "Nessun testo."}</p>
+      {reading.sheet.diagram
+        ? <Suspense fallback={<p className="assign-empty">Caricamento del diagramma…</p>}><DiagramEditor diagram={reading.sheet.diagram} editable={canEditCloudSheet(reading, player)}
+          onChange={(diagram) => onUpdate(reading.sheet.id, (entry) => entry.kind !== "note" ? entry : { ...entry, sheet: { ...entry.sheet, diagram } })}/></Suspense>
+        : <p className="prose">{reading.sheet.body || "Nessun testo."}</p>}
       <div className="action-form-buttons">
-        <Button variant="outline" onClick={() => onShare(reading.sheet.name, reading.sheet.body)}>Mostra in chat</Button>
+        <Button variant="outline" onClick={() => onShare(reading.sheet.name, noteText(reading.sheet))}>Mostra in chat</Button>
         {canEditCloudSheet(reading, player) && <Button variant="outline" onClick={() => { setReadingId(null); editNote(reading); }}>Modifica</Button>}
         <Button variant="secondary" onClick={() => setReadingId(null)}>Chiudi</Button>
       </div>
@@ -91,7 +101,10 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
 
     <Dialog open={!!noteDraft} title={noteDraft?.id ? "Modifica nota" : "Nuova nota"} onClose={() => setNoteDraft(null)}>{noteDraft && <form className="action-form" onSubmit={(event) => { event.preventDefault(); if (noteDraft.name.trim()) void saveNote(noteDraft); }}>
       <label><span>Titolo</span><Input aria-label="Titolo della nota" autoFocus required value={noteDraft.name} onChange={(event) => setNoteDraft({ ...noteDraft, name: event.target.value })}/></label>
-      <label><span>Testo</span><Textarea aria-label="Testo della nota" rows={10} value={noteDraft.body} onChange={(event) => setNoteDraft({ ...noteDraft, body: event.target.value })}/></label>
+      {!noteDraft.id && <label><span>Tipo</span><Select aria-label="Tipo di nota" value={noteDraft.diagram ? "diagram" : "text"} onChange={(event) => setNoteDraft({ ...noteDraft, diagram: event.target.value === "diagram" })}>
+        <option value="text">Testo</option><option value="diagram">Diagramma</option>
+      </Select></label>}
+      {!noteDraft.diagram && <label><span>Testo</span><Textarea aria-label="Testo della nota" rows={10} value={noteDraft.body} onChange={(event) => setNoteDraft({ ...noteDraft, body: event.target.value })}/></label>}
       {isGm && <>
         <FolderPick label="Cartella" value={noteDraft.folderId} targets={folderTargets(allFolders)} onChange={(folderId) => setNoteDraft({ ...noteDraft, folderId })}/>
         <div className="acl-row">
@@ -100,7 +113,7 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
         </div>
       </>}
       <div className="action-form-buttons">
-        {isGm && noteDraft.id && <Button type="button" variant="destructive" onClick={() => { if (window.confirm(`Eliminare la nota “${noteDraft.name}”?`)) void onRemove(noteDraft.id!).then(() => setNoteDraft(null)); }}>Elimina</Button>}
+        {noteDraft.id && (isGm || notes.find((entry) => entry.sheet.id === noteDraft.id)?.sheet.owner === player.name) && <Button type="button" variant="destructive" onClick={() => { if (window.confirm(`Eliminare la nota “${noteDraft.name}”?`)) void onRemove(noteDraft.id!).then(() => setNoteDraft(null)); }}>Elimina</Button>}
         <Button type="button" variant="secondary" onClick={() => setNoteDraft(null)}>Annulla</Button>
         <Button type="submit">Salva</Button>
       </div>
