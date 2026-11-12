@@ -1317,7 +1317,7 @@ it("Journal: il giocatore crea un diagramma che vedono solo lui e il GM e lo man
   await click("Salva");
   await settle();
   const note = cloudEntries().find((entry) => entry.kind === "note");
-  expect(note).toMatchObject({ sheet: { name: "Sospetti", body: "", diagram: { nodes: [], edges: [] } }, acl: { view: [], edit: ["Marco"] } });
+  expect(note).toMatchObject({ sheet: { name: "Sospetti", body: "", owner: "Marco", diagram: { nodes: [], edges: [] } }, acl: { view: [], edit: ["Marco"] } });
   expect(diagramText({ nodes: [{ id: "a", x: 0, y: 0, label: "Barone" }, { id: "b", x: 0, y: 0, label: "Locandiere" }, { id: "c", x: 0, y: 0, label: "Pozzo" }], edges: [{ id: "e", source: "a", target: "b", label: "ricatta" }] }))
     .toBe("Barone → Locandiere (ricatta)\nPozzo");
 });
@@ -1338,7 +1338,7 @@ const asPlayer = async (name: string) => {
   await click("Note");
 };
 // Il diagramma è caricato con lazy: si aspetta che React Flow mostri i riquadri.
-const openDiagram = async (name: string) => { await click(name); await vi.waitFor(() => expect(host.querySelector(".react-flow__node")).not.toBeNull(), { timeout: 10_000 }); await settle(); };
+const openDiagram = async (name: string) => { await click(name); for (let tries = 0; !host.querySelector(".react-flow__node") && tries < 200; tries++) await settle(); await settle(); };
 const noteById = (id: string) => cloudEntries().find((entry) => entry.sheet.id === id);
 const diagram = { nodes: [{ id: "a", x: 0, y: 0, label: "Barone" }, { id: "b", x: 200, y: 120, label: "Locandiere" }], edges: [{ id: "e", source: "a", target: "b", label: "ricatta" }] };
 
@@ -1408,21 +1408,24 @@ it("Diagramma: eliminare un riquadro toglie anche le sue frecce; rinominare la n
 });
 
 it("Journal: il giocatore elimina le proprie note ma non quelle del GM che può solo modificare", async () => {
-  await putNote("mine", { name: "Mia", body: "x" }, { view: [], edit: ["Marco"] });
+  await putNote("mine", { name: "Mia", body: "x", owner: "Marco" }, { view: [], edit: ["Marco"] });
+  await putNote("named", { name: "Al nome di Marco", body: "w" }, { view: [], edit: ["Marco"] });
   await putNote("shared", { name: "Del GM", body: "y" }, { view: [], edit: ["*"] });
   await putNote("other", { name: "Di Luca", body: "z" }, { view: [], edit: ["Luca"] });
   await asPlayer("Marco");
-  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Del GM", "Mia"]);
-  await click("Modifica Del GM");
-  expect([...host.querySelectorAll(".ui-dialog button")].map((button) => button.textContent)).not.toContain("Elimina");
-  await click("Annulla");
+  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Al nome di Marco", "Del GM", "Mia"]);
+  for (const name of ["Del GM", "Al nome di Marco"]) {
+    await click(`Modifica ${name}`);
+    expect([...host.querySelectorAll(".ui-dialog button")].map((button) => button.textContent)).not.toContain("Elimina");
+    await click("Annulla");
+  }
   vi.spyOn(window, "confirm").mockReturnValue(true);
   await click("Modifica Mia");
   await click("Elimina");
   await settle();
   expect(noteById("mine").deletedAt).toEqual(expect.any(Number));
   expect(noteById("shared").deletedAt).toBeUndefined();
-  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Del GM"]);
+  expect([...host.querySelectorAll(".journal-open")].map((item) => item.textContent)).toEqual(["Al nome di Marco", "Del GM"]);
   vi.restoreAllMocks();
 });
 
@@ -1433,6 +1436,7 @@ it("API note: accetta note senza diagramma o con diagramma valido, rifiuta diagr
   expect((await putNote("t3", { name: "Rotto", diagram: { nodes: "x", edges: [] } }, acl)).status).toBe(400);
   expect((await putNote("t4", { name: "Rotto", diagram: null }, acl)).status).toBe(400);
   expect((await putNote("t5", { name: "Rotto", diagram: { nodes: [] } }, acl)).status).toBe(400);
+  expect((await putNote("t7", { name: "Rotto", body: "", owner: "" }, acl)).status).toBe(400);
   const huge = { nodes: Array.from({ length: 3_000 }, (_, index) => ({ id: `n${index}`, x: 0, y: 0, label: "x".repeat(60) })), edges: [] };
   expect((await putNote("t6", { name: "Enorme", diagram: huge }, acl)).status).toBe(413);
 });

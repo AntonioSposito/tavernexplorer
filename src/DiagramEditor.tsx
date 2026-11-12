@@ -26,7 +26,7 @@ export default function DiagramEditor({ diagram, editable, onChange }: { diagram
   const saveLabel = ({ kind, id, label }: LabelDraft) => {
     if (kind === "edge") save(nodes, edges.map((edge) => edge.id === id ? { ...edge, label: label.trim() || undefined } : edge));
     else if (id) save(nodes.map((node) => node.id === id ? { ...node, data: { label } } : node));
-    else save([...nodes, { id: crypto.randomUUID(), position: { x: 40 + (nodes.length % 5) * 30, y: 40 + (nodes.length % 5) * 30 }, data: { label } }]);
+    else save([...nodes, { id: crypto.randomUUID(), position: { x: 40 + (nodes.length % 5) * 20, y: 40 + (nodes.length % 5) * 70 }, data: { label } }]);
     setDraft(null);
   };
   const remove = ({ kind, id }: LabelDraft) => {
@@ -41,7 +41,7 @@ export default function DiagramEditor({ diagram, editable, onChange }: { diagram
       <small>Trascina dal pallino di un riquadro a un altro per collegarli; doppio clic per modificare.</small>
     </div>}
     <div className="diagram-canvas">
-      <ReactFlow nodes={nodes} edges={edges} colorMode="dark" fitView proOptions={{ hideAttribution: true }}
+      <ReactFlow nodes={nodes} edges={edges} colorMode="dark" fitView={diagram.nodes.length > 0} fitViewOptions={{ maxZoom: 1 }} proOptions={{ hideAttribution: true }}
         nodesDraggable={editable} nodesConnectable={editable} elementsSelectable={editable} deleteKeyCode={editable ? ["Backspace", "Delete"] : null}
         onNodesChange={(changes) => setNodes((current) => applyNodeChanges(changes, current))}
         onEdgesChange={(changes) => setEdges((current) => applyEdgeChanges(changes, current))}

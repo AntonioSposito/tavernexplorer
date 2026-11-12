@@ -52,7 +52,7 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
     : { id: null, name: "", body: "", folderId, acl: { view: [], edit: isGm ? [] : [player.name] }, diagram: false });
   const saveNote = async (draft: NoteDraft) => {
     const folderId = draft.folderId || undefined;
-    if (!draft.id) await onAdd({ kind: "note", sheet: { schemaVersion: 1, id: crypto.randomUUID(), name: draft.name.trim(), body: draft.diagram ? "" : draft.body, folderId, ...draft.diagram ? { diagram: { nodes: [], edges: [] } } : {} }, acl: draft.acl, rev: 0, updatedAt: 0, updatedBy: player.name });
+    if (!draft.id) await onAdd({ kind: "note", sheet: { schemaVersion: 1, id: crypto.randomUUID(), name: draft.name.trim(), body: draft.diagram ? "" : draft.body, folderId, ...isGm ? {} : { owner: player.name }, ...draft.diagram ? { diagram: { nodes: [], edges: [] } } : {} }, acl: draft.acl, rev: 0, updatedAt: 0, updatedBy: player.name });
     else onUpdate(draft.id, (entry) => entry.kind !== "note" ? entry : { ...entry, sheet: { ...entry.sheet, name: draft.name.trim(), body: draft.body, ...isGm ? { folderId } : {} }, acl: isGm ? draft.acl : entry.acl });
     setNoteDraft(null);
   };
@@ -113,7 +113,7 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
         </div>
       </>}
       <div className="action-form-buttons">
-        {noteDraft.id && (isGm || noteDraft.acl.edit.includes(player.name)) && <Button type="button" variant="destructive" onClick={() => { if (window.confirm(`Eliminare la nota “${noteDraft.name}”?`)) void onRemove(noteDraft.id!).then(() => setNoteDraft(null)); }}>Elimina</Button>}
+        {noteDraft.id && (isGm || notes.find((entry) => entry.sheet.id === noteDraft.id)?.sheet.owner === player.name) && <Button type="button" variant="destructive" onClick={() => { if (window.confirm(`Eliminare la nota “${noteDraft.name}”?`)) void onRemove(noteDraft.id!).then(() => setNoteDraft(null)); }}>Elimina</Button>}
         <Button type="button" variant="secondary" onClick={() => setNoteDraft(null)}>Annulla</Button>
         <Button type="submit">Salva</Button>
       </div>

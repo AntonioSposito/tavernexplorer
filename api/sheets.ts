@@ -38,7 +38,7 @@ function validEntry(value: unknown): value is Entry {
   if (!entry.acl || !validNames(entry.acl.view) || !validNames(entry.acl.edit)) return false;
   const sheet = entry.sheet as Partial<CharacterSheet & MonsterSheet & JournalNote & JournalFolder> | null;
   if (!sheet || sheet.schemaVersion !== 1 || typeof sheet.id !== "string" || !ID.test(sheet.id) || typeof sheet.name !== "string") return false;
-  if (entry.kind === "note") return typeof sheet.body === "string" && optionalId(sheet.folderId)
+  if (entry.kind === "note") return typeof sheet.body === "string" && optionalId(sheet.folderId) && (sheet.owner === undefined || validName(sheet.owner))
     && (sheet.diagram === undefined || Array.isArray(sheet.diagram?.nodes) && Array.isArray(sheet.diagram?.edges));
   if (entry.kind === "folder") return optionalId(sheet.parentId);
   return entry.kind === "pc" ? !!sheet.identity && typeof sheet.identity === "object"
