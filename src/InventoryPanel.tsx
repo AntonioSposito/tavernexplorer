@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { EntryIcon } from "./EntryIcon";
 import { CatalogDialog } from "./CatalogDialog";
+import { COIN_LABELS, COINS, coinsText, coinsValue, earnCoins, spendCoins, type Coins } from "./coins";
 import { loadItems } from "./fivetoolsApi";
 import type { FiveToolsItem } from "./import5etools";
 import { ChatIcon, EditIcon, ImportIcon } from "./icons";
@@ -25,8 +26,7 @@ const itemTags = (item: InventoryEntry) => modifierTags(itemModifierList(item));
 
 type Draft = { id: string | null; name: string; count: string; weight: string; equipped: boolean; properties: string; modifiers: StatModifier[]; unknown: string; description: string };
 
-const COINS = ["cp", "sp", "ep", "gp", "pp"];
-const COIN_LABELS: Record<string, string> = { cp: "Rame", sp: "Argento", ep: "Electrum", gp: "Oro", pp: "Platino" };
+type CoinDraft = { spend: boolean; amount: Record<string, string>; reason: string };
 const optionalNumber = (value: string) => value.trim() === "" ? null : Number(value) || 0;
 const draftOf = (item: InventoryEntry | null): Draft => item
   ? { id: item.id, name: item.name, count: item.count == null ? "" : String(item.count), weight: item.weight == null ? "" : String(toKg(item.weight)), equipped: item.equipped, modifiers: [...item.modifiers ?? [], ...modifiersFromText(item.modifiersText)], unknown: parseItemModifiers(item.modifiersText).unknown.join(", "), properties: item.properties ?? "", description: item.description ?? "" }
@@ -42,6 +42,17 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpe
     const found = Array.isArray(catalog) ? catalog.find((entry) => entry.id === id) : undefined;
     if (found && draft) setDraft({ ...draft, name: found.item.name, weight: found.item.weight == null ? "" : String(toKg(found.item.weight)), properties: found.item.properties ?? "", modifiers: modifiersFromText(found.item.modifiersText), unknown: parseItemModifiers(found.item.modifiersText).unknown.join(", "), description: found.item.description ?? "" });
     setPicking(false);
+  };
+  const [coinDraft, setCoinDraft] = useState<CoinDraft | null>(null);
+  const coinAmount: Coins = Object.fromEntries(COINS.map((key) => [key, Math.max(0, Math.trunc(Number(coinDraft?.amount[key])) || 0)]));
+  const coinResult = coinDraft && (coinDraft.spend ? spendCoins(sheet.currency, coinAmount) : earnCoins(sheet.currency, coinAmount));
+  const saveCoins = () => {
+    if (!coinDraft || !coinResult) return;
+    const title = coinDraft.spend ? "Monete spese" : "Monete guadagnate";
+    const reason = coinDraft.reason.trim();
+    onUpdate((next) => { next.currency = (coinDraft.spend ? spendCoins(next.currency, coinAmount) : earnCoins(next.currency, coinAmount)) ?? next.currency; return next; });
+    onShare({ id: crypto.randomUUID(), name: title, description: `${coinDraft.spend ? "Spese" : "Guadagnate"} ${coinsText(coinAmount)}${reason ? ` · ${reason}` : ""}` }, { name: title, rolls: [], stats: [{ label: coinDraft.spend ? "Spese" : "Guadagnate", value: coinsText(coinAmount) }, { label: "Borsa", value: coinsText(coinResult) }], note: reason || undefined });
+    setCoinDraft(null);
   };
   const [reordering, setReordering] = useState(false);
   const [equippedFirst, setEquippedFirst] = useState(storage.equippedFirst.get);
@@ -76,9 +87,8 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpe
   const stop = (action: () => void) => (event: { preventDefault: () => void }) => { event.preventDefault(); action(); };
 
   return <div className="stack">
-    <section className="paper coin-row">{COINS.map((key) => <label key={key} className={`coin coin-${key}`}><span>{COIN_LABELS[key]}</span>{editable
-      ? <input type="number" min="0" aria-label={`Monete ${COIN_LABELS[key]}`} value={sheet.currency[key] ?? 0} onChange={(event) => onUpdate((next) => { next.currency = { ...next.currency, [key]: Math.max(0, Math.trunc(Number(event.target.value)) || 0) }; return next; })}/>
-      : <strong>{sheet.currency[key] ?? 0}</strong>}</label>)}</section>
+    <section className="paper coin-row">{COINS.map((key) => <label key={key} className={`coin coin-${key}`}><span>{COIN_LABELS[key]}</span><strong>{sheet.currency[key] ?? 0}</strong></label>)}</section>
+    {editable && <div className="library-actions"><Button variant="outline" onClick={() => setCoinDraft({ spend: true, amount: {}, reason: "" })}>Spendi monete</Button><Button variant="outline" onClick={() => setCoinDraft({ spend: false, amount: {}, reason: "" })}>Guadagna monete</Button></div>}
     <Card className="resource-panel inventory-panel"><div className="editor-heading"><h2>Zaino</h2>{options.encumbrance !== "off" && <small className={load > capacity || encumbered ? "inventory-over" : undefined} title={`${lbText(load)} / ${lbText(capacity)}`}>Carico {kgText(load)} / {kgText(capacity)} kg{encumbered && ` · ${encumbered}`}</small>}</div>
       {editable && <div className="library-actions">{!reordering && <Button onClick={() => setDraft(draftOf(null))}>+ Nuovo oggetto</Button>}{sheet.inventory.length > 1 && <Button variant={reordering ? "default" : "outline"} onClick={() => setReordering(!reordering)}>{reordering ? "Fine" : "Modifica ordine"}</Button>}</div>}
       {!reordering && sheet.inventory.length > 1 && <label className="action-form-check"><input type="checkbox" checked={equippedFirst} onChange={(event) => toggleEquippedFirst(event.target.checked)}/> Equipaggiati in cima</label>}
@@ -106,6 +116,12 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpe
       {!sheet.inventory.length && <p className="muted">Lo zaino è vuoto.</p>}
     </Card>
     <CatalogDialog open={picking} title="Importa da 5e.tools" description={catalog === null ? "Caricamento da 5e.tools…" : typeof catalog === "string" ? catalog : `${catalog.length} oggetti · edizione 2024, poi 2014`} items={Array.isArray(catalog) ? catalog.map((entry) => ({ id: entry.id, label: entry.name, detail: entry.detail })) : []} selectedId="" onSelect={pick} onClose={() => setPicking(false)}/>
+    <Dialog open={coinDraft !== null} title={coinDraft?.spend ? "Spendi monete" : "Guadagna monete"} onClose={() => setCoinDraft(null)}>{coinDraft && <form className="action-form" onSubmit={(event) => { event.preventDefault(); saveCoins(); }}>
+      <div className="coin-row">{COINS.map((key) => <label key={key} className={`coin coin-${key}`}><span>{COIN_LABELS[key]}</span><input type="number" min="0" aria-label={`${coinDraft.spend ? "Spendi" : "Guadagna"} ${COIN_LABELS[key]}`} value={coinDraft.amount[key] ?? ""} onChange={(event) => setCoinDraft({ ...coinDraft, amount: { ...coinDraft.amount, [key]: event.target.value } })}/></label>)}</div>
+      <label><span>Motivo</span><Input aria-label="Motivo" value={coinDraft.reason} placeholder={coinDraft.spend ? "Locanda, pozione…" : "Bottino, ricompensa…"} onChange={(event) => setCoinDraft({ ...coinDraft, reason: event.target.value })}/></label>
+      <p className={coinResult ? "muted" : "entry-meta inventory-over"}>{coinResult ? `Borsa dopo: ${coinsText(coinResult)}` : "Monete insufficienti."}</p>
+      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={() => setCoinDraft(null)}>Annulla</Button><Button type="submit" disabled={!coinResult || coinsValue(coinAmount) === 0}>{coinDraft.spend ? "Spendi" : "Guadagna"}</Button></div>
+    </form>}</Dialog>
     <Dialog open={draft !== null && !picking} title={draft?.id ? "Modifica oggetto" : "Nuovo oggetto"} onClose={() => setDraft(null)}>{draft && <form className="action-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
       {!draft.id && <Button type="button" variant="outline" className="import-5etools" onClick={openCatalog}><ImportIcon/> Importa da 5e.tools</Button>}
       <label><span>Nome</span><Input aria-label="Nome oggetto" value={draft.name} autoFocus onChange={(event) => setDraft({ ...draft, name: event.target.value })}/></label>

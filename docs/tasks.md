@@ -16,7 +16,7 @@
 
 ## Monete
 
-- [ ] Funzione per spendere le monete.
+- [x] Funzione per spendere e guadagnare le monete, con messaggio in chat (Zaino → "Spendi monete" / "Guadagna monete").
 
 ## Combattimento
 

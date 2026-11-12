@@ -917,7 +917,7 @@ it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
   expect(saved.map((item: { name: string }) => item.name)).toEqual(["Armatura di cuoio"]);
 });
 
-it("modifica le monete direttamente e mostra il carico dello zaino", async () => {
+it("modifica le monete nella tab Modifica e mostra il carico dello zaino", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, currency: { cp: 60, sp: null, gp: 12 }, inventory: [{ name: "Frecce", count: 20, weight: 0.05, _rowid: "arrows" }, { name: "Corda", count: null, weight: 10, _rowid: "rope" }] } });
   sheet.abilities.strength = { score: 10, mod: 0, save: 0, saveProficient: false };
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
@@ -925,12 +925,43 @@ it("modifica le monete direttamente e mostra il carico dello zaino", async () =>
   await settle();
   await click("Zaino");
   expect(host.textContent).toContain("Carico 5,5 / 75 kg");
+  // Nello Zaino le monete si leggono soltanto: si cambiano con i popup o nella tab Modifica.
+  expect(host.querySelector('input[aria-label="Monete Argento"]')).toBeNull();
 
+  await click("Modifica");
   await type('input[aria-label="Monete Argento"]', "7");
   await type('input[aria-label="Monete Oro"]', "");
   await settle(1_700);
   expect(cloudSheet().sheet.currency).toEqual({ cp: 60, sp: 7, gp: 0 });
   expect(host.querySelector<HTMLInputElement>('input[aria-label="Monete Platino"]')!.value).toBe("0");
+});
+
+it("spende e guadagna monete dal popup e lo scrive in chat", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, currency: { gp: 2 } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Zaino");
+  const lastMessage = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1);
+  const submit = () => act(async () => host.querySelector<HTMLButtonElement>('.ui-dialog button[type="submit"]')!.click());
+
+  await click("Spendi monete");
+  await type('input[aria-label="Spendi Oro"]', "3");
+  expect(host.textContent).toContain("Monete insufficienti.");
+  await type('input[aria-label="Spendi Oro"]', "");
+  await type('input[aria-label="Spendi Argento"]', "3");
+  await type('input[aria-label="Motivo"]', "Locanda");
+  await submit();
+  await settle(1_700);
+  expect(cloudSheet().sheet.currency).toMatchObject({ sp: 7, gp: 1 });
+  expect(lastMessage()).toMatchObject({ kind: "share", author: "Eroe", title: "Monete spese", card: { stats: [{ label: "Spese", value: "3 ma" }, { label: "Borsa", value: "1 mo, 7 ma" }], note: "Locanda" } });
+
+  await click("Guadagna monete");
+  await type('input[aria-label="Guadagna Platino"]', "1");
+  await submit();
+  await settle(1_700);
+  expect(cloudSheet().sheet.currency).toMatchObject({ sp: 7, gp: 1, pp: 1 });
+  expect(lastMessage()).toMatchObject({ title: "Monete guadagnate", card: { stats: [{ label: "Guadagnate", value: "1 mp" }, { label: "Borsa", value: "1 mp, 1 mo, 7 ma" }] } });
 });
 
 it("la CA si passa al calcolo automatico dal popup e mostra da cosa è data", async () => {
