@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells } from "./fivetoolsCharacter";
 
 // Estratti dei file 5e.tools (5etools-src, data/): solo i campi letti dal parser.
 const wizardFile = {
@@ -74,4 +74,17 @@ it("converte gli incantesimi con attacco, danno e TS calcolati dalla scheda", ()
   expect(spells.map((spell) => [spell.name, spell.classes])).toEqual([["Fire Bolt", ["Wizard", "Sorcerer"]], ["Sleep", ["Wizard"]]]);
   expect(spells[0].spell).toMatchObject({ level: 0, prepared: true, school: "Evocation", range: "120 feet", spellAttack: "ranged", attack: { ability: "spell", proficient: true, bonus: 0 }, damages: [{ dice: "1d10", type: "Fuoco" }] });
   expect(spells[1].spell).toMatchObject({ concentration: true, duration: "Concentration, up to 1 minute", components: { material: true, materials: "a pinch of sand" }, save: { ability: "wisdom", dc: "spell" }, output: "attack" });
+});
+
+it("nel catalogo unisce PHB 2024 e supplementi, tenendo la versione 2024 dei doppioni", () => {
+  const xphb = { spell: [{ name: "Mind Sliver", source: "XPHB", level: 0, school: "E" }] };
+  const tce = { spell: [{ name: "Mind Sliver", source: "TCE", level: 0, school: "E" }, { name: "Booming Blade", source: "TCE", level: 0, school: "V" }] };
+  const xge = { spell: [{ name: "Thunderclap", source: "XGE", level: 0, school: "V" }] };
+  const lookup = {
+    xphb: { "mind sliver": { class: { XPHB: { Wizard: true }, WoW: { Mage: {} } } } },
+    tce: { "booming blade": { class: { TCE: { Artificer: true }, XPHB: { Wizard: {}, Sorcerer: {} } } } },
+  };
+  expect(parseSpellCatalog([xphb, tce, xge], lookup).map((spell) => [spell.name, spell.source, spell.classes])).toEqual([
+    ["Booming Blade", "TCE", ["Artificer", "Wizard", "Sorcerer"]], ["Mind Sliver", "XPHB", ["Wizard"]], ["Thunderclap", "XGE", []],
+  ]);
 });

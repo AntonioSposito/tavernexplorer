@@ -66,7 +66,7 @@ export interface SpeciesOption {
   originFeat: boolean;
   traits: Feature[];
 }
-export interface SpellOption { name: string; level: number; classes: string[]; spell: Omit<SpellEntry, "id"> }
+export interface SpellOption { name: string; level: number; classes: string[]; source?: string; spell: Omit<SpellEntry, "id"> }
 export interface CharacterOptions {
   classes: ClassOption[];
   backgrounds: BackgroundOption[];
@@ -211,6 +211,20 @@ export function parseSpells(file: unknown, lookup: unknown, maxLevel = 1): Spell
     classes: Object.keys(obj(obj(obj(classesOf[text(row.name).toLowerCase()]).class)[SOURCE])),
     spell: toSpellEntry(row),
   })).filter((spell) => spell.classes.length).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+}
+
+// Catalogo della tab Magia: il PHB 2024 (primo file) più i supplementi; un nome già visto tiene la prima versione.
+// Classi: quelle del PHB 2024 se l'incantesimo è XPHB, altrimenti tutte quelle (anche varianti) dei vari manuali.
+export function parseSpellCatalog(files: unknown[], lookup: unknown): SpellOption[] {
+  const seen = new Set<string>();
+  return files.flatMap((file) => array(obj(file).spell).map(obj)).filter((row) => {
+    const key = text(row.name).toLowerCase();
+    return !seen.has(key) && !!seen.add(key);
+  }).map((row) => {
+    const entry = obj(obj(obj(lookup)[text(row.source).toLowerCase()])[text(row.name).toLowerCase()]);
+    const groups = row.source === SOURCE ? [obj(entry.class)[SOURCE]] : [...Object.values(obj(entry.class)), ...Object.values(obj(entry.classVariant))];
+    return { name: text(row.name), level: Number(row.level) || 0, classes: [...new Set(groups.flatMap((group) => Object.keys(obj(group))))], source: text(row.source), spell: toSpellEntry(row) };
+  }).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
 }
 
 // Lingue standard del PHB 2024: oltre al Comune se ne scelgono due.

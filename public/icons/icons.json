@@ -1,6 +1,16 @@
 {
  "spells": [
   {
+   "id": "abi-dalzims-horrid-wilting",
+   "name": "Abi-Dalzim's Horrid Wilting",
+   "file": "spells/abi-dalzims-horrid-wilting.svg"
+  },
+  {
+   "id": "absorb-elements",
+   "name": "Absorb Elements",
+   "file": "spells/absorb-elements.svg"
+  },
+  {
    "id": "acid-arrow",
    "name": "Acid Arrow",
    "file": "spells/acid-arrow.svg"
@@ -9,6 +19,11 @@
    "id": "acid-splash",
    "name": "Acid Splash",
    "file": "spells/acid-splash.svg"
+  },
+  {
+   "id": "aganazzars-scorcher",
+   "name": "Aganazzar's Scorcher",
+   "file": "spells/aganazzars-scorcher.svg"
   },
   {
    "id": "aid",
@@ -166,6 +181,11 @@
    "file": "spells/beacon-of-hope.svg"
   },
   {
+   "id": "beast-bond",
+   "name": "Beast Bond",
+   "file": "spells/beast-bond.svg"
+  },
+  {
    "id": "beast-sense",
    "name": "Beast Sense",
    "file": "spells/beast-sense.svg"
@@ -194,6 +214,11 @@
    "id": "blade-barrier",
    "name": "Blade Barrier",
    "file": "spells/blade-barrier.svg"
+  },
+  {
+   "id": "blade-of-disaster",
+   "name": "Blade of Disaster",
+   "file": "spells/blade-of-disaster.svg"
   },
   {
    "id": "blade-ward",
@@ -231,6 +256,16 @@
    "file": "spells/blur.svg"
   },
   {
+   "id": "bones-of-the-earth",
+   "name": "Bones of the Earth",
+   "file": "spells/bones-of-the-earth.svg"
+  },
+  {
+   "id": "booming-blade",
+   "name": "Booming Blade",
+   "file": "spells/booming-blade.svg"
+  },
+  {
    "id": "branding-smite",
    "name": "Branding Smite",
    "file": "spells/branding-smite.svg"
@@ -251,9 +286,34 @@
    "file": "spells/calm-emotions.svg"
   },
   {
+   "id": "catapult",
+   "name": "Catapult",
+   "file": "spells/catapult.svg"
+  },
+  {
+   "id": "catnap",
+   "name": "Catnap",
+   "file": "spells/catnap.svg"
+  },
+  {
+   "id": "cause-fear",
+   "name": "Cause Fear",
+   "file": "spells/cause-fear.svg"
+  },
+  {
+   "id": "ceremony",
+   "name": "Ceremony",
+   "file": "spells/ceremony.svg"
+  },
+  {
    "id": "chain-lightning",
    "name": "Chain Lightning",
    "file": "spells/chain-lightning.svg"
+  },
+  {
+   "id": "chaos-bolt",
+   "name": "Chaos Bolt",
+   "file": "spells/chaos-bolt.svg"
   },
   {
    "id": "charm-monster",
@@ -411,6 +471,11 @@
    "file": "spells/continual-flame.svg"
   },
   {
+   "id": "control-flames",
+   "name": "Control Flames",
+   "file": "spells/control-flames.svg"
+  },
+  {
    "id": "control-water",
    "name": "Control Water",
    "file": "spells/control-water.svg"
@@ -419,6 +484,11 @@
    "id": "control-weather",
    "name": "Control Weather",
    "file": "spells/control-weather.svg"
+  },
+  {
+   "id": "control-winds",
+   "name": "Control Winds",
+   "file": "spells/control-winds.svg"
   },
   {
    "id": "cordon-of-arrows",
@@ -431,9 +501,19 @@
    "file": "spells/counterspell.svg"
   },
   {
+   "id": "create-bonfire",
+   "name": "Create Bonfire",
+   "file": "spells/create-bonfire.svg"
+  },
+  {
    "id": "create-food-and-water",
    "name": "Create Food and Water",
    "file": "spells/create-food-and-water.svg"
+  },
+  {
+   "id": "create-homunculus",
+   "name": "Create Homunculus",
+   "file": "spells/create-homunculus.svg"
   },
   {
    "id": "create-or-destroy-water",
@@ -456,6 +536,11 @@
    "file": "spells/crown-of-madness.svg"
   },
   {
+   "id": "crown-of-stars",
+   "name": "Crown of Stars",
+   "file": "spells/crown-of-stars.svg"
+  },
+  {
    "id": "crusaders-mantle",
    "name": "Crusader's Mantle",
    "file": "spells/crusaders-mantle.svg"
@@ -471,6 +556,11 @@
    "file": "spells/dancing-lights.svg"
   },
   {
+   "id": "danse-macabre",
+   "name": "Danse Macabre",
+   "file": "spells/danse-macabre.svg"
+  },
+  {
    "id": "darkness",
    "name": "Darkness",
    "file": "spells/darkness.svg"
@@ -479,6 +569,11 @@
    "id": "darkvision",
    "name": "Darkvision",
    "file": "spells/darkvision.svg"
+  },
+  {
+   "id": "dawn",
+   "name": "Dawn",
+   "file": "spells/dawn.svg"
   },
   {
    "id": "daylight",
@@ -606,9 +701,34 @@
    "file": "spells/dream.svg"
   },
   {
+   "id": "dream-of-the-blue-veil",
+   "name": "Dream of the Blue Veil",
+   "file": "spells/dream-of-the-blue-veil.svg"
+  },
+  {
+   "id": "druid-grove",
+   "name": "Druid Grove",
+   "file": "spells/druid-grove.svg"
+  },
+  {
    "id": "druidcraft",
    "name": "Druidcraft",
    "file": "spells/druidcraft.svg"
+  },
+  {
+   "id": "dust-devil",
+   "name": "Dust Devil",
+   "file": "spells/dust-devil.svg"
+  },
+  {
+   "id": "earth-tremor",
+   "name": "Earth Tremor",
+   "file": "spells/earth-tremor.svg"
+  },
+  {
+   "id": "earthbind",
+   "name": "Earthbind",
+   "file": "spells/earthbind.svg"
   },
   {
    "id": "earthquake",
@@ -621,6 +741,11 @@
    "file": "spells/eldritch-blast.svg"
   },
   {
+   "id": "elemental-bane",
+   "name": "Elemental Bane",
+   "file": "spells/elemental-bane.svg"
+  },
+  {
    "id": "elemental-weapon",
    "name": "Elemental Weapon",
    "file": "spells/elemental-weapon.svg"
@@ -629,6 +754,16 @@
    "id": "elementalism",
    "name": "Elementalism",
    "file": "spells/elementalism.svg"
+  },
+  {
+   "id": "enemies-abound",
+   "name": "Enemies Abound",
+   "file": "spells/enemies-abound.svg"
+  },
+  {
+   "id": "enervation",
+   "name": "Enervation",
+   "file": "spells/enervation.svg"
   },
   {
    "id": "enhance-ability",
@@ -654,6 +789,11 @@
    "id": "enthrall",
    "name": "Enthrall",
    "file": "spells/enthrall.svg"
+  },
+  {
+   "id": "erupting-earth",
+   "name": "Erupting Earth",
+   "file": "spells/erupting-earth.svg"
   },
   {
    "id": "etherealness",
@@ -696,6 +836,11 @@
    "file": "spells/false-life.svg"
   },
   {
+   "id": "far-step",
+   "name": "Far Step",
+   "file": "spells/far-step.svg"
+  },
+  {
    "id": "fear",
    "name": "Fear",
    "file": "spells/fear.svg"
@@ -719,6 +864,11 @@
    "id": "find-familiar",
    "name": "Find Familiar",
    "file": "spells/find-familiar.svg"
+  },
+  {
+   "id": "find-greater-steed",
+   "name": "Find Greater Steed",
+   "file": "spells/find-greater-steed.svg"
   },
   {
    "id": "find-steed",
@@ -759,6 +909,11 @@
    "id": "fireball",
    "name": "Fireball",
    "file": "spells/fireball.svg"
+  },
+  {
+   "id": "flame-arrows",
+   "name": "Flame Arrows",
+   "file": "spells/flame-arrows.svg"
   },
   {
    "id": "flame-blade",
@@ -831,6 +986,11 @@
    "file": "spells/friends.svg"
   },
   {
+   "id": "frostbite",
+   "name": "Frostbite",
+   "file": "spells/frostbite.svg"
+  },
+  {
    "id": "gaseous-form",
    "name": "Gaseous Form",
    "file": "spells/gaseous-form.svg"
@@ -896,9 +1056,19 @@
    "file": "spells/greater-restoration.svg"
   },
   {
+   "id": "green-flame-blade",
+   "name": "Green-Flame Blade",
+   "file": "spells/green-flame-blade.svg"
+  },
+  {
    "id": "guardian-of-faith",
    "name": "Guardian of Faith",
    "file": "spells/guardian-of-faith.svg"
+  },
+  {
+   "id": "guardian-of-nature",
+   "name": "Guardian of Nature",
+   "file": "spells/guardian-of-nature.svg"
   },
   {
    "id": "guards-and-wards",
@@ -914,6 +1084,11 @@
    "id": "guiding-bolt",
    "name": "Guiding Bolt",
    "file": "spells/guiding-bolt.svg"
+  },
+  {
+   "id": "gust",
+   "name": "Gust",
+   "file": "spells/gust.svg"
   },
   {
    "id": "gust-of-wind",
@@ -949,6 +1124,11 @@
    "id": "heal",
    "name": "Heal",
    "file": "spells/heal.svg"
+  },
+  {
+   "id": "healing-spirit",
+   "name": "Healing Spirit",
+   "file": "spells/healing-spirit.svg"
   },
   {
    "id": "healing-word",
@@ -1001,6 +1181,11 @@
    "file": "spells/holy-aura.svg"
   },
   {
+   "id": "holy-weapon",
+   "name": "Holy Weapon",
+   "file": "spells/holy-weapon.svg"
+  },
+  {
    "id": "hunger-of-hadar",
    "name": "Hunger of Hadar",
    "file": "spells/hunger-of-hadar.svg"
@@ -1031,9 +1216,19 @@
    "file": "spells/identify.svg"
   },
   {
+   "id": "illusory-dragon",
+   "name": "Illusory Dragon",
+   "file": "spells/illusory-dragon.svg"
+  },
+  {
    "id": "illusory-script",
    "name": "Illusory Script",
    "file": "spells/illusory-script.svg"
+  },
+  {
+   "id": "immolation",
+   "name": "Immolation",
+   "file": "spells/immolation.svg"
   },
   {
    "id": "imprisonment",
@@ -1044,6 +1239,16 @@
    "id": "incendiary-cloud",
    "name": "Incendiary Cloud",
    "file": "spells/incendiary-cloud.svg"
+  },
+  {
+   "id": "infernal-calling",
+   "name": "Infernal Calling",
+   "file": "spells/infernal-calling.svg"
+  },
+  {
+   "id": "infestation",
+   "name": "Infestation",
+   "file": "spells/infestation.svg"
   },
   {
    "id": "inflict-wounds",
@@ -1061,9 +1266,39 @@
    "file": "spells/instant-summons.svg"
   },
   {
+   "id": "intellect-fortress",
+   "name": "Intellect Fortress",
+   "file": "spells/intellect-fortress.svg"
+  },
+  {
+   "id": "investiture-of-flame",
+   "name": "Investiture of Flame",
+   "file": "spells/investiture-of-flame.svg"
+  },
+  {
+   "id": "investiture-of-ice",
+   "name": "Investiture of Ice",
+   "file": "spells/investiture-of-ice.svg"
+  },
+  {
+   "id": "investiture-of-stone",
+   "name": "Investiture of Stone",
+   "file": "spells/investiture-of-stone.svg"
+  },
+  {
+   "id": "investiture-of-wind",
+   "name": "Investiture of Wind",
+   "file": "spells/investiture-of-wind.svg"
+  },
+  {
    "id": "invisibility",
    "name": "Invisibility",
    "file": "spells/invisibility.svg"
+  },
+  {
+   "id": "invulnerability",
+   "name": "Invulnerability",
+   "file": "spells/invulnerability.svg"
   },
   {
    "id": "irresistible-dance",
@@ -1111,6 +1346,11 @@
    "file": "spells/levitate.svg"
   },
   {
+   "id": "life-transference",
+   "name": "Life Transference",
+   "file": "spells/life-transference.svg"
+  },
+  {
    "id": "light",
    "name": "Light",
    "file": "spells/light.svg"
@@ -1124,6 +1364,11 @@
    "id": "lightning-bolt",
    "name": "Lightning Bolt",
    "file": "spells/lightning-bolt.svg"
+  },
+  {
+   "id": "lightning-lure",
+   "name": "Lightning Lure",
+   "file": "spells/lightning-lure.svg"
   },
   {
    "id": "locate-animals-or-plants",
@@ -1144,6 +1389,16 @@
    "id": "longstrider",
    "name": "Longstrider",
    "file": "spells/longstrider.svg"
+  },
+  {
+   "id": "maddening-darkness",
+   "name": "Maddening Darkness",
+   "file": "spells/maddening-darkness.svg"
+  },
+  {
+   "id": "maelstrom",
+   "name": "Maelstrom",
+   "file": "spells/maelstrom.svg"
   },
   {
    "id": "mage-armor",
@@ -1176,6 +1431,11 @@
    "file": "spells/magic-mouth.svg"
   },
   {
+   "id": "magic-stone",
+   "name": "Magic Stone",
+   "file": "spells/magic-stone.svg"
+  },
+  {
    "id": "magic-weapon",
    "name": "Magic Weapon",
    "file": "spells/magic-weapon.svg"
@@ -1206,9 +1466,19 @@
    "file": "spells/mass-healing-word.svg"
   },
   {
+   "id": "mass-polymorph",
+   "name": "Mass Polymorph",
+   "file": "spells/mass-polymorph.svg"
+  },
+  {
    "id": "mass-suggestion",
    "name": "Mass Suggestion",
    "file": "spells/mass-suggestion.svg"
+  },
+  {
+   "id": "maximilians-earthen-grasp",
+   "name": "Maximilian's Earthen Grasp",
+   "file": "spells/maximilians-earthen-grasp.svg"
   },
   {
    "id": "maze",
@@ -1226,9 +1496,19 @@
    "file": "spells/melfs-acid-arrow.svg"
   },
   {
+   "id": "melfs-minute-meteors",
+   "name": "Melf's Minute Meteors",
+   "file": "spells/melfs-minute-meteors.svg"
+  },
+  {
    "id": "mending",
    "name": "Mending",
    "file": "spells/mending.svg"
+  },
+  {
+   "id": "mental-prison",
+   "name": "Mental Prison",
+   "file": "spells/mental-prison.svg"
   },
   {
    "id": "message",
@@ -1239,6 +1519,11 @@
    "id": "meteor-swarm",
    "name": "Meteor Swarm",
    "file": "spells/meteor-swarm.svg"
+  },
+  {
+   "id": "mighty-fortress",
+   "name": "Mighty Fortress",
+   "file": "spells/mighty-fortress.svg"
   },
   {
    "id": "mind-blank",
@@ -1286,6 +1571,11 @@
    "file": "spells/modify-memory.svg"
   },
   {
+   "id": "mold-earth",
+   "name": "Mold Earth",
+   "file": "spells/mold-earth.svg"
+  },
+  {
    "id": "moonbeam",
    "name": "Moonbeam",
    "file": "spells/moonbeam.svg"
@@ -1314,6 +1604,11 @@
    "id": "move-earth",
    "name": "Move Earth",
    "file": "spells/move-earth.svg"
+  },
+  {
+   "id": "negative-energy-flood",
+   "name": "Negative Energy Flood",
+   "file": "spells/negative-energy-flood.svg"
   },
   {
    "id": "nondetection",
@@ -1411,6 +1706,11 @@
    "file": "spells/power-word-kill.svg"
   },
   {
+   "id": "power-word-pain",
+   "name": "Power Word Pain",
+   "file": "spells/power-word-pain.svg"
+  },
+  {
    "id": "power-word-stun",
    "name": "Power Word Stun",
    "file": "spells/power-word-stun.svg"
@@ -1424,6 +1724,16 @@
    "id": "prestidigitation",
    "name": "Prestidigitation",
    "file": "spells/prestidigitation.svg"
+  },
+  {
+   "id": "primal-savagery",
+   "name": "Primal Savagery",
+   "file": "spells/primal-savagery.svg"
+  },
+  {
+   "id": "primordial-ward",
+   "name": "Primordial Ward",
+   "file": "spells/primordial-ward.svg"
   },
   {
    "id": "prismatic-spray",
@@ -1471,9 +1781,19 @@
    "file": "spells/protection-from-poison.svg"
   },
   {
+   "id": "psychic-scream",
+   "name": "Psychic Scream",
+   "file": "spells/psychic-scream.svg"
+  },
+  {
    "id": "purify-food-and-drink",
    "name": "Purify Food and Drink",
    "file": "spells/purify-food-and-drink.svg"
+  },
+  {
+   "id": "pyrotechnics",
+   "name": "Pyrotechnics",
+   "file": "spells/pyrotechnics.svg"
   },
   {
    "id": "raise-dead",
@@ -1556,6 +1876,11 @@
    "file": "spells/sanctuary.svg"
   },
   {
+   "id": "scatter",
+   "name": "Scatter",
+   "file": "spells/scatter.svg"
+  },
+  {
    "id": "scorching-ray",
    "name": "Scorching Ray",
    "file": "spells/scorching-ray.svg"
@@ -1596,6 +1921,21 @@
    "file": "spells/sequester.svg"
   },
   {
+   "id": "shadow-blade",
+   "name": "Shadow Blade",
+   "file": "spells/shadow-blade.svg"
+  },
+  {
+   "id": "shadow-of-moil",
+   "name": "Shadow of Moil",
+   "file": "spells/shadow-of-moil.svg"
+  },
+  {
+   "id": "shape-water",
+   "name": "Shape Water",
+   "file": "spells/shape-water.svg"
+  },
+  {
    "id": "shapechange",
    "name": "Shapechange",
    "file": "spells/shapechange.svg"
@@ -1631,6 +1971,11 @@
    "file": "spells/shocking-grasp.svg"
   },
   {
+   "id": "sickening-radiance",
+   "name": "Sickening Radiance",
+   "file": "spells/sickening-radiance.svg"
+  },
+  {
    "id": "silence",
    "name": "Silence",
    "file": "spells/silence.svg"
@@ -1644,6 +1989,16 @@
    "id": "simulacrum",
    "name": "Simulacrum",
    "file": "spells/simulacrum.svg"
+  },
+  {
+   "id": "skill-empowerment",
+   "name": "Skill Empowerment",
+   "file": "spells/skill-empowerment.svg"
+  },
+  {
+   "id": "skywrite",
+   "name": "Skywrite",
+   "file": "spells/skywrite.svg"
   },
   {
    "id": "sleep",
@@ -1661,9 +2016,24 @@
    "file": "spells/slow.svg"
   },
   {
+   "id": "snare",
+   "name": "Snare",
+   "file": "spells/snare.svg"
+  },
+  {
+   "id": "snillocs-snowball-swarm",
+   "name": "Snilloc's Snowball Swarm",
+   "file": "spells/snillocs-snowball-swarm.svg"
+  },
+  {
    "id": "sorcerous-burst",
    "name": "Sorcerous Burst",
    "file": "spells/sorcerous-burst.svg"
+  },
+  {
+   "id": "soul-cage",
+   "name": "Soul Cage",
+   "file": "spells/soul-cage.svg"
   },
   {
    "id": "spare-the-dying",
@@ -1699,6 +2069,11 @@
    "id": "spirit-guardians",
    "name": "Spirit Guardians",
    "file": "spells/spirit-guardians.svg"
+  },
+  {
+   "id": "spirit-shroud",
+   "name": "Spirit Shroud",
+   "file": "spells/spirit-shroud.svg"
   },
   {
    "id": "spiritual-weapon",
@@ -1739,6 +2114,11 @@
    "id": "storm-of-vengeance",
    "name": "Storm of Vengeance",
    "file": "spells/storm-of-vengeance.svg"
+  },
+  {
+   "id": "storm-sphere",
+   "name": "Storm Sphere",
+   "file": "spells/storm-sphere.svg"
   },
   {
    "id": "suggestion",
@@ -1786,6 +2166,21 @@
    "file": "spells/summon-fiend.svg"
   },
   {
+   "id": "summon-greater-demon",
+   "name": "Summon Greater Demon",
+   "file": "spells/summon-greater-demon.svg"
+  },
+  {
+   "id": "summon-lesser-demons",
+   "name": "Summon Lesser Demons",
+   "file": "spells/summon-lesser-demons.svg"
+  },
+  {
+   "id": "summon-shadowspawn",
+   "name": "Summon Shadowspawn",
+   "file": "spells/summon-shadowspawn.svg"
+  },
+  {
    "id": "summon-undead",
    "name": "Summon Undead",
    "file": "spells/summon-undead.svg"
@@ -1806,6 +2201,11 @@
    "file": "spells/swift-quiver.svg"
   },
   {
+   "id": "sword-burst",
+   "name": "Sword Burst",
+   "file": "spells/sword-burst.svg"
+  },
+  {
    "id": "symbol",
    "name": "Symbol",
    "file": "spells/symbol.svg"
@@ -1821,9 +2221,24 @@
    "file": "spells/tashas-bubbling-cauldron.svg"
   },
   {
+   "id": "tashas-caustic-brew",
+   "name": "Tasha's Caustic Brew",
+   "file": "spells/tashas-caustic-brew.svg"
+  },
+  {
    "id": "tashas-hideous-laughter",
    "name": "Tasha's Hideous Laughter",
    "file": "spells/tashas-hideous-laughter.svg"
+  },
+  {
+   "id": "tashas-mind-whip",
+   "name": "Tasha's Mind Whip",
+   "file": "spells/tashas-mind-whip.svg"
+  },
+  {
+   "id": "tashas-otherworldly-guise",
+   "name": "Tasha's Otherworldly Guise",
+   "file": "spells/tashas-otherworldly-guise.svg"
   },
   {
    "id": "telekinesis",
@@ -1851,9 +2266,19 @@
    "file": "spells/teleportation-circle.svg"
   },
   {
+   "id": "temple-of-the-gods",
+   "name": "Temple of the Gods",
+   "file": "spells/temple-of-the-gods.svg"
+  },
+  {
    "id": "tensers-floating-disk",
    "name": "Tenser's Floating Disk",
    "file": "spells/tensers-floating-disk.svg"
+  },
+  {
+   "id": "tensers-transformation",
+   "name": "Tenser's Transformation",
+   "file": "spells/tensers-transformation.svg"
   },
   {
    "id": "thaumaturgy",
@@ -1864,6 +2289,11 @@
    "id": "thorn-whip",
    "name": "Thorn Whip",
    "file": "spells/thorn-whip.svg"
+  },
+  {
+   "id": "thunder-step",
+   "name": "Thunder Step",
+   "file": "spells/thunder-step.svg"
   },
   {
    "id": "thunderclap",
@@ -1881,6 +2311,11 @@
    "file": "spells/thunderwave.svg"
   },
   {
+   "id": "tidal-wave",
+   "name": "Tidal Wave",
+   "file": "spells/tidal-wave.svg"
+  },
+  {
    "id": "time-stop",
    "name": "Time Stop",
    "file": "spells/time-stop.svg"
@@ -1891,6 +2326,11 @@
    "file": "spells/tiny-hut.svg"
   },
   {
+   "id": "tiny-servant",
+   "name": "Tiny Servant",
+   "file": "spells/tiny-servant.svg"
+  },
+  {
    "id": "toll-the-dead",
    "name": "Toll the Dead",
    "file": "spells/toll-the-dead.svg"
@@ -1899,6 +2339,11 @@
    "id": "tongues",
    "name": "Tongues",
    "file": "spells/tongues.svg"
+  },
+  {
+   "id": "transmute-rock",
+   "name": "Transmute Rock",
+   "file": "spells/transmute-rock.svg"
   },
   {
    "id": "transport-via-plants",
@@ -1971,6 +2416,16 @@
    "file": "spells/wall-of-ice.svg"
   },
   {
+   "id": "wall-of-light",
+   "name": "Wall of Light",
+   "file": "spells/wall-of-light.svg"
+  },
+  {
+   "id": "wall-of-sand",
+   "name": "Wall of Sand",
+   "file": "spells/wall-of-sand.svg"
+  },
+  {
    "id": "wall-of-stone",
    "name": "Wall of Stone",
    "file": "spells/wall-of-stone.svg"
@@ -1981,9 +2436,19 @@
    "file": "spells/wall-of-thorns.svg"
   },
   {
+   "id": "wall-of-water",
+   "name": "Wall of Water",
+   "file": "spells/wall-of-water.svg"
+  },
+  {
    "id": "warding-bond",
    "name": "Warding Bond",
    "file": "spells/warding-bond.svg"
+  },
+  {
+   "id": "warding-wind",
+   "name": "Warding Wind",
+   "file": "spells/warding-wind.svg"
   },
   {
    "id": "water-breathing",
@@ -1996,6 +2461,11 @@
    "file": "spells/water-walk.svg"
   },
   {
+   "id": "watery-sphere",
+   "name": "Watery Sphere",
+   "file": "spells/watery-sphere.svg"
+  },
+  {
    "id": "web",
    "name": "Web",
    "file": "spells/web.svg"
@@ -2004,6 +2474,11 @@
    "id": "weird",
    "name": "Weird",
    "file": "spells/weird.svg"
+  },
+  {
+   "id": "whirlwind",
+   "name": "Whirlwind",
+   "file": "spells/whirlwind.svg"
   },
   {
    "id": "wind-walk",
@@ -2036,6 +2511,11 @@
    "file": "spells/word-of-recall.svg"
   },
   {
+   "id": "wrath-of-nature",
+   "name": "Wrath of Nature",
+   "file": "spells/wrath-of-nature.svg"
+  },
+  {
    "id": "wrathful-smite",
    "name": "Wrathful Smite",
    "file": "spells/wrathful-smite.svg"
@@ -2044,6 +2524,11 @@
    "id": "yolandes-regal-presence",
    "name": "Yolande's Regal Presence",
    "file": "spells/yolandes-regal-presence.svg"
+  },
+  {
+   "id": "zephyr-strike",
+   "name": "Zephyr Strike",
+   "file": "spells/zephyr-strike.svg"
   },
   {
    "id": "zone-of-truth",

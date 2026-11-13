@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Icone di game-icons.net in public/icons (CC BY 3.0, crediti in public/icons/CREDITS.md): incantesimi, zaino e card in chat.
-// shortcut: solo nomi inglesi e icone parziali, task in docs/tasks.md.
+// shortcut: solo nomi inglesi e icone parziali, task TE-51 in .boardown/.
 type IconIndex = Record<string, Array<{ name: string; file: string }>>;
 const norm = (name: string) => name.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 let icons: Promise<Map<string, string>> | null = null;

@@ -1,5 +1,5 @@
 import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { CampaignDocument, MonsterSheet } from "./types";
 
@@ -84,9 +84,13 @@ export function loadCharacterOptions(): Promise<CharacterOptions> {
 }
 
 let spellsCache: Promise<SpellOption[]> | null = null;
-// Tutti i livelli, per l'import nella scheda; un errore permette di riprovare.
+// Tutti i livelli, per l'import nella scheda: PHB 2024 più i supplementi (~1 MB); un errore permette di riprovare.
+// Il PHB 2014 resta fuori: il 2024 lo ristampa (Branding Smite e Feeblemind hanno solo cambiato nome).
 export function loadSpells(): Promise<SpellOption[]> {
-  spellsCache ??= Promise.all([request("spells/spells-xphb.json"), request("generated/gendata-spell-source-lookup.json")]).then(([spells, lookup]) => parseSpells(spells, lookup, 9));
+  spellsCache ??= Promise.all([request("spells/index.json"), request("generated/gendata-spell-source-lookup.json")]).then(async ([index, lookup]) => {
+    const others = Object.entries(index).filter(([id, file]) => id !== "PHB" && id !== "XPHB" && /^[a-z0-9_.-]+$/i.test(String(file))).map(([, file]) => `spells/${String(file)}`);
+    return parseSpellCatalog(await Promise.all(["spells/spells-xphb.json", ...others].map((path) => request(path))), lookup);
+  });
   spellsCache.catch(() => { spellsCache = null; });
   return spellsCache;
 }

@@ -638,7 +638,7 @@ it("lanciare un incantesimo non preparato mostra l'avviso in chat", async () => 
   expect([...host.querySelectorAll(".r20-card")].map((card) => card.querySelector(".r20-alert")?.textContent ?? null)).toEqual(["⚠ Incantesimo non preparato", null, null]);
 });
 
-it("importa un incantesimo da 5e.tools nella scheda, senza doppioni", async () => {
+it("importa un incantesimo da 5e.tools nella scheda; un doppione resta in elenco e non si importa", async () => {
   const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
   sheet.spells = [{ id: "sleep", name: "Sleep", level: 1, prepared: true, ritual: false, concentration: false }];
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
@@ -647,7 +647,9 @@ it("importa un incantesimo da 5e.tools nella scheda, senza doppioni", async () =
   await click("Magia");
   await click("Importa da 5e.tools");
   await settle();
-  expect([...host.querySelectorAll(".catalog-option")].map((option) => option.textContent)).toEqual([expect.stringContaining("Fireball")]);
+  expect([...host.querySelectorAll(".catalog-option")].map((option) => option.textContent)).toEqual([expect.stringContaining("Fireball"), expect.stringContaining("già nella scheda")]);
+  await click("Sleep");
+  expect(host.querySelector(".catalog-list")).not.toBeNull();
   await click("Fireball");
   await settle(1_700);
   expect(cloudSheet().sheet.spells).toMatchObject([{ name: "Sleep" }, { name: "Fireball", level: 3, prepared: false }]);

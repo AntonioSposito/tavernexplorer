@@ -260,6 +260,12 @@ order: 2200
 - Messaggio di attacco: badge con la maestria e descrizione in tooltip. Graze: se l'attacco manca, proporre il pulsante "Danno Graze" (danno = modificatore della caratteristica; non è derivabile in modo affidabile, quindi far inserire il valore una volta nell'editor come `masteryValue?`). Topple: mostrare la CD (8 + mod + competenza) se presente.
 - Import: Roll20 se espone il campo (verificare un export reale in `importer.test.ts`); 5e.tools, per gli oggetti, ha `mastery` sugli item, da usare solo se importiamo armi.
 
+**Aggiunte (da TE-53…56).**
+- Oggi la maestria è solo testo in proprietà e descrizione delle armi importate: applicarne l'effetto all'azione dell'arma.
+- Scegliere quali maestrie ha il personaggio (privilegio Weapon Mastery) e usarle solo per quelle armi.
+- Armi magiche senza campo `mastery` in 5e.tools: prendere la maestria dall'arma di base (`baseItem`).
+- Testo della regola in italiano.
+
 **Accettazione.** Un'arma con Rovesciare mostra il badge e la CD nel messaggio di attacco; la TavernPack conserva il campo.
 
 **Test.** Round trip di `parseCharacterSheet` con `mastery`; uiSmoke facoltativo.
@@ -670,3 +676,156 @@ order: 4100
 - Distinguere "non importato" da "importato con approssimazione".
 
 **Accettazione.** Importando un personaggio con dati non gestiti, il popup elenca cosa manca; un personaggio senza dati extra non mostra avvisi nuovi.
+
+## Aggiungere le icone mancanti
+
+---
+id: TE-50
+type: feature
+priority: medium
+status: done
+order: 4200
+---
+
+Aggiungere le icone mancanti in `public/icons` (e in `public/icons/icons.json`): elenco in `docs/icon-gaps.md`. Aggiunte tutte le 446 dell'elenco.
+
+## Icone per i nomi italiani
+
+---
+id: TE-51
+type: feature
+priority: medium
+status: todo
+order: 4300
+---
+
+Le schede importate da Roll20 hanno nomi italiani (es. "Palla di fuoco") e oggi non trovano l'icona, che si cerca per nome inglese.
+
+## Crediti delle icone visibili nell'app
+
+---
+id: TE-52
+type: feature
+priority: medium
+status: done
+order: 4400
+---
+
+Crediti delle icone (CC BY 3.0, `public/icons/CREDITS.md`) visibili nell'app: in fondo alla tab Libreria.
+
+## Spendere e guadagnare monete
+
+---
+id: TE-57
+type: feature
+priority: medium
+status: done
+order: 4900
+---
+
+Funzione per spendere e guadagnare le monete, con messaggio in chat (Zaino → "Spendi monete" / "Guadagna monete").
+
+## Iniziativa del PG nel turn order
+
+---
+id: TE-58
+type: bug
+priority: medium
+status: todo
+order: 5000
+---
+
+Quando un PG clicca Iniziativa deve comparire nel turn order: oggi non compare.
+
+## Tiri salvezza contro morte impostabili a mano
+
+---
+id: TE-59
+type: feature
+priority: medium
+status: todo
+order: 5100
+---
+
+Pallini verdi/rossi (tiri salvezza contro morte) impostabili a mano; al tiro, in chat anche il resoconto dei pallini attuali.
+
+## Parla come
+
+---
+id: TE-60
+type: feature
+priority: medium
+status: done
+order: 5200
+---
+
+Scegliere per chi si sta parlando (come "Parla come" di Roll20): menu "Parla come" nella chat.
+
+## Oggetti mancanti nel catalogo
+
+---
+id: TE-61
+type: bug
+priority: medium
+status: todo
+order: 5300
+---
+
+Alcuni oggetti non compaiono, es. Arcane Focus.
+
+## Armi in mano principale e seconda mano
+
+---
+id: TE-63
+type: feature
+priority: medium
+status: todo
+order: 5500
+---
+
+Armi: "mano principale" / "seconda mano", per calcolare il bonus in modo diverso.
+
+## Incantesimi di altri manuali nel catalogo 5e.tools
+
+---
+id: TE-64
+type: feature
+priority: medium
+status: done
+order: 5600
+---
+
+**Contesto.** Il catalogo incantesimi (`loadSpells` in `src/fivetoolsApi.ts`, usato da "Importa da 5e.tools" nella tab Magia e dagli incantesimi dei mostri in `importMonsters`) carica solo `spells/spells-xphb.json`, e `parseSpells` tiene solo `source === "XPHB"`. Mancano quindi gli incantesimi degli altri manuali, es. Booming Blade (TCE). Mind Sliver e Thunderclap invece ci sono: non comparivano perché la scheda li aveva già (ora restano in elenco con "già nella scheda" e un avviso).
+
+**Da fare.**
+- Scegliere i manuali da aggiungere: elenco in `spells/index.json` (XGE, TCE, FTD, SatO, …; PHB 2014 escluso o in coda, perché il 2024 lo ristampa).
+- `loadSpells`: scaricare anche quei file; per gli incantesimi presenti in più manuali tenere la versione 2024 (come gli oggetti: "edizione 2024, poi 2014").
+- Classi da `gendata-spell-source-lookup.json` anche per le altre sorgenti (`class` e `classVariant` di ogni manuale), così il filtro `classes.length` non li scarta.
+- Nel dettaglio della riga del catalogo mostrare la sorgente (es. "TCE").
+- La creazione guidata (`loadCharacterOptions`) resta solo PHB 2024.
+
+**Accettazione.** Booming Blade si importa dal catalogo della tab Magia con la sorgente TCE; Fireball compare una volta sola, nella versione 2024; un mostro con Booming Blade non dà più l'avviso "Incantesimi non trovati".
+
+## Nome dei token che inizia con "Beast"
+
+---
+id: TE-65
+type: bug
+priority: medium
+status: todo
+order: 5700
+---
+
+Caricando i token il nome inizia con "Beast": capire perché e toglierlo.
+
+## Icone Scheda e Turn order sparite
+
+---
+id: TE-66
+type: bug
+priority: medium
+status: todo
+order: 5800
+---
+
+Le icone "Scheda" e "Turn order" sono sparite a un certo punto durante la sessione: capire perché.
