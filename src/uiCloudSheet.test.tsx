@@ -54,6 +54,27 @@ const click = async (label: string) => {
 };
 const cloudSheet = () => JSON.parse(store.get("te:room:r1:sheets")?.values().next().value ?? "null");
 
+it("menu delle schede in ordine alfabetico; di default la prima modificabile, poi l'ultima aperta", async () => {
+  viewer.name = "Marco"; viewer.role = "PLAYER";
+  for (const [name, edit] of [["Zara", ["Marco"]], ["Anna", []], ["Bruno", ["Marco"]]] as const) {
+    const sheet = importRoll20({ character: { name }, normalized: { identity: { character_name: name } } });
+    await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: ["Marco"], edit }, updatedBy: "GM" } }) });
+  }
+  await act(async () => root.render(<App/>));
+  await settle();
+  const select = () => host.querySelector<HTMLSelectElement>("header select")!;
+  const selected = () => select().selectedOptions[0]?.textContent;
+  expect([...select().options].map((option) => option.textContent)).toEqual(["Nessuna scheda", "Anna", "Bruno", "Zara"]);
+  expect(selected()).toBe("Bruno");
+  const zara = [...select().options].find((option) => option.textContent === "Zara")!.value;
+  await act(async () => { select().value = zara; select().dispatchEvent(new Event("change", { bubbles: true })); });
+  await act(async () => root.unmount());
+  root = createRoot(host);
+  await act(async () => root.render(<App/>));
+  await settle();
+  expect(selected()).toBe("Zara");
+});
+
 it("carica nel cloud le schede locali e vi salva il riposo lungo", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 2, max: 12 }, hit_dice: { current: 0, max: 2, die: "d8" } } } });
   localStorage.setItem(STORAGE_CHARACTERS, JSON.stringify([sheet]));

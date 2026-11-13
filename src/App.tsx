@@ -90,6 +90,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   const [library, setLibrary] = useState<LibraryState>({ entries: [], offline: false, conflict: null });
   const libraryRef = useRef<ReturnType<typeof createCloudLibrary> | null>(null);
   const characters = useMemo(() => library.entries.flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []), [library.entries]);
+  // Menu delle schede in ordine alfabetico.
+  const sortedCharacters = useMemo(() => [...characters].sort((a, b) => a.name.localeCompare(b.name, "it")), [characters]);
   // PF e CA dei PG per il turn order del GM: come sui token, con effetti e oggetti.
   const pcStats = useMemo(() => Object.fromEntries(characters.map((sheet) => { const view = effectiveSheet(sheet); return [sheet.id, { current: view.combat.hp.current, max: view.combat.hp.max, temp: view.combat.hp.temp, ac: armorClass(sheet, view.abilities.dexterity?.mod ?? 0).total }]; })), [characters]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -263,8 +265,16 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     // eslint-disable-next-line react-hooks/exhaustive-deps -- syncMonsters legge solo stanza e token GM correnti
   }, [library.entries, player.role, floatingView]);
 
-  // La scheda attiva deve restare tra quelle visibili.
-  useEffect(() => { if (!characters.some((sheet) => sheet.id === activeId)) setActiveId(characters[0]?.id ?? null); }, [characters, activeId]);
+  // La scheda attiva deve restare tra quelle visibili. Di default: l'ultima aperta, altrimenti la prima in ordine
+  // alfabetico che il giocatore può modificare, altrimenti la prima in ordine alfabetico.
+  useEffect(() => {
+    if (sortedCharacters.some((sheet) => sheet.id === activeId)) return;
+    const lastId = storage.lastSheet.get();
+    const editable = (id: string) => library.entries.some((entry) => entry.sheet.id === id && canEditCloudSheet(entry, player));
+    const next = sortedCharacters.find((sheet) => sheet.id === lastId) ?? sortedCharacters.find((sheet) => editable(sheet.id)) ?? sortedCharacters[0];
+    setActiveId(next?.id ?? null);
+  }, [sortedCharacters, activeId, library.entries, player]);
+  useEffect(() => { if (activeId && !floatingView) storage.lastSheet.set(activeId); }, [activeId, floatingView]);
   // Bestiario, avventure e permessi sono riservati al GM: chi non lo è torna alla scheda.
   useEffect(() => { if (player.role !== "GM" && GM_TABS.includes(tab) && !floatingView) setTab(characters.length ? "sheet" : "library"); }, [player.role, tab, floatingView, characters.length]);
   const turnTokenIds = turns.entries.flatMap((entry) => entry.tokenId ? [entry.tokenId] : []).join(",");
@@ -505,7 +515,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     <header className="topbar">
       <div className="brand"><img src={import.meta.env.DEV ? "/dev/icon-dev.svg" : "/icon.svg"} alt=""/><div><strong>TavernExplorer{import.meta.env.DEV && <span className="dev-badge">DEV</span>}</strong><small>{DEFAULT_RULESET.label}</small></div></div>
       <select value={activeId ?? ""} onChange={(event) => { setActiveId(event.target.value || null); if (event.target.value) setTab("sheet"); }}>
-        <option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+        <option value="">Nessuna scheda</option>{sortedCharacters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
       </select>
     </header>
     </>}
@@ -525,7 +535,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     <main>
       {phone && <div className="popout-row"><Button variant="ghost" onClick={() => { storage.phoneTabsOnTop.set(!tabsOnTop); setTabsOnTop(!tabsOnTop); }}>{tabsOnTop ? "Barra di lato" : "Barra in alto"}</Button><Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
       {!floatingView && OBR.isAvailable && <div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel(tab)}>Apri {TAB_LABELS[tab].toLowerCase()} in finestra ↗</Button></div>}
-      {floatingView === "sheet" && !section && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
+      {floatingView === "sheet" && !section && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{sortedCharacters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
       {tokenNotice && <Alert tone="danger">{tokenNotice}</Alert>}
       {syncNotice && <Alert tone="danger">{syncNotice}</Alert>}
       {library.offline && <Alert tone="danger">Server non raggiungibile: le schede sono in sola lettura.</Alert>}

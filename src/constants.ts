@@ -18,6 +18,7 @@ export const STORAGE_CLOSED_SPELL_LEVELS = `${EXTENSION_ID}/closed-spell-levels/
 export const STORAGE_CLOSED_MONSTER_SECTIONS = `${EXTENSION_ID}/closed-monster-sections/v1`;
 export const STORAGE_EQUIPPED_FIRST = `${EXTENSION_ID}/inventory-equipped-first/v1`;
 export const STORAGE_LIBRARY_SORT = `${EXTENSION_ID}/library-alphabetical/v1`;
+export const STORAGE_LAST_SHEET = `${EXTENSION_ID}/last-sheet/v1`;
 export const INVENTORY_META_KEY = `${EXTENSION_ID}/shared-inventory`;
 export const PERMISSIONS_META_KEY = `${EXTENSION_ID}/permissions`;
 export const ROLL_LABEL_META_KEY = `${EXTENSION_ID}/roll-label`;
