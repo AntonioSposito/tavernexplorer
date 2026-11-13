@@ -712,6 +712,24 @@ it("TS contro la morte solo a 0 PF: un 1 naturale colora due fallimenti", async 
   expect([...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "TS morte")?.disabled).toBe(true);
 });
 
+it("i pallini dei TS contro la morte si cambiano a mano e 3 successi scrivono in chat che è stabile", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 0, max: 10 } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Fallimenti 2"]')!.click());
+  expect(host.querySelectorAll(".death-dot.failure")).toHaveLength(2);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Fallimenti 2"]')!.click());
+  expect(host.querySelectorAll(".death-dot.failure")).toHaveLength(1);
+  await settle();
+  const lastMessage = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1);
+  expect(lastMessage()).toMatchObject({ kind: "share", author: "Eroe", title: "TS contro la morte", body: "Successi 0/3 · Fallimenti 1/3" });
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Successi 3"]')!.click());
+  await settle();
+  expect(host.querySelectorAll(".death-dot.success")).toHaveLength(3);
+  expect(lastMessage()).toMatchObject({ kind: "share", author: "Eroe", title: "Eroe è stabile", body: "Successi 3/3 · Fallimenti 1/3" });
+});
+
 it("attiva e toglie l'ispirazione dalla tab Base", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });

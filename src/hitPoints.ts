@@ -42,3 +42,12 @@ export function applyDeathSave(combat: Combat, natural: number, bonus = 0): Comb
     : { successes, failures: Math.min(3, failures + (natural === 1 ? 2 : 1)) };
   return { ...combat, deathSaves };
 }
+
+// Messaggio in chat dei TS contro la morte: resoconto dei pallini, "stabile" a 3 successi, "morto" a 3 fallimenti.
+export function deathSaveNotice(name: string, { successes, failures }: Combat["deathSaves"], revived = false): { title: string; body: string } {
+  if (revived) return { title: `${name} torna a 1 PF`, body: "20 naturale al TS contro la morte" };
+  const body = `Successi ${successes}/3 · Fallimenti ${failures}/3`;
+  if (successes >= 3) return { title: `${name} è stabile`, body };
+  if (failures >= 3) return { title: `${name} è morto`, body };
+  return { title: "TS contro la morte", body };
+}

@@ -17,5 +17,6 @@
 .hit-dice-roll:hover:not(:disabled){background:hsl(var(--primary)/.22)}
 .death-dots{display:flex;gap:.35rem}
 .death-dot{width:14px;height:14px;border:2px solid hsl(var(--muted-foreground));border-radius:50%}
+button.death-dot{padding:0;background:none;cursor:pointer}
 .death-dot.success{border-color:hsl(142 70% 42%);background:hsl(142 70% 42%)}
 .death-dot.failure{border-color:hsl(var(--destructive));background:hsl(var(--destructive))}

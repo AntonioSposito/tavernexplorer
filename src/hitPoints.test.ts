@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { adjustHitPoints, applyDeathSave, setHitPointTotal } from "./hitPoints";
+import { adjustHitPoints, applyDeathSave, deathSaveNotice, setHitPointTotal } from "./hitPoints";
 import type { CharacterSheet } from "./types";
 
 const combat = (): CharacterSheet["combat"] => ({
@@ -42,6 +42,13 @@ it("TS contro la morte: successo da 10, 1 vale due fallimenti, 20 riporta a 1 PF
   expect(applyDeathSave(down, 1).deathSaves).toEqual({ successes: 0, failures: 2 });
   expect(applyDeathSave({ ...down, deathSaves: { successes: 0, failures: 2 } }, 1).deathSaves.failures).toBe(3);
   expect(applyDeathSave({ ...down, deathSaves: { successes: 2, failures: 1 } }, 20)).toMatchObject({ hp: { current: 1 }, deathSaves: { successes: 0, failures: 0 } });
+});
+
+it("messaggio dei TS contro la morte: resoconto, stabile, morto, 20 naturale", () => {
+  expect(deathSaveNotice("Eroe", { successes: 1, failures: 2 })).toEqual({ title: "TS contro la morte", body: "Successi 1/3 · Fallimenti 2/3" });
+  expect(deathSaveNotice("Eroe", { successes: 3, failures: 1 }).title).toBe("Eroe è stabile");
+  expect(deathSaveNotice("Eroe", { successes: 0, failures: 3 }).title).toBe("Eroe è morto");
+  expect(deathSaveNotice("Eroe", { successes: 0, failures: 0 }, true).title).toBe("Eroe torna a 1 PF");
 });
 
 it("il totale dei PF del turn order consuma prima i temporanei e cura solo gli attuali", () => {

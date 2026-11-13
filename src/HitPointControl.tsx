@@ -1,6 +1,6 @@
 import { modifierTotal } from "./effects";
 import { useState } from "react";
-import { adjustHitPoints, applyDeathSave, type HitPointField } from "./hitPoints";
+import { adjustHitPoints, applyDeathSave, deathSaveNotice, type HitPointField } from "./hitPoints";
 import type { RollResult } from "./dice";
 import { labeledBonus, type AttackRoll } from "./rollCards";
 import { getRuleset } from "./rulesets";
@@ -85,8 +85,10 @@ export function HitDiceControl({ sheet, editable, onUpdate, onRollValue }: HitPo
 }
 
 // TS contro la morte: si tira solo a 0 PF finché non si è stabili (3 successi) o morti (3 fallimenti).
-export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null> }) {
+// I pallini si cambiano anche a mano; dopo ogni tiro e ogni clic sui pallini parte il resoconto in chat.
+export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue, onNotice }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null>; onNotice: (title: string, alert: string) => void }) {
   const { successes, failures } = sheet.combat.deathSaves;
+  const notify = (combat: CharacterSheet["combat"], revived = false) => { const { title, body } = deathSaveNotice(sheet.name, combat.deathSaves, revived); onNotice(title, body); };
   const [busy, setBusy] = useState(false);
   const canRoll = editable && !busy && sheet.combat.hp.current === 0 && successes < 3 && failures < 3;
   const rollSave = async () => {
@@ -96,15 +98,25 @@ export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue }: Hit
     setBusy(false);
     if (result?.natural == null) return;
     const natural = result.natural;
+    notify(applyDeathSave(sheet.combat, natural, bonus), natural === 20);
     onUpdate((next) => { next.combat = applyDeathSave(next.combat, natural, bonus); return next; });
   };
-  const dots = (count: number, kind: string, label: string) => <span className="death-dots" aria-label={`${label}: ${count} su 3`}>{[0, 1, 2].map((index) => <span key={index} className={`death-dot${index < count ? ` ${kind}` : ""}`}/>)}</span>;
+  // Clic su un pallino: lo accende con quelli prima; sull'ultimo acceso lo spegne.
+  const setCount = (kind: "successes" | "failures", index: number) => {
+    const count = sheet.combat.deathSaves[kind] === index + 1 ? index : index + 1;
+    notify({ ...sheet.combat, deathSaves: { ...sheet.combat.deathSaves, [kind]: count } });
+    onUpdate((next) => { next.combat.deathSaves = { ...next.combat.deathSaves, [kind]: count }; return next; });
+  };
+  const dots = (count: number, kind: "successes" | "failures", label: string) => <span className="death-dots" aria-label={`${label}: ${count} su 3`}>{[0, 1, 2].map((index) => {
+    const className = `death-dot${index < count ? ` ${kind === "successes" ? "success" : "failure"}` : ""}`;
+    return editable ? <button key={index} type="button" className={className} aria-label={`${label} ${index + 1}`} aria-pressed={index < count} onClick={() => setCount(kind, index)}/> : <span key={index} className={className}/>;
+  })}</span>;
   return <section className="paper hit-point-control death-save-control">
     <h2>TS contro la morte</h2>
     <div className="hit-point-boxes">
       <button type="button" className="hit-dice-roll" disabled={!canRoll} title={sheet.combat.hp.current > 0 ? "Si tira solo a 0 PF" : successes >= 3 ? "Stabile" : failures >= 3 ? "Morto" : "Tira d20: da 10 successo, 1 = due fallimenti, 20 = 1 PF"} onClick={() => void rollSave()}>TS morte</button>
-      <div className="hit-point-box"><small>Successi</small>{dots(successes, "success", "Successi")}</div>
-      <div className="hit-point-box"><small>Fallimenti</small>{dots(failures, "failure", "Fallimenti")}</div>
+      <div className="hit-point-box"><small>Successi</small>{dots(successes, "successes", "Successi")}</div>
+      <div className="hit-point-box"><small>Fallimenti</small>{dots(failures, "failures", "Fallimenti")}</div>
     </div>
   </section>;
 }

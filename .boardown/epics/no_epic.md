@@ -14,18 +14,6 @@ order: 100
 
 Replace whole-array room metadata writes or add conflict handling when multiple players publish sheets concurrently.
 
-## Offer late-join message history
-
----
-id: TE-6
-type: feature
-priority: medium
-status: todo
-order: 200
----
-
-Design persistence that preserves privacy for GM-only and personal messages.
-
 ## Search local bestiary and adventures
 
 ---
@@ -89,18 +77,6 @@ order: 1200
 ---
 
 Progettare autenticazione, permessi server per elemento, scritture atomiche e migrazione idempotente dalle room metadata. Conservare backup TavernPack e verificare la privacy prima di spostare schede e note.
-
-## Cronologia azioni di combattimento
-
----
-id: TE-21
-type: feature
-priority: high
-status: todo
-order: 1300
----
-
-Registrare danni, cure, PF temporanei e condizioni con autore, bersaglio e visibilità; permettere annullamento sicuro quando la versione della scheda non è cambiata.
 
 ## Ripristinare deploy Vercel dopo rate limit
 
@@ -190,32 +166,6 @@ order: 1900
 
 **Test.** `effects.test.ts` per le penalità, `rest.test.ts` per la riduzione al riposo lungo.
 
-## Lanciare un incantesimo
-
----
-id: TE-28
-type: feature
-priority: medium
-status: todo
-order: 2000
----
-
-**Contesto.** `Spells` (`App.tsx:374`) mostra gli slot con +/− manuali e i pulsanti attacco/danno separati. `SpellEntry` ha `level`, `ritual`, `concentration`, `attackBonus`, `damage`, `saveDc`.
-
-**Da fare.**
-- Pulsante "Lancia" su ogni incantesimo di livello ≥ 1. Il dialog permette di scegliere uno slot di livello ≥ `spell.level` con slot liberi (default: il più basso disponibile) e, se `ritual`, l'opzione "Come rituale (nessuno slot)".
-- Funzione pura `castSpell(sheet, spellId, slotLevel | "ritual")` in `src/spellcasting.ts`: incrementa `slots[level_N].used` ed errore se non ci sono slot. Ritorna la nuova scheda e un riepilogo.
-- I trucchetti (livello 0) non consumano slot.
-- Messaggio di lancio: nome, livello dello slot, CD o tiro per colpire. Se c'è `attackBonus` propone il tiro di attacco; se c'è `damage` propone il danno. Cast potenziato: solo testo "slot di livello N" (non c'è un dato strutturato per i dadi extra, non inventarlo).
-- Se `concentration`: richiama TE-29 (impostare l'incantesimo attivo). Se TE-29 non è ancora fatta, lasciare solo il flag nel messaggio.
-- Magia del Patto: gli slot hanno la stessa chiave `level_N`, nessun caso speciale.
-
-**Accettazione.**
-- Palla di fuoco (livello 3) con slot 3 esauriti e slot 5 liberi → il dialog propone il 5 e il lancio scala lo slot 5.
-- Nessuno slot ≥ livello e incantesimo non rituale → pulsante disabilitato con tooltip.
-
-**Test.** `spellcasting.test.ts`: slot consumato, rituale, errore senza slot, trucchetto.
-
 ## Concentrazione
 
 ---
@@ -269,29 +219,6 @@ order: 2200
 **Accettazione.** Un'arma con Rovesciare mostra il badge e la CD nel messaggio di attacco; la TavernPack conserva il campo.
 
 **Test.** Round trip di `parseCharacterSheet` con `mastery`; uiSmoke facoltativo.
-
-## Ispirazione eroica
-
----
-id: TE-31
-type: feature
-priority: medium
-status: todo
-order: 2300
----
-
-**Contesto.** `combat.inspiration: boolean` è importato ma non ha effetti. Regola 5.5: si spende per ritirare un d20 appena tirato, tenendo il nuovo risultato; gli umani la recuperano a ogni riposo lungo.
-
-**Da fare.**
-- Nei messaggi di tipo `roll` con d20 dell'autore corrente: pulsante "Usa ispirazione" se la scheda (`characterId`) ha `inspiration: true`. Ritira solo il d20, mantiene il modificatore e pubblica un nuovo messaggio "Ritirato con ispirazione: X → Y" che riferisce l'originale (`rerollOf?: string`). Mette `inspiration = false`.
-- Party (GM): toggle "Dai ispirazione" per ogni scheda condivisa, via `updateSharedSheet`.
-- Riposo lungo: contatore opzionale. Si copre già con `counters`, non serve logica speciale per gli umani.
-
-**Accettazione.**
-- Il pulsante sparisce dopo l'uso e non compare sui tiri di altri giocatori.
-- Il GM la assegna e il giocatore la vede accesa senza ricaricare.
-
-**Test.** Funzione pura `rerollD20(message, newDie)` (modificatore conservato, vantaggio: ritira solo il dado tenuto).
 
 ## Resistenze, vulnerabilità e immunità
 
@@ -410,28 +337,6 @@ order: 2800
 **Accettazione.** Drago con 3 azioni leggendarie: speso 2 → al suo turno torna a 3. Resistenze 3 → 2 e restano 2 al round successivo.
 
 **Test.** `turns.test.ts` per il ripristino in `stepTurn`; import di un drago adulto 5e.tools.
-
-## Budget PE degli incontri
-
----
-id: TE-37
-type: feature
-priority: low
-status: todo
-order: 2900
----
-
-**Contesto.** Nessun calcolo di difficoltà. Dipende da TE-18 (incontri salvati), ma il calcolo puro si può fare prima. Regola DMG 2024: budget PE per personaggio in base al livello e alla difficoltà (Bassa / Moderata / Alta); somma dei PE dei mostri senza moltiplicatori (a differenza del 2014).
-
-**Da fare.**
-- `src/encounter.ts`: tabella `XP_BUDGET_2024[level] = { low, moderate, high }` (livelli 1-20, dal DMG 2024) e `CR_XP` (GS → PE).
-- `encounterDifficulty(partyLevels: number[], monsterCrs: string[])` → `{ totalXp, budgets, rating }`.
-- UI: nel bestiario del GM, una selezione multipla "Calcola incontro" che usa i livelli delle schede condivise (`PartyCharacterSummary.level`). Quando TE-18 sarà pronta, mostrarlo anche sull'incontro salvato.
-- Ruleset 2014: tabella e moltiplicatori diversi. Fuori scope; mostrare "solo regole 2024".
-
-**Accettazione.** Party di 4 PG di livello 3 contro 2 Bugbear Warrior (GS 1) → valore e fascia coerenti con la tabella del DMG 2024 (riportare nel test i numeri della tabella).
-
-**Test.** `encounter.test.ts` con 3-4 casi presi dalla tabella.
 
 ## Layout per finestre molto larghe
 
@@ -689,18 +594,6 @@ order: 4200
 
 Aggiungere le icone mancanti in `public/icons` (e in `public/icons/icons.json`): elenco in `docs/icon-gaps.md`. Aggiunte tutte le 446 dell'elenco.
 
-## Icone per i nomi italiani
-
----
-id: TE-51
-type: feature
-priority: medium
-status: todo
-order: 4300
----
-
-Le schede importate da Roll20 hanno nomi italiani (es. "Palla di fuoco") e oggi non trovano l'icona, che si cerca per nome inglese.
-
 ## Crediti delle icone visibili nell'app
 
 ---
@@ -743,7 +636,7 @@ Quando un PG clicca Iniziativa deve comparire nel turn order: oggi non compare.
 id: TE-59
 type: feature
 priority: medium
-status: todo
+status: done
 order: 5100
 ---
 
@@ -818,14 +711,3 @@ order: 5700
 
 Caricando i token il nome inizia con "Beast": capire perché e toglierlo.
 
-## Icone Scheda e Turn order sparite
-
----
-id: TE-66
-type: bug
-priority: medium
-status: todo
-order: 5800
----
-
-Le icone "Scheda" e "Turn order" sono sparite a un certo punto durante la sessione: capire perché.
