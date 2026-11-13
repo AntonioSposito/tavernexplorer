@@ -120,7 +120,7 @@ export async function uploadMonsterTokens(monsters: Array<{ name: string; source
       }
       if (!file) { file = fallbackTokenFile(monster.name); width = 150; }
       // dpi = pixel per quadretto: un mostro Grande (2 quadretti) usa metà della larghezza per quadretto.
-      assets.push(buildImageUpload(file).dpi(width / monsterTokenSize(monster)).name(`beasts/${monster.name}`).description(`beasts · ${monster.source} · TavernExplorer`).build());
+      assets.push(buildImageUpload(file).dpi(width / monsterTokenSize(monster)).name(monster.name).description(`beasts · ${monster.source} · TavernExplorer`).build());
     }
     if (assets.length) { await OBR.assets.uploadImages(assets, "CHARACTER"); uploaded += assets.length; }
   }

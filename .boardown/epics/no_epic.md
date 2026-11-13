@@ -705,7 +705,7 @@ order: 5600
 id: TE-65
 type: bug
 priority: medium
-status: todo
+status: done
 order: 5700
 ---
 

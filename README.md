@@ -144,7 +144,7 @@ vercel dev
   scena. I token nascosti non producono etichette per i giocatori.
 - Import bestiario: dopo aver caricato un manuale o un file JSON, si scelgono
   uno o piu' mostri. Solo quelli selezionati vengono salvati e caricati come
-  token `CHARACTER` con nome `beasts/<nome>`. Quando il mirror non espone
+  token `CHARACTER` con il nome del mostro. Quando il mirror non espone
   l'immagine viene generato un token di riserva con le iniziali del mostro.
 - Nuovi messaggi e risultati: broadcast effimero Owlbear e `/api/messages`
   (Redis), riletto ogni 15 secondi da telefono e Owlbear.
@@ -218,13 +218,14 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.20.0
+## Limiti della versione 0.20.1
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.
 - I tiri non sono renderizzati come dadi 3D: l'SDK non espone il dado di Owlbear.
-- L'SDK non permette di creare cartelle di asset: i token del bestiario usano il
-  prefisso `beasts/` nel nome, non una cartella reale.
+- L'SDK non permette di creare cartelle di asset: i token del bestiario non sono
+  raggruppati e si trovano cercando il nome del mostro (la descrizione è
+  `beasts · <fonte> · TavernExplorer`).
 - I permessi della libreria valgono per il nome Owlbear: un giocatore che si
   rinomina perde l'accesso finché il GM non aggiorna la scheda, e il nuovo nome
   vale solo dopo aver riaperto l'estensione. Senza rete o fuori da Owlbear non
