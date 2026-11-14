@@ -94,7 +94,8 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
       </div>
     </fieldset>)}
 
-    {draft.weapon && !actionMastery(sheet, draft) && <p className="muted">Maestria {WEAPON_MASTERIES[MASTERY_WEAPONS[draft.weapon]].name} non attiva: {draft.weapon} non è tra le armi di Weapon Mastery (tab Modifica).</p>}
+    {draft.attack && <p className="muted">Seconda mano (attacco extra di un'arma Light): metti la caratteristica del danno a "—", salvo modificatore negativo o stile Two-Weapon Fighting.</p>}
+    {draft.weapon && !actionMastery(sheet, draft) &&<p className="muted">Maestria {WEAPON_MASTERIES[MASTERY_WEAPONS[draft.weapon]].name} non attiva: {draft.weapon} non è tra le armi di Weapon Mastery (tab Modifica).</p>}
 
     <fieldset>
       <legend><label><input type="checkbox" checked={!!draft.save} onChange={(event) => patch({ save: event.target.checked ? { ability: "dexterity", dc: "spell", effect: "" } : undefined })}/> Tiro salvezza</label></legend>

@@ -672,7 +672,7 @@ Alcuni oggetti non compaiono, es. Arcane Focus.
 id: TE-63
 type: feature
 priority: medium
-status: todo
+status: done
 order: 5500
 ---
 
