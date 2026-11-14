@@ -12,7 +12,7 @@ OBR.onReady(async () => {
   await OBR.contextMenu.create({
     id: `${EXTENSION_ID}/token-menu`,
     icons: [{
-      icon: "/icon.svg",
+      icon: "/action-icon.svg",
       label: "TavernExplorer",
       filter: { every: [{ key: "layer", value: "CHARACTER" }] },
     }],

@@ -7,13 +7,14 @@ const OWLBEAR_ORIGIN = "https://www.owlbear.rodeo";
 const DEV_ICON = "/dev/icon-dev.svg";
 
 // In sviluppo il manifest ha un nome diverso: in Owlbear si distingue dalla versione pubblicata.
+// L'icona della barra resta la sagoma: Owlbear la usa come maschera e un'icona a colori diventa un quadrato.
 function devManifest(): Plugin {
   return {
     name: "tavernexplorer-dev-manifest",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use("/manifest.json", (_request, response) => {
-        const dev = { ...manifest, name: `${manifest.name} (DEV)`, icon: DEV_ICON, action: { ...manifest.action, title: `${manifest.action.title} (DEV)`, icon: DEV_ICON } };
+        const dev = { ...manifest, name: `${manifest.name} (DEV)`, icon: DEV_ICON, action: { ...manifest.action, title: `${manifest.action.title} (DEV)` } };
         // Questo middleware precede quello CORS di Vite, quindi imposta l'header da sé.
         response.setHeader("Access-Control-Allow-Origin", OWLBEAR_ORIGIN);
         response.setHeader("Content-Type", "application/json");

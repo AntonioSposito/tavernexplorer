@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sagoma per Owlbear: barra e menu del token usano solo la trasparenza e la colorano col tema. -->
+  <mask id="cut">
+    <rect width="64" height="64" fill="#fff"/>
+    <path d="M10 27h36" stroke="#000" stroke-width="2.5"/>
+    <path d="M22.5 34v14M34.5 34v14" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+  </mask>
+  <g mask="url(#cut)" fill="#fff">
+    <path d="M42 25h4a7 7 0 0 1 7 7v8a7 7 0 0 1-7 7h-4" fill="none" stroke="#fff" stroke-width="5"/>
+    <rect x="13" y="21" width="31" height="35" rx="4"/>
+    <path d="M10 25a6 6 0 0 1 6-7 7 7 0 0 1 11-5 7 7 0 0 1 11 0 6 6 0 0 1 8 6 3 3 0 0 1 1 6z"/>
+  </g>
+</svg>

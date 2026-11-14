@@ -1,13 +1,13 @@
 {
   "name": "TavernExplorer",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "manifest_version": 1,
   "description": "Schede e party D&D, mappe avventura, turn order flottante e messaggi per Owlbear Rodeo",
   "author": "TavernExplorer",
   "icon": "/icon.svg",
   "action": {
     "title": "Apri TavernExplorer",
-    "icon": "/icon.svg",
+    "icon": "/action-icon.svg",
     "popover": "/",
     "width": 480,
     "height": 1000
