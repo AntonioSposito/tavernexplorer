@@ -624,7 +624,7 @@ Funzione per spendere e guadagnare le monete, con messaggio in chat (Zaino → "
 id: TE-58
 type: bug
 priority: medium
-status: todo
+status: done
 order: 5000
 ---
 

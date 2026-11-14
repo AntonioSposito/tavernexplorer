@@ -63,6 +63,36 @@ it("blocca il menu iniziativa per un giocatore senza permesso", async () => {
   expect(mock.notify).toHaveBeenCalled();
 });
 
+it("senza permesso il giocatore tira l'iniziativa solo per il token del suo PG", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
+  const other = importRoll20({ character: { name: "Altro" }, normalized: { identity: { character_name: "Altro" }, combat: { initiative: 1 } } });
+  localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet, acl: { view: [], edit: ["Master"] } }, { kind: "pc", sheet: other, acl: { view: [], edit: [] } }]));
+  await toggleTokenInitiative([
+    { id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } },
+    { id: "token-2", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: other.id } } },
+    { id: "token-3", name: "Lupo", metadata: {} },
+  ] as never);
+  expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-1", characterId: sheet.id }]);
+  expect(mock.notify).not.toHaveBeenCalled();
+});
+
+it("senza permesso il giocatore tira l'iniziativa per il mostro condiviso che può modificare", async () => {
+  const gargoyle = { id: "beasts/Gargoyle", name: "Gargoyle", challengeRating: "2", abilities: { dex: 11 } };
+  localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "npc", sheet: gargoyle, acl: { view: [], edit: ["Master"] } }]));
+  await toggleTokenInitiative([{ id: "token-g", name: "Gargoyle", metadata: { [TOKEN_META_KEY]: { characterId: gargoyle.id } } }] as never);
+  expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-g", characterId: gargoyle.id, name: "Gargoyle" }]);
+  expect(mock.notify).not.toHaveBeenCalled();
+});
+
+it("senza la scheda in cache (TavernExplorer mai aperto) il giocatore la legge dal server", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ sheets: [{ kind: "pc", sheet, acl: { view: [], edit: ["Master"] } }] })));
+  await toggleTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
+  fetchMock.mockRestore();
+  expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-1", characterId: sheet.id, name: "Eroe" }]);
+  expect(mock.notify).not.toHaveBeenCalled();
+});
+
 it("aggiungendo un token collegato tira l'iniziativa e la mostra in chat come dalla scheda", async () => {
   mock.role = "GM";
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });

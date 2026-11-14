@@ -132,6 +132,8 @@ vercel dev
   Per ogni token collegato a una scheda disponibile viene tirata l'iniziativa
   usando il suo bonus; per gli altri viene chiesto un valore. Cliccando un nome
   nel tracker, il token viene evidenziato da un cerchio locale che svanisce.
+  Un giocatore senza il permesso "Gestire ordine dei turni" puo' aggiungere o
+  rimuovere solo i token dei PG e dei mostri condivisi che puo' modificare.
 - Dalla scheda aperta dal token si applicano danni, cure e PF
   temporanei indicando una quantità. L'anteprima mostra i PF risultanti;
   i danni consumano prima i PF temporanei, le cure si fermano al massimo
@@ -218,7 +220,7 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.20.1
+## Limiti della versione 0.20.2
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.

@@ -61,10 +61,28 @@ export async function openTokenActions(token: Item, section: TokenSheetSection =
 export async function toggleTokenInitiative(items: Item[]): Promise<void> {
   const roomMeta = await OBR.room.getMetadata();
   const permissions = roomMeta[PERMISSIONS_META_KEY] as { playersManageTurns?: boolean } | undefined;
-  const gm = await OBR.player.getRole() === "GM";
+  const role = await OBR.player.getRole();
+  const gm = role === "GM";
+  let linkedSheets = storage.cloudCache.characters(OBR.room.id);
+  // Il bestiario è nel browser del GM: solo lui tira per i token collegati ai suoi mostri.
+  let monsters = gm ? storage.monsters.get() : [];
   if (!gm && !permissions?.playersManageTurns) {
-    await OBR.notification.show("Il GM gestisce l'ordine dei turni", "WARNING");
-    return;
+    // Senza permesso il giocatore entra (o esce) solo con i token dei PG e dei mostri condivisi che può modificare.
+    const player = { name: await OBR.player.getName(), role };
+    const editable = (entries: CloudSheet[]) => entries.filter((entry) => (entry.kind === "pc" || entry.kind === "npc") && !entry.deletedAt && canEditCloudSheet(entry, player));
+    let own = editable(storage.cloudCache.get(OBR.room.id));
+    // La cache si riempie solo aprendo TavernExplorer (es. finestra privata appena aperta): allora chiede al server.
+    if (items.some((item) => !own.some((entry) => entry.sheet.id === linkedCharacterId(item)))) {
+      const response = await fetch(`${sheetsUrl}?room=${encodeURIComponent(OBR.room.id)}`).catch(() => null);
+      if (response?.ok) own = editable(((await response.json()) as { sheets: CloudSheet[] }).sheets);
+    }
+    linkedSheets = own.flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []);
+    monsters = own.flatMap((entry) => entry.kind === "npc" ? [entry.sheet] : []);
+    items = items.filter((item) => own.some((entry) => entry.sheet.id === linkedCharacterId(item)));
+    if (!items.length) {
+      await OBR.notification.show("Il GM gestisce l'ordine dei turni", "WARNING");
+      return;
+    }
   }
   const current = (roomMeta[TURN_META_KEY] as unknown as TurnState | undefined) ?? { round: 1, activeIndex: 0, entries: [] };
   const ids = new Set(items.map((item) => item.id));
@@ -74,9 +92,6 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
   // Token senza scheda: il GM sceglie la scheda (o il valore) nel popover; gli altri scrivono il valore.
   const unlinked: string[] = [];
   if (!alreadyPresent) {
-    const linkedSheets = storage.cloudCache.characters(OBR.room.id);
-    // Il bestiario è nel browser del GM: solo lui tira per i token collegati a un mostro.
-    const monsters = gm ? storage.monsters.get() : [];
     const pick = gm && (linkedSheets.length > 0 || monsters.length > 0);
     for (const item of items) {
       if (entries.some((entry) => entry.tokenId === item.id)) continue;
