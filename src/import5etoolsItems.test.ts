@@ -40,3 +40,11 @@ it("include i gruppi (Arcane Focus) e gli oggetti copiati da un altro, con le mo
   expect(items[0]).toMatchObject({ detail: "XPHB · Spellcasting Focus", item: { description: "A focus.\n\nVarianti: Crystal, Orb." } });
   expect(items[1]).toMatchObject({ detail: "ICC · Ring · legendary", item: { description: "While wearing this ring, you are immune to Charmed.\n\nIt glows." } });
 });
+
+it("un'arma magica senza maestria prende quella dell'arma di base", async () => {
+  const items = await import5eToolsItems(
+    { baseitem: [{ name: "Shortsword", source: "PHB", type: "M", reprintedAs: ["Shortsword|XPHB"] }, { name: "Shortsword", source: "XPHB", type: "M|XPHB", dmg1: "1d6", dmgType: "P", mastery: ["Vex|XPHB"] }], itemMastery: [{ name: "Vex", source: "XPHB", entries: ["Advantage."] }] },
+    { item: [{ name: "Flame Tongue Shortsword", source: "DMG", baseItem: "shortsword|phb", type: "M", dmg1: "1d6", dmgType: "P" }] },
+  );
+  expect(items.find((item) => item.name === "Flame Tongue Shortsword")!.item.properties).toBe("1d6 Perforante, Mastery: Vex");
+});

@@ -32,6 +32,11 @@ describe("buildRollCard", () => {
     expect(body).toBe("2d20kh1+5 → 16 · Danno 5 → 5 Tagliente");
   });
 
+  it("la maestria arriva nella card anche con un 1 naturale (Graze vale se l'attacco manca)", () => {
+    const mastery = { name: "Graze", rule: "If your attack roll misses…", effect: "On a miss: 3 Tagliente damage." };
+    expect(buildRollCard("Spada", "1d20+5", { formula: "1d20+5", total: 6, dice: [1], natural: 1 }, "normal", { ...attack, mastery }).card.mastery).toEqual(mastery);
+  });
+
   it("critico nella gamma estesa usa il danno critico", () => {
     const { card, title } = buildRollCard("Spada", "1d20+5", { formula: "1d20+5", total: 24, dice: [19], natural: 19 }, "normal", attack);
     expect(title).toBe("Spada — CRITICO!");

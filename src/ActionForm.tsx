@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { resolveAction } from "./actions";
-import { ABILITY_LABELS } from "./constants";
+import { actionMastery, resolveAction } from "./actions";
+import { ABILITY_LABELS, MASTERY_WEAPONS, WEAPON_MASTERIES } from "./constants";
 import { sanitizeFormula } from "./dice";
 import type { ActionAbility, ActionDamage, ActionEntry, CharacterSheet } from "./types";
 import { Alert, Button, Input, Select, Textarea } from "./ui";
@@ -77,6 +77,10 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
       <label><span>Gittata</span><Input value={draft.range ?? ""} placeholder="1,5 m / 24/96 m / Se stesso (cono 18 m)" onChange={(event) => patch({ range: event.target.value || undefined })}/></label>
       <label><span>Bonus magico</span><Input type="number" value={draft.magicBonus ?? 0} onChange={(event) => patch({ magicBonus: numberValue(event.target.value) || undefined })}/></label>
       <label><span>Critico da</span><Input type="number" min={2} max={20} value={draft.critRange ?? 20} onChange={(event) => patch({ critRange: numberValue(event.target.value) })}/></label>
+      <label><span>Arma</span><Select aria-label="Arma" value={draft.weapon ?? ""} onChange={(event) => patch({ weapon: event.target.value || undefined })}>
+        <option value="">Altro</option>
+        {Object.entries(MASTERY_WEAPONS).map(([key, mastery]) => <option key={key} value={key} title={WEAPON_MASTERIES[mastery].rule}>{key} ({WEAPON_MASTERIES[mastery].name})</option>)}
+      </Select></label>
     </div>
 
     {draft.damages!.map((part, index) => <fieldset key={index}>
@@ -89,6 +93,8 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
         <label><span>Dadi critico</span><Input value={part.critDice} placeholder={diceOnly(part.dice) || "1d8"} onChange={(event) => patchDamage(index, { critDice: event.target.value })}/></label>
       </div>
     </fieldset>)}
+
+    {draft.weapon && !actionMastery(sheet, draft) && <p className="muted">Maestria {WEAPON_MASTERIES[MASTERY_WEAPONS[draft.weapon]].name} non attiva: {draft.weapon} non è tra le armi di Weapon Mastery (tab Modifica).</p>}
 
     <fieldset>
       <legend><label><input type="checkbox" checked={!!draft.save} onChange={(event) => patch({ save: event.target.checked ? { ability: "dexterity", dc: "spell", effect: "" } : undefined })}/> Tiro salvezza</label></legend>

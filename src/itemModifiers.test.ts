@@ -91,9 +91,13 @@ it("CA manuale scritta: gli oggetti equipaggiati ora sono compresi, i cambi succ
 it("precompila l'azione di un'arma dalle proprietà importate da 5e.tools", () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, abilities: { strength: { score: 10, mod: 0 }, dexterity: { score: 16, mod: 3 } } } });
   const dagger = actionFromItem({ id: "d", name: "Dagger", count: 1, equipped: true, properties: "1d4 Perforante, Finesse, Light, Thrown, Gittata 20/60, Mastery: Nick" }, sheet);
-  expect(dagger).toMatchObject({ name: "Dagger", range: "20/60", attack: { ability: "dexterity", bonus: 0, proficient: true }, damages: [{ dice: "1d4", ability: "dexterity", type: "Perforante", critDice: "1d4" }] });
+  expect(dagger).toMatchObject({ name: "Dagger", range: "20/60", attack: { ability: "dexterity", bonus: 0, proficient: true }, damages: [{ dice: "1d4", ability: "dexterity", type: "Perforante", critDice: "1d4" }], weapon: "Dagger" });
   const sword = actionFromItem({ id: "s", name: "Longsword", count: 1, equipped: true, properties: "1d8 Tagliente (1d10 a due mani), Versatile" }, sheet);
   expect(sword).toMatchObject({ attack: { ability: "strength" }, damages: [{ dice: "1d8", ability: "strength", type: "Tagliente" }] });
+  expect(sword.weapon).toBe("Longsword");
+  expect(actionFromItem({ id: "f", name: "Flame Tongue Shortsword", count: 1, equipped: true }, sheet).weapon).toBe("Shortsword");
+  expect(actionFromItem({ id: "h", name: "Hand Crossbow +1", count: 1, equipped: true }, sheet).weapon).toBe("Hand Crossbow");
+  expect(actionFromItem({ id: "x", name: "Bastone da passeggio", count: 1, equipped: true }, sheet).weapon).toBeUndefined();
   expect(actionFromItem({ id: "r", name: "Corda", count: 1, equipped: false }, sheet).damages).toEqual([]);
 });
 

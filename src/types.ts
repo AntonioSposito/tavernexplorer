@@ -18,6 +18,8 @@ export interface SkillStat {
 
 // Caratteristica usata da attacco o danno: "spell" = caratteristica da incantatore, "none" = nessuna.
 export type ActionAbility = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma" | "spell" | "none";
+// Weapon Mastery (regole 2024): proprietà dell'arma usata dall'azione.
+export type WeaponMastery = "cleave" | "graze" | "nick" | "push" | "sap" | "slow" | "topple" | "vex";
 
 export interface ActionDamage {
   dice: string;
@@ -46,6 +48,8 @@ export interface ActionEntry {
   save?: { ability: Exclude<ActionAbility, "spell" | "none">; dc: "spell" | number; effect: string };
   // Risorsa (sheet.counters) che l'azione consuma, una per uso: es. Frecce per l'arco lungo.
   resourceId?: string;
+  // Tipo d'arma (chiave di MASTERY_WEAPONS): dà la maestria dell'arma, solo se il personaggio la conosce (Weapon Mastery).
+  weapon?: string;
 }
 
 export interface SpellEntry extends ActionEntry {
@@ -236,6 +240,8 @@ export interface SheetOptions {
   // Assente: per livello se coincide con il bonus importato, altrimenti il bonus importato.
   proficiency?: "level" | number;
   critRange?: number;
+  // Privilegio Weapon Mastery: tipi d'arma (chiavi di MASTERY_WEAPONS) di cui si usa la maestria.
+  weaponMasteries?: string[];
   carryMultiplier?: number;
   encumbrance?: "simple" | "variant" | "off";
   ignoreUnequippedWeight?: boolean;
@@ -314,6 +320,8 @@ export interface RollCard {
   // Avviso evidenziato per il tavolo, es. incantesimo lanciato senza slot o slot recuperato a mano.
   alert?: string;
   description?: string;
+  // Weapon Mastery dell'arma: nome, regola (tooltip) ed effetto calcolato per questo attacco.
+  mastery?: { name: string; rule: string; effect: string };
   // Tiro o voce di un mostro: intestazione blu invece che rossa.
   monster?: boolean;
 }

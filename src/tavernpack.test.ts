@@ -1,4 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { importRoll20 } from "./importer";
 import { parseCharacterSheet, parseTavernPack } from "./tavernpack";
 
 const pack = () => ({ format: "tavernpack", formatVersion: "1.0.0", data: { characters: [], monsters: [], campaigns: [], sharedInventory: [], notes: [] } });
@@ -11,6 +13,14 @@ describe("TavernPack validation", () => {
   it("rifiuta un backup incompleto prima di sostituire i dati", () => {
     expect(() => parseTavernPack({ ...pack(), data: { characters: [] } })).toThrow("TavernPack: mostri");
     expect(() => parseTavernPack({ ...pack(), data: { ...pack().data, characters: [{ id: "broken" }] } })).toThrow("TavernPack: schede");
+  });
+
+  it("conserva l'arma delle azioni e le armi di Weapon Mastery nel round trip della scheda", () => {
+    const sheet = importRoll20({ character: { name: "Ada" }, normalized: { identity: { character_name: "Ada" } } });
+    sheet.actions = [{ id: "a", name: "Maglio", weapon: "Maul" }];
+    sheet.options = { weaponMasteries: ["Maul"] };
+    const parsed = parseCharacterSheet(JSON.parse(JSON.stringify(sheet)));
+    expect([parsed.actions[0].weapon, parsed.options?.weaponMasteries]).toEqual(["Maul", ["Maul"]]);
   });
 
   it("rifiuta una scheda JSON parziale", () => {

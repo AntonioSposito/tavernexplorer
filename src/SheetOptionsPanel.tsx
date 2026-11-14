@@ -1,4 +1,4 @@
-import { ABILITY_LABELS, ABILITY_SHORT, SKILL_ABILITIES, SKILL_LABELS } from "./constants";
+import { ABILITY_LABELS, ABILITY_SHORT, MASTERY_WEAPONS, SKILL_ABILITIES, SKILL_LABELS, WEAPON_MASTERIES } from "./constants";
 import { ClassOptions } from "./ClassOptions";
 import { effectiveProficiency, proficiencyByLevel, setAbilityScore } from "./effects";
 import type { CharacterSheet, RollMode, SheetOptions } from "./types";
@@ -71,6 +71,10 @@ export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; 
       <div className="options-inline">{check("dexTiebreaker", "Spareggio con la Destrezza nei Turni (+DES/100)")}</div>
       <label><span>Gamma del critico</span><Input type="number" min="2" max="20" aria-label="Gamma del critico" value={options.critRange ?? 20} onChange={(event) => setOptions((next) => { next.critRange = Math.min(20, Math.max(2, Math.trunc(Number(event.target.value)) || 20)); })}/></label>
     </div></Card>
+    <Card><h2>Weapon Mastery</h2>
+      <p className="muted">Armi di cui il personaggio usa la maestria ({options.weaponMasteries?.length ?? 0} scelte). Nel popup dell'azione si sceglie l'arma.</p>
+      <div className="options-masteries">{Object.entries(MASTERY_WEAPONS).map(([weapon, mastery]) => <label key={weapon} className="action-form-check" title={WEAPON_MASTERIES[mastery].rule}><input type="checkbox" aria-label={`Weapon Mastery ${weapon}`} checked={!!options.weaponMasteries?.includes(weapon)} onChange={(event) => setOptions((next) => { const rest = (next.weaponMasteries ?? []).filter((item) => item !== weapon); next.weaponMasteries = event.target.checked ? [...rest, weapon] : rest; })}/> {weapon} <small>({WEAPON_MASTERIES[mastery].name})</small></label>)}</div>
+    </Card>
     <Card><h2>Incantesimi</h2><div className="editor-grid">
       {bonus("spellSaveDc", "Modificatore CD incantesimi")}
       {bonus("spellAttack", "Modificatore attacco magico globale")}

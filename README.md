@@ -220,7 +220,7 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.21.1
+## Limiti della versione 0.22.0
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.
@@ -254,3 +254,13 @@ su `main`.
 - I riposi aggiornano PF, dadi vita, slot e contatori; esaurimento, riduzioni
   permanenti del massimo dei PF e ripristini speciali di classe richiedono
   ancora gestione manuale nella scheda.
+
+## Attribuzione
+
+This work includes material from the System Reference Document 5.2.1 ("SRD 5.2.1")
+by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The
+SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International
+License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
+
+Il materiale SRD usato è il testo delle regole Weapon Mastery
+(`WEAPON_MASTERIES` in `src/constants.ts`).

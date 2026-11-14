@@ -699,12 +699,13 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onTogglePr
       ...attack != null ? [{ label: "Colpire", value: signed(attack), type: resolved.critRange < 20 ? `critico ${resolved.critRange}-20` : undefined }] : [],
       ...resolved.damage ? [{ label: "Danno", value: `${resolved.damage}${extra}`, type: resolved.damageType }] : [],
     ];
-    const shareCard: RollCard = { name: entry.name, subtitle, rolls: [], stats: [...spellStats, ...stats], save, description: [entry.description, spell?.higherLevelText && `Ai livelli superiori. ${spell.higherLevelText}`].filter(Boolean).join("\n\n").slice(0, DESCRIPTION_LIMIT) || undefined };
+    const shareCard: RollCard = { name: entry.name, subtitle, rolls: [], stats: [...spellStats, ...stats], save, mastery: resolved.mastery, description: [entry.description, spell?.higherLevelText && `Ai livelli superiori. ${spell.higherLevelText}`].filter(Boolean).join("\n\n").slice(0, DESCRIPTION_LIMIT) || undefined };
     const details = [
       entry.range && `Gittata ${entry.range}`,
       resolved.damageType,
       resolved.saveDc != null && `TS ${resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : ""} CD ${resolved.saveDc}${resolved.saveEffect ? ` (${resolved.saveEffect})` : ""}`.replace("TS  CD", "CD"),
       attack != null && resolved.critRange < 20 && `Critico ${resolved.critRange}-20`,
+      resolved.mastery && `Maestria ${resolved.mastery.name}`,
       resource && `${resource.name} ${left}/${resource.max}`,
     ].filter(Boolean).join(" · ");
     // Il nome usa l'azione (attacco con danno, oppure solo danno); le icone condividono e modificano. preventDefault evita di aprire il dettaglio.
@@ -716,7 +717,7 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onTogglePr
       // L'azione collegata scala la risorsa; a 0 si tira lo stesso, con l'avviso.
       if (resource && left > 0) onSpendResource?.(resource.id);
       const alert = [spell && spell.level > 0 && !spell.innate && !spell.prepared && "Incantesimo non preparato", spell && spell.level > 0 && !spell.innate && castLevel == null && `Lanciato senza slot${spell.ritual ? " (rituale)" : ""}`, resource && left <= 0 && `${resource.name}: esaurite`].filter(Boolean).join(" · ") || undefined;
-      const rollExtras = { ...extras, subtitle: cardSubtitle, alert };
+      const rollExtras = { ...extras, subtitle: cardSubtitle, alert, mastery: resolved.mastery };
       // Più danni: il primo (con modificatori e livelli superiori) è il danno principale, gli altri righe a parte con il loro tipo.
       const [first, ...others] = resolved.damageParts ?? [];
       const damage = { damage: first?.damage ?? resolved.damageFormula ?? resolved.damage, critDamage: first?.critDamage ?? resolved.critDamageFormula ?? resolved.critDamage, ...first && { damageType: first.type, extraDamage: others } };
@@ -826,6 +827,7 @@ function RollCardView({ card }: { card: RollCard }) {
     {card.rolls.map((row, index) => <div className="r20-row" key={index}><span className="r20-label">{row.label}</span><span className="r20-values"><span title={describeRoll(row.formula, row.dice)} className={`r20-roll${row.critical ? " crit" : ""}`}>{row.total}</span>{row.type && <em>{row.type}</em>}</span></div>)}
     {card.stats?.map((stat) => <div className="r20-row" key={stat.label}><span className="r20-label">{stat.label}</span><span className="r20-values"><strong>{stat.value}</strong>{stat.type && <em>{stat.type}</em>}</span></div>)}
     {card.save && <div className="r20-row"><span className="r20-label">Tiro salvezza</span><span className="r20-values"><strong>CD {card.save.dc}</strong>{card.save.ability && <em>{card.save.ability}</em>}</span>{card.save.effect && <small className="r20-effect">{card.save.effect}</small>}</div>}
+    {card.mastery && <div className="r20-row"><span className="r20-label">Maestria</span><span className="r20-values"><strong title={card.mastery.rule}>{card.mastery.name}</strong></span><small className="r20-effect">{card.mastery.effect}</small></div>}
     {card.note && <p className="r20-note">{card.note}</p>}
     {card.description && (d20 || card.rolls.length ? <details className="r20-description"><summary>Descrizione</summary><p>{card.description}</p></details> : <p className="r20-description">{card.description}</p>)}
   </div>;

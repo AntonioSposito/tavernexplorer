@@ -300,7 +300,10 @@ export async function import5eToolsItems(baseFile: unknown, itemsFile: unknown):
   const rows = [...all, ...groups].filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
   // Regole delle maestrie delle armi (items-base.json → itemMastery), per nome.
   const masteries = new Map(array(obj(baseFile).itemMastery).map(obj).map((row) => [text(row.name), renderEntries(row.entries)]));
-  return rows.map((row) => {
+  // Armi magiche senza maestria (es. Flame Tongue): quella dell'arma di base con lo stesso nome (baseItem).
+  const baseMastery = new Map(array(obj(baseFile).baseitem).map(obj).filter((row) => array(row.mastery).length).map((row) => [text(row.name).toLowerCase(), row.mastery]));
+  return rows.map((original) => {
+    const row = array(original.mastery).length || !original.baseItem ? original : { ...original, mastery: baseMastery.get(text(original.baseItem).split("|")[0].toLowerCase()) };
     const type = code(row.type);
     const name = text(row.name);
     const source = text(row.source);

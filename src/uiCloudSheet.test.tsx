@@ -513,6 +513,48 @@ it("l'attacco tira anche il danno, critico se il d20 naturale è nella gamma", a
   expect([...shared.querySelectorAll(".r20-row")].map((row) => row.textContent)).toEqual(["Colpire+5critico 19-20", "Danno1d8+3Tagliente"]);
 });
 
+it("l'arma scelta nel popup dell'azione dà la maestria nella card d'attacco, con la CD di Topple", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.options = { weaponMasteries: ["Maul"] };
+  sheet.abilities.strength = { score: 16, mod: 3, save: 3, saveProficient: false };
+  sheet.combat.proficiencyBonus = 2;
+  sheet.actions = [{ id: "axe", name: "Ascia", attack: { ability: "strength", bonus: 0, proficient: true }, damages: [{ dice: "1d12", ability: "strength", bonus: 0, type: "Tagliente", critDice: "1d12" }] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Ascia"]')!.click());
+  const weapon = host.querySelector<HTMLSelectElement>('select[aria-label="Arma"]')!;
+  await act(async () => { weapon.value = "Maul"; weapon.dispatchEvent(new Event("change", { bubbles: true })); });
+  await click("Salva");
+  await settle(1_700);
+  expect(cloudSheet().sheet.actions[0].weapon).toBe("Maul");
+  expect(host.querySelector(".entry-meta")?.textContent).toContain("Maestria Topple");
+  vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 10; return array; });
+  await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
+  vi.restoreAllMocks();
+  await click("Messaggi");
+  const row = [...host.querySelectorAll(".r20-card .r20-row")].find((item) => item.textContent?.startsWith("Maestria"))!;
+  expect(row.textContent).toBe("MaestriaToppleOn a hit: Constitution save DC 13 or the target is Prone.");
+  expect(row.querySelector("strong")?.title).toMatch(/^If you hit a creature with this weapon, you can force/);
+});
+
+it("Weapon Mastery: l'arma spuntata nella tab Modifica attiva la maestria dell'azione con quell'arma", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.actions = [{ id: "sword", name: "Spada lunga", attack: { ability: "strength", bonus: 0, proficient: true }, weapon: "Longsword", damages: [{ dice: "1d8", ability: "strength", bonus: 0, type: "Tagliente", critDice: "1d8" }] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+  expect(host.querySelector(".entry-meta")?.textContent ?? "").not.toContain("Maestria");
+  await click("Modifica");
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Weapon Mastery Longsword"]')!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.options?.weaponMasteries).toEqual(["Longsword"]);
+  await click("Azioni");
+  expect(host.querySelector(".entry-meta")?.textContent).toContain("Maestria Sap");
+});
+
 it("riordina le azioni con Modifica ordine e salva il nuovo ordine", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   sheet.actions = [{ id: "a", name: "Arco" }, { id: "b", name: "Bastone" }, { id: "c", name: "Coltello" }];

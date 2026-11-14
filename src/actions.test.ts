@@ -28,3 +28,18 @@ it("le azioni importate senza form mantengono i valori fissi", () => {
   expect(resolveAction(sheet, { id: "d", name: "Pugnale", attackBonus: 5, damage: "1d4+3", damageType: "Perforante", saveDc: 13 }))
     .toMatchObject({ attackBonus: 5, damage: "1d4+3", critDamage: "2d4+3", damageType: "Perforante", saveDc: 13, critRange: 20 });
 });
+
+it("Weapon Mastery: Topple con la CD della scheda, Graze col modificatore d'attacco, nulla senza arma", () => {
+  const known = { ...sheet, options: { weaponMasteries: ["Maul", "Greatsword", "Longsword"] } };
+  const maul: ActionEntry = { id: "e", name: "Maglio", attack: { ability: "strength", bonus: 0, proficient: true }, damages: [{ dice: "2d6", ability: "strength", bonus: 0, type: "Contundente", critDice: "2d6" }], weapon: "Maul" };
+  expect(resolveAction(known, maul).mastery).toMatchObject({ name: "Topple", effect: "On a hit: Constitution save DC 13 or the target is Prone." });
+  expect(resolveAction(known, { ...maul, weapon: "Greatsword" }).mastery?.effect).toBe("On a miss: 3 Contundente damage.");
+  expect(resolveAction(known, { ...maul, weapon: "Longsword" }).mastery?.rule).toMatch(/^If you hit a creature/);
+  expect(resolveAction(known, { ...maul, weapon: undefined }).mastery).toBeUndefined();
+});
+
+it("con un tipo d'arma la maestria vale solo se l'arma è scelta in Weapon Mastery", () => {
+  const sword: ActionEntry = { id: "f", name: "Spada lunga +1", attack: { ability: "strength", bonus: 0, proficient: true }, weapon: "Longsword" };
+  expect(resolveAction(sheet, sword).mastery).toBeUndefined();
+  expect(resolveAction({ ...sheet, options: { weaponMasteries: ["Handaxe", "Longsword"] } }, sword).mastery?.name).toBe("Sap");
+});

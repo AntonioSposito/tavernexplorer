@@ -1,3 +1,4 @@
+import { MASTERY_WEAPONS } from "./constants";
 import type { ActionEntry, CharacterSheet, InventoryEntry, StatModifier } from "./types";
 
 const ABILITIES: Record<string, string> = {
@@ -82,9 +83,12 @@ export function actionFromItem(item: InventoryEntry, sheet: CharacterSheet): Act
   const mod = (ability: string) => sheet.abilities[ability]?.mod ?? 0;
   const ability = has("ammunition") ? "dexterity" : has("finesse") && mod("dexterity") > mod("strength") ? "dexterity" : "strength";
   const range = properties.find((part) => /^gittata /i.test(part))?.replace(/^gittata /i, "");
+  const weapon = Object.keys(MASTERY_WEAPONS).sort((a, b) => b.length - a.length).find((name) => new RegExp(`\\b${name}\\b`, "i").test(item.name));
   return {
     id: crypto.randomUUID(), name: item.name, description: item.description, range,
     attack: { ability, bonus: 0, proficient: true }, critRange: 20,
     damages: damage ? [{ dice: damage[1], ability, bonus: 0, type: damage[2], critDice: damage[1] }] : [],
+    // Tipo d'arma dal nome (es. "Flame Tongue Shortsword" → Shortsword, il nome più lungo vince): la maestria segue Weapon Mastery.
+    ...weapon && { weapon },
   };
 }

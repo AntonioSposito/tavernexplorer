@@ -1,7 +1,7 @@
-import { ABILITY_TAGS } from "./constants";
+import { ABILITY_TAGS, MASTERY_WEAPONS, WEAPON_MASTERIES } from "./constants";
 import { labeledBonus } from "./rollCards";
 import { getRuleset } from "./rulesets";
-import type { ActionAbility, ActionEntry, CharacterSheet, SpellEntry } from "./types";
+import type { ActionAbility, ActionEntry, CharacterSheet, SpellEntry, WeaponMastery } from "./types";
 
 export interface ResolvedAction {
   attackBonus?: number;
@@ -21,6 +21,8 @@ export interface ResolvedAction {
   healingFormula?: string;
   // Con più danni: ognuno a parte (formula, critico e tipo), per tirarli in righe separate.
   damageParts?: Array<{ damage: string; critDamage: string; type?: string }>;
+  // Weapon Mastery: nome, regola ed effetto con i numeri di questa scheda (CD di Topple, danno di Graze).
+  mastery?: { name: string; rule: string; effect: string };
 }
 
 const signed = (value: number) => value === 0 ? "" : `${value > 0 ? "+" : ""}${value}`;
@@ -31,6 +33,30 @@ function abilityMod(sheet: CharacterSheet, ability: ActionAbility): number {
   if (ability === "none") return 0;
   if (ability === "spell") return sheet.spellcasting.attackBonus - sheet.combat.proficiencyBonus;
   return sheet.abilities[ability]?.mod ?? 0;
+}
+
+// Maestria dell'azione: quella del suo tipo d'arma, solo se l'arma è scelta nel privilegio Weapon Mastery.
+export function actionMastery(sheet: CharacterSheet, entry: ActionEntry): WeaponMastery | undefined {
+  return entry.weapon && sheet.options?.weaponMasteries?.includes(entry.weapon) ? MASTERY_WEAPONS[entry.weapon] : undefined;
+}
+
+// Effetto della maestria per questo attacco, in inglese come la regola; Topple e Graze usano la caratteristica d'attacco.
+function masteryOf(sheet: CharacterSheet, entry: ActionEntry): ResolvedAction["mastery"] {
+  const mastery = actionMastery(sheet, entry);
+  if (!mastery) return undefined;
+  const mod = abilityMod(sheet, entry.attack?.ability ?? "none");
+  const type = (entry.damages?.[0]?.type ?? entry.damageType ?? "").trim();
+  const effect = {
+    cleave: "On a hit: one extra melee attack against a second creature within 5 ft (no ability modifier to its damage), once per turn.",
+    graze: `On a miss: ${Math.max(0, mod)}${type ? ` ${type}` : ""} damage.`,
+    nick: "The extra attack of the Light property is part of the Attack action, once per turn.",
+    push: "On a hit: push the target (Large or smaller) up to 10 ft away.",
+    sap: "On a hit: the target has Disadvantage on its next attack roll before your next turn.",
+    slow: "On a hit that deals damage: the target's Speed drops by 10 ft until your next turn.",
+    topple: `On a hit: Constitution save DC ${8 + mod + sheet.combat.proficiencyBonus} or the target is Prone.`,
+    vex: "On a hit that deals damage: Advantage on your next attack roll against the target before the end of your next turn.",
+  }[mastery];
+  return { ...WEAPON_MASTERIES[mastery], effect };
 }
 
 // Valori effettivi dell'azione per la scheda data (passare la scheda con gli effetti già applicati).
@@ -57,7 +83,7 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry | SpellE
     : undefined;
   const parts = (entry.damages ?? []).filter((part) => part.dice.trim());
   if (!parts.length) {
-    return { attackBonus, attackFormula, damage: entry.damage, critDamage: entry.damage && getRuleset(sheet.ruleset.id).criticalDamage(entry.damage), damageType: entry.damageType, critRange, ...save, ...heal };
+    return { mastery: masteryOf(sheet, entry), attackBonus, attackFormula, damage: entry.damage, critDamage: entry.damage && getRuleset(sheet.ruleset.id).criticalDamage(entry.damage), damageType: entry.damageType, critRange, ...save, ...heal };
   }
   // Il bonus magico si somma solo al primo danno, come nel form di Roll20.
   const flat = parts.map((part, index) => abilityMod(sheet, part.ability) + part.bonus + (index === 0 ? magic : 0));
@@ -68,5 +94,5 @@ export function resolveAction(sheet: CharacterSheet, entry: ActionEntry | SpellE
   const damageFormula = parts.map((part, index) => `${part.dice.trim()}${labels[index]}`).join("+");
   const critDamageFormula = parts.map((part, index) => `${[part.dice.trim(), part.critDice.trim()].filter(Boolean).join("+")}${labels[index]}`).join("+");
   const damageParts = parts.length > 1 ? parts.map((part, index) => ({ damage: `${part.dice.trim()}${labels[index]}`, critDamage: `${[part.dice.trim(), part.critDice.trim()].filter(Boolean).join("+")}${labels[index]}`, type: part.type.trim() || undefined })) : undefined;
-  return { attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, damageParts, critRange, ...save, ...heal };
+  return { mastery: masteryOf(sheet, entry), attackBonus, attackFormula, damage, critDamage, damageFormula, critDamageFormula, damageType, damageParts, critRange, ...save, ...heal };
 }
