@@ -660,7 +660,7 @@ Scegliere per chi si sta parlando (come "Parla come" di Roll20): menu "Parla com
 id: TE-61
 type: bug
 priority: medium
-status: todo
+status: done
 order: 5300
 ---
 

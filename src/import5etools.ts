@@ -1,5 +1,6 @@
 import { DEFAULT_RULESET } from "./rulesets";
 import { monsterDamages, monsterSpellStats } from "./monsterSheet";
+import { resolveCopies } from "./fivetoolsCopy";
 import type { ActionEntry, CampaignChapter, CampaignDocument, MonsterSheet, MonsterSpellcasting, SpellEntry, TraitEntry } from "./types";
 
 type Obj = Record<string, unknown>;
@@ -291,10 +292,12 @@ function itemProperties(row: Obj): string | undefined {
 }
 
 // Edizione 2024 prima: gli oggetti ristampati (reprintedAs) sono nascosti, resta la versione nuova.
-// Gli oggetti "_copy" ereditano i dati da un altro: si scartano (prima versione).
-export function import5eToolsItems(baseFile: unknown, itemsFile: unknown): FiveToolsItem[] {
-  const rows = [...array(obj(baseFile).baseitem), ...array(obj(itemsFile).item)].map(obj)
-    .filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
+// Ci sono anche i gruppi (itemGroup, es. Arcane Focus), con l'elenco delle varianti nella descrizione.
+export async function import5eToolsItems(baseFile: unknown, itemsFile: unknown): Promise<FiveToolsItem[]> {
+  const groups = array(obj(itemsFile).itemGroup).map(obj).map((row) => ({ ...row, entries: [...array(row.entries), ...array(row.items).length ? [`Varianti: ${array(row.items).map((item) => text(item).split("|")[0]).join(", ")}.`] : []] }));
+  // Gli oggetti "_copy" partono dall'originale con le modifiche _mod, come i mostri; senza originale restano fuori.
+  const all = await resolveCopies([...array(obj(baseFile).baseitem), ...array(obj(itemsFile).item)].map(obj), async () => undefined);
+  const rows = [...all, ...groups].filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
   // Regole delle maestrie delle armi (items-base.json → itemMastery), per nome.
   const masteries = new Map(array(obj(baseFile).itemMastery).map(obj).map((row) => [text(row.name), renderEntries(row.entries)]));
   return rows.map((row) => {

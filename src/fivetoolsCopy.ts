@@ -8,8 +8,8 @@ export type FindMonster = (name: string, source: string) => Promise<Obj | undefi
 const key = (name: unknown, source: unknown) => `${String(source)}|${String(name)}`.toLowerCase();
 const nameOf = (value: unknown) => typeof value === "string" ? value : String((value as Obj | null)?.name ?? "");
 const list = (value: unknown): unknown[] => Array.isArray(value) ? value : value === undefined ? [] : [value];
-// Il token del mostro copiato ha il nome dell'originale: la copia usa solo il suo.
-const NOT_COPIED = ["hasToken", "tokenUrl", "token", "hasFluff", "hasFluffImages", "_copy"];
+// Il token del mostro copiato ha il nome dell'originale: la copia usa solo il suo. La ristampa dell'originale non è della copia.
+const NOT_COPIED = ["hasToken", "tokenUrl", "token", "hasFluff", "hasFluffImages", "_copy", "reprintedAs"];
 
 export async function resolveCopies(monsters: Obj[], find: FindMonster): Promise<Obj[]> {
   const local = new Map(monsters.map((monster) => [key(monster.name, monster.source), monster]));
@@ -51,7 +51,9 @@ function applyMod(result: Obj, prop: string, raw: unknown, warnings: string[]) {
     case "appendIfNotExistsArr": result[prop] = [...current, ...items.filter((item) => !current.some((existing) => JSON.stringify(existing) === JSON.stringify(item)))]; return;
     case "replaceArr": {
       const target = mod.replace as unknown;
-      const index = typeof target === "object" && target ? Number((target as Obj).index) : current.findIndex((item) => nameOf(item) === target);
+      // Voce indicata per nome, per indice o (testo degli oggetti) con una regex.
+      const regex = typeof target === "object" && target && "regex" in target ? new RegExp(String((target as Obj).regex)) : undefined;
+      const index = regex ? current.findIndex((item) => typeof item === "string" && regex.test(item)) : typeof target === "object" && target ? Number((target as Obj).index) : current.findIndex((item) => nameOf(item) === target);
       if (index >= 0 && index < current.length) { result[prop] = [...current.slice(0, index), ...items, ...current.slice(index + 1)]; return; }
       break;
     }
