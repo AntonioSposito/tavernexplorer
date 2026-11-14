@@ -220,10 +220,12 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.20.2
+## Limiti della versione 0.21.0
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.
+- I dati dell'export Roll20 che la scheda non conserva (risorse, roleplay, aspetto,
+  macro, alcuni campi di attacchi e incantesimi) sono elencati nelle note d'import.
 - I tiri non sono renderizzati come dadi 3D: l'SDK non espone il dado di Owlbear.
 - L'SDK non permette di creare cartelle di asset: i token del bestiario non sono
   raggruppati e si trovano cercando il nome del mostro (la descrizione è

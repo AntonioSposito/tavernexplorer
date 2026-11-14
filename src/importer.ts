@@ -171,6 +171,41 @@ function importSpells(spellcasting: Obj, attacks: ActionEntry[], warnings: strin
   return result;
 }
 
+// Valore che Roll20 considera vuoto: "", "0" (danno 2 assente) o "None" (incantesimo senza attacco).
+const filled = (value: unknown) => { const trimmed = text(value).trim(); return !!trimmed && trimmed !== "0" && trimmed.toLowerCase() !== "none"; };
+const filledLabels = (source: Obj, labels: Record<string, string>) => Object.entries(labels).filter(([key]) => filled(source[key])).map(([, label]) => label);
+const ROLEPLAY = { personality_traits: "tratti caratteriali", ideals: "ideali", bonds: "legami", flaws: "difetti", backstory: "storia" };
+const APPEARANCE = { size: "taglia", age: "età", height: "altezza", weight: "peso", eyes: "occhi", skin: "pelle", hair: "capelli", appearance: "aspetto" };
+const ATTACK_FIELDS = { range: "gittata", damage2: "secondo danno", save_effect: "effetto del TS" };
+const SPELL_FIELDS = { casting_time: "tempo di lancio", range: "gittata", target: "bersaglio", duration: "durata", components: "componenti", materials: "materiali", attack: "attacco", save: "TS", save_success: "effetto del TS", damage2: "secondo danno", at_higher_levels: "livelli superiori" };
+
+// Dati presenti nell'export che la scheda non conserva: finiscono nelle note d'importazione invece di sparire in silenzio.
+function unimportedWarnings(source: Roll20Export, normalized: Obj, sheet: CharacterSheet): string[] {
+  const warnings: string[] = [];
+  const resources = [...arr(normalized.resources), ...Object.values(obj(normalized.other_resources)).map(obj)]
+    .filter((row) => filled(row.name) || filled(row.current) || filled(row.max))
+    .map((row) => `${text(row.name).trim() || "senza nome"} ${num(row.current)}${row.max == null ? "" : `/${num(row.max)}`}`);
+  if (resources.length) warnings.push(`Risorse non importate: ${resources.join(", ")}.`);
+  const roleplay = filledLabels(obj(normalized.roleplay), ROLEPLAY);
+  if (roleplay.length) warnings.push(`Roleplay non importato: ${roleplay.join(", ")}.`);
+  const appearance = filledLabels(obj(normalized.identity), APPEARANCE);
+  if (appearance.length) warnings.push(`Aspetto non importato: ${appearance.join(", ")}.`);
+  const combat = obj(normalized.combat);
+  if (filled(combat.global_attack_bonus) || filled(combat.global_damage_bonus)) warnings.push("Bonus globali di attacco e danno non importati.");
+  if (filled(obj(source.character).gmnotes_text)) warnings.push("Note del GM non importate.");
+  const macros = arr(obj(source.raw).abilities).map((row) => text(row.name).trim()).filter(Boolean);
+  if (macros.length) warnings.push(`Macro Roll20 non importate: ${macros.join(", ")}.`);
+  const fields = (rows: Obj[], labels: Record<string, string>, what: string, noun: string) => {
+    const lost = Object.entries(labels).filter(([key]) => rows.some((row) => filled(row[key]))).map(([, label]) => label);
+    const count = rows.filter((row) => Object.keys(labels).some((key) => filled(row[key]))).length;
+    if (lost.length) warnings.push(`Campi ${what} non importati: ${lost.join(", ")} (in ${count} ${noun}).`);
+  };
+  fields(arr(normalized.attacks), ATTACK_FIELDS, "degli attacchi", "attacchi");
+  fields(Object.values(obj(obj(normalized.spellcasting).spells)).flatMap(arr), SPELL_FIELDS, "degli incantesimi", "incantesimi");
+  for (const item of sheet.inventory) if (item.modifiersText) warnings.push(`${item.name}: modificatori non riconosciuti, non applicati: ${item.modifiersText}.`);
+  return warnings;
+}
+
 export function importRoll20(source: Roll20Export): CharacterSheet {
   if (!source || typeof source !== "object") throw new Error("Il file non contiene un oggetto JSON");
   const normalized = obj(source.normalized);
@@ -212,7 +247,7 @@ export function importRoll20(source: Roll20Export): CharacterSheet {
     biography: decodeLegacy(text(character.bio_text) || text(character.bio_html)), importWarnings: warnings,
   };
   sheet.spells = importSpells(spellcasting, actions, warnings);
-  sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet));
+  sheet.importWarnings.push(...DEFAULT_RULESET.normalizeAfterImport(sheet), ...unimportedWarnings(source, normalized, sheet));
   fixProficiencyChoice(sheet);
   sheet.classes = importClasses(source.raw, text(identity.class), num(identity.level, 1), text(identity.subclass));
   if (sheet.classes.length) sheet.options = { ...sheet.options, autoLevel: autoLevelMatches(sheet) };

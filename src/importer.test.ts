@@ -63,6 +63,35 @@ describe("import Roll20 ogl5e", () => {
     expect(sheet.importWarnings.some((warning) => warning.includes("character.name"))).toBe(true);
   });
 
+  it("segnala nelle note d'importazione i dati dell'export che non vengono importati", () => {
+    const sheet = importRoll20({ ...fixture,
+      character: { ...fixture.character, gmnotes_text: "segreto" },
+      normalized: { ...fixture.normalized,
+        identity: { ...fixture.normalized.identity, age: "30", eyes: "verdi" },
+        roleplay: { ideals: "Libertà", bonds: "", flaws: "Avido" },
+        combat: { ...fixture.normalized.combat, global_attack_bonus: "", global_damage_bonus: "1d4" },
+        resources: [{ name: "Frecce", current: 17, max: null }],
+        other_resources: { class_resource: { name: "IRA", current: 3, max: 3 }, other_resource: { name: "", current: null, max: null } },
+        attacks: [{ ...fixture.normalized.attacks[0], range: "36 metri", damage2: "0" }],
+        spellcasting: { ...fixture.normalized.spellcasting, spells: { cantrips: [{ name: "Eldritch Blast", casting_time: "1 azione", attack: "None" }], level_1: [{ name: "Scudo", casting_time: "1 reazione", duration: "1 round" }] } },
+        inventory: [{ name: "Bastone", modifiers: "Item Type: Melee Weapon, Damage: 1d6", _rowid: "i1" }],
+      },
+      raw: { abilities: [{ name: "Attacco-Ascia" }] },
+    });
+    expect(sheet.importWarnings).toEqual(expect.arrayContaining([
+      "Risorse non importate: Frecce 17, IRA 3/3.",
+      "Roleplay non importato: ideali, difetti.",
+      "Aspetto non importato: età, occhi.",
+      "Bonus globali di attacco e danno non importati.",
+      "Note del GM non importate.",
+      "Macro Roll20 non importate: Attacco-Ascia.",
+      "Campi degli attacchi non importati: gittata (in 1 attacchi).",
+      "Campi degli incantesimi non importati: tempo di lancio, durata (in 2 incantesimi).",
+      "Bastone: modificatori non riconosciuti, non applicati: Damage: 1d6.",
+    ]));
+    expect(importRoll20(fixture).importWarnings.filter((warning) => /non (importat|applicat|riconosciut)/.test(warning))).toEqual([]);
+  });
+
   it("rifiuta sheet diverse da ogl5e", () => {
     expect(() => importRoll20({ ...fixture, _meta: { sheet: "pathfinder", version: "1.2" } })).toThrow("non supportata");
   });
