@@ -294,7 +294,7 @@ function itemProperties(row: Obj): string | undefined {
 // Edizione 2024 prima: gli oggetti ristampati (reprintedAs) sono nascosti, resta la versione nuova.
 // Ci sono anche i gruppi (itemGroup, es. Arcane Focus), con l'elenco delle varianti nella descrizione.
 export async function import5eToolsItems(baseFile: unknown, itemsFile: unknown): Promise<FiveToolsItem[]> {
-  const groups = array(obj(itemsFile).itemGroup).map(obj).map((row) => ({ ...row, entries: [...array(row.entries), ...array(row.items).length ? [`Varianti: ${array(row.items).map((item) => text(item).split("|")[0]).join(", ")}.`] : []] }));
+  const groups = array(obj(itemsFile).itemGroup).map(obj).map((row): Obj => ({ ...row, entries: [...array(row.entries), ...array(row.items).length ? [`Varianti: ${array(row.items).map((item) => text(item).split("|")[0]).join(", ")}.`] : []] }));
   // Gli oggetti "_copy" partono dall'originale con le modifiche _mod, come i mostri; senza originale restano fuori.
   const all = await resolveCopies([...array(obj(baseFile).baseitem), ...array(obj(itemsFile).item)].map(obj), async () => undefined);
   const rows = [...all, ...groups].filter((row) => text(row.name) && !row._copy && !array(row.reprintedAs).length);
