@@ -1,14 +1,16 @@
 import type { MonsterSheet } from "./types";
 
 const URL = "/api/bestiary";
-const BATCH = 20;
 
 export const BESTIARY_POLL_MS = 60_000;
 export interface BestiaryEntry { id: string; monster?: MonsterSheet; deletedAt?: number }
 
+const request = (method: "PUT" | "DELETE", gmToken: string, body: unknown) => fetch(URL, { method, headers: { "content-type": "application/json", "x-gm-token": gmToken }, body: JSON.stringify(body) });
+const failure = (status: number) => new Error(`Bestiario non salvato nel cloud (HTTP ${status})`);
+
 async function send(method: "PUT" | "DELETE", gmToken: string, body: unknown): Promise<void> {
-  const response = await fetch(URL, { method, headers: { "content-type": "application/json", "x-gm-token": gmToken }, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`Bestiario non salvato nel cloud (HTTP ${response.status})`);
+  const response = await request(method, gmToken, body);
+  if (!response.ok) throw failure(response.status);
 }
 
 export async function fetchBestiary(room: string, gmToken: string): Promise<BestiaryEntry[]> {
@@ -17,8 +19,15 @@ export async function fetchBestiary(room: string, gmToken: string): Promise<Best
   return (await response.json() as { entries: BestiaryEntry[] }).entries;
 }
 
+// Un mostro per richiesta: uno rifiutato (es. troppo grande) non blocca gli altri. Token non valido: inutile proseguire.
 export async function putMonsters(room: string, gmToken: string, monsters: MonsterSheet[]): Promise<void> {
-  for (let start = 0; start < monsters.length; start += BATCH) await send("PUT", gmToken, { room, monsters: monsters.slice(start, start + BATCH) });
+  const rejected: string[] = [];
+  for (const monster of monsters) {
+    const response = await request("PUT", gmToken, { room, monsters: [monster] });
+    if (response.status === 401) throw failure(401);
+    if (!response.ok) rejected.push(`${monster.name} (HTTP ${response.status})`);
+  }
+  if (rejected.length) throw new Error(`Mostri non salvati nel cloud: ${rejected.join(", ")}`);
 }
 
 export const deleteCloudMonster = (room: string, gmToken: string, id: string) => send("DELETE", gmToken, { room, id });

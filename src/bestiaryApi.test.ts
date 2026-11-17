@@ -24,13 +24,19 @@ it("senza token GM valido non si legge né si scrive", async () => {
   expect((await fetchBestiary("r1", token)).map((entry) => entry.id)).toEqual(["lupo"]);
 });
 
-it("carica a blocchi e un mostro eliminato resta segnato come tale", async () => {
+it("carica tanti mostri e un mostro eliminato resta segnato come tale", async () => {
   await putMonsters("r1", token, Array.from({ length: 45 }, (_, index) => monster(`m${index}`)));
   await deleteCloudMonster("r1", token, "m0");
   const entries = await fetchBestiary("r1", token);
   expect(entries).toHaveLength(45);
   expect(entries.find((entry) => entry.id === "m0")).toMatchObject({ deletedAt: expect.any(Number) });
   expect(entries.find((entry) => entry.id === "m0")?.monster).toBeUndefined();
+});
+
+it("un mostro rifiutato non blocca gli altri e viene nominato nell'errore", async () => {
+  const huge = { ...monster("drago"), traits: [{ name: "x", description: "x".repeat(50_000) }] } as MonsterSheet;
+  await expect(putMonsters("r1", token, [monster("lupo"), huge, monster("orco")])).rejects.toThrow("Mostri non salvati nel cloud: drago (HTTP 413)");
+  expect((await fetchBestiary("r1", token)).map((entry) => entry.id).sort()).toEqual(["lupo", "orco"]);
 });
 
 it("un nuovo caricamento esplicito riporta in vita un mostro eliminato", async () => {
