@@ -1,11 +1,12 @@
 import { ABILITY_LABELS, SKILL_LABELS } from "./constants";
 import { itemModifierList } from "./itemModifiers";
 import type { CharacterSheet, StatModifier } from "./types";
+import { metersText, speedMeters } from "./speed";
 
 export const MODIFIER_TARGETS = [
   ["ac", "Classe armatura"],
   // CA base dell'armatura indossata: la usa solo il calcolo automatico della CA.
-  ["armor:light", "Armatura leggera (CA base)"], ["armor:medium", "Armatura media (CA base)"], ["armor:heavy", "Armatura pesante (CA base)"], ["initiative", "Iniziativa"], ["hpMax", "PF massimi"],
+  ["armor:light", "Armatura leggera (CA base)"], ["armor:medium", "Armatura media (CA base)"], ["armor:heavy", "Armatura pesante (CA base)"], ["initiative", "Iniziativa"], ["hpMax", "PF massimi"], ["speed", "Velocità (m)"],
   ["passivePerception", "Percezione passiva"], ["spellSaveDc", "CD incantesimi"],
   ["spellAttack", "Attacco incantesimi"], ["attack", "Tiri per colpire"], ["damage", "Danni"],
   ...["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"].flatMap((ability) => [
@@ -209,6 +210,9 @@ export function effectiveSheet(sheet: CharacterSheet): CharacterSheet {
   result.combat.ac = armorClass(sheet, result.abilities.dexterity?.mod).total;
   result.combat.initiative += total("initiative");
   result.combat.hp.max += total("hpMax");
+  // Velocità salvata come testo: si somma solo se se ne leggono i metri.
+  const speed = speedMeters(sheet.combat.speed);
+  if (speed != null && total("speed")) result.combat.speed = metersText(Math.max(0, speed + total("speed")));
   result.combat.passivePerception += total("passivePerception") + total("skill:perception");
   result.spellcasting.saveDc += total("spellSaveDc");
   result.spellcasting.attackBonus += total("spellAttack");

@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { armorClass, effectiveSheet, explainValue, modifierSources, modifierTags, setManualArmorClass } from "./effects";
 import { importRoll20 } from "./importer";
+import { createBlankSheet } from "./blankSheet";
 import { actionFromItem, parseItemModifiers } from "./itemModifiers";
 
 it("legge il campo Modifiers degli oggetti Roll20", () => {
@@ -112,4 +113,14 @@ it("il tooltip di un valore mostra base, effetti/oggetti e il modificatore di ca
   expect(explainValue(sheet, view, "skill:athletics", "Atletica", view.skills.athletics.bonus)).toBe("Atletica +6\nBase +4\nMod. Forza +1\nCintura +1");
   expect(explainValue(sheet, view, "ability:strength", "Forza", view.abilities.strength.score, false)).toBe("Forza 16\nBase 14\nCintura +2");
   expect(explainValue(sheet, view, "initiative", "Iniziativa", view.combat.initiative)).toBeUndefined();
+});
+
+it("gli oggetti equipaggiati cambiano la velocità in metri", () => {
+  const sheet = createBlankSheet("Eroe");
+  sheet.combat.speed = "9 m";
+  sheet.inventory = [{ id: "boots", name: "Stivali", count: 1, equipped: true, modifiers: [{ id: "m1", target: "speed", amount: 3 }] }];
+  expect(effectiveSheet(sheet).combat.speed).toBe("12 m");
+  expect(modifierSources(sheet, "speed")).toEqual([{ name: "Stivali", amount: 3 }]);
+  sheet.inventory[0].equipped = false;
+  expect(effectiveSheet(sheet).combat.speed).toBe("9 m");
 });
