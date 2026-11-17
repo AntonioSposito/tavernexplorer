@@ -87,6 +87,12 @@
 .inventory-body { display: grid; gap: .5rem; padding: 0 .25rem .75rem 6.2rem; }
 .inventory-body p { margin: 0; white-space: pre-wrap; line-height: 1.45; color: hsl(var(--muted-foreground)); }
 input.inventory-qty { width: 100%; min-width: 0; padding: .2rem; border: 1px solid hsl(var(--input)); border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground)); text-align: center; }
+/* Schermi stretti: colonne fisse più piccole e niente icona, altrimenti al nome resta quasi zero spazio. */
+@media (max-width: 480px) {
+  .inventory-head, .inventory-item > summary { grid-template-columns: 2.6rem 2.4rem minmax(0, 1fr) 3rem auto; gap: .35rem; }
+  .inventory-head span:nth-child(3), .inventory-item .inventory-icon { display: none; }
+  .inventory-body { padding-left: .25rem; }
+}
 .inventory-over { color: hsl(var(--destructive)) !important; }
 .metric-explained { cursor: help; }
 .metric-explained strong { text-decoration: underline dotted; text-underline-offset: 3px; }
