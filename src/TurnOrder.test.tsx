@@ -11,7 +11,7 @@ it("il GM vede e modifica PF e CA dei mostri nel turn order; i giocatori no", as
   const onChange = vi.fn();
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  const render = (showStats: boolean) => act(async () => root.render(<TurnOrder state={state} canManage showStats={showStats} images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} onRollInitiative={() => undefined} active={null} onAttach={() => undefined}/>));
+  const render = (showStats: boolean) => act(async () => root.render(<TurnOrder state={state} canManage showStats={showStats} images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} active={null} onAttach={() => undefined}/>));
 
   await render(false);
   expect(host.querySelector(".turn-stats")).toBeNull();
@@ -32,7 +32,7 @@ it("il GM modifica dalla riga anche i PF dei PG, che vengono dalla scheda", asyn
   const onPcHp = vi.fn();
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(<TurnOrder state={state} canManage showStats pcStats={{ ada: { current: 8, max: 20, temp: 3, ac: 14 } }} onPcHp={onPcHp} images={{}} onChange={() => undefined} onNext={() => undefined} onPrevious={() => undefined} onRollInitiative={() => undefined} active={null} onAttach={() => undefined}/>));
+  await act(async () => root.render(<TurnOrder state={state} canManage showStats pcStats={{ ada: { current: 8, max: 20, temp: 3, ac: 14 } }} onPcHp={onPcHp} images={{}} onChange={() => undefined} onNext={() => undefined} onPrevious={() => undefined} active={null} onAttach={() => undefined}/>));
   // Il totale comprende i PF temporanei.
   expect(host.querySelector(".turn-stats")?.textContent).toBe("PF /20 (3 temp.) · CA 14");
   const input = host.querySelector<HTMLInputElement>('input[aria-label="PF di Ada"]')!;
@@ -52,18 +52,26 @@ it("effetti: del PG dalla scheda, del mostro dal suo token; le condizioni vecchi
   const onPcEffects = vi.fn();
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(<TurnOrder state={state} canManage images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} onRollInitiative={() => undefined} active={null}
+  await act(async () => root.render(<TurnOrder state={state} canManage images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} active={null}
     pcEffects={{ ada: [{ id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 2 }, { id: "off", name: "Bless", active: false, modifiers: [] }] }} onPcEffects={onPcEffects}/>));
   expect([...host.querySelectorAll(".turn-name small")].map((node) => node.textContent)).toEqual(["Poisoned (2)", "Prone"]);
 
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti e modifica"]')!.click());
-  const rows = host.querySelectorAll(".turn-row");
-  await act(async () => rows[0].querySelector<HTMLInputElement>('.effect-row input[type="checkbox"]')!.click());
+  // L'iniziativa il GM la cambia direttamente nella riga.
+  expect(host.querySelector<HTMLInputElement>('[aria-label="Iniziativa di Ada"]')!.value).toBe("15");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Ada"]')!.click());
+  await act(async () => document.querySelector<HTMLInputElement>('.ui-dialog .effect-row input[type="checkbox"]')!.click());
   expect(onPcEffects.mock.calls[0][0]).toBe("ada");
   expect(onPcEffects.mock.calls[0][1]([{ id: "p", name: "Poisoned", active: true, modifiers: [] }])).toEqual([{ id: "p", name: "Poisoned", active: false, modifiers: [] }]);
 
   // Nuovo effetto sul token del goblin: non scende già in questo round.
-  await act(async () => [...rows[1].querySelectorAll("button")].find((button) => button.textContent === "Aggiungi")!.click());
+  await act(async () => document.querySelector<HTMLButtonElement>('.ui-dialog [aria-label="Chiudi"]')!.click());
+  expect(document.querySelector(".ui-dialog")).toBeNull();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Goblin"]')!.click());
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Aggiungi")!.click());
+  // Esc chiude solo il popup dell'effetto, non quello del goblin sotto.
+  await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+  expect(document.querySelectorAll(".ui-dialog")).toHaveLength(1);
+  await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Aggiungi")!.click());
   const name = document.querySelector<HTMLInputElement>('input[aria-label="Nome effetto"]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Frightened"); name.dispatchEvent(new Event("input", { bubbles: true })); });
   await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());

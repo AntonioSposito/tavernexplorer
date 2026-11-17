@@ -1,4 +1,4 @@
-.turn-details{margin-top:.55rem;border-top:1px solid hsl(var(--border));padding-top:.35rem;font-size:.76rem}.turn-details summary{cursor:pointer;color:hsl(var(--muted-foreground))}.turn-initiative-roll input{min-width:0;width:100%;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.4rem}.turn-initiative-roll button{border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.3rem .5rem}.turn-initiative-roll{display:flex;align-items:end;justify-content:space-between;gap:.5rem;margin-top:.5rem}.turn-initiative-roll label{display:grid;gap:.2rem;color:hsl(var(--muted-foreground))}.turn-initiative-roll input{max-width:4.5rem}
+.turn-effects-open{border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.3rem .5rem;font-size:.75rem}
 
 .turn-tracker{display:flex;flex-direction:column;gap:.6rem;min-height:0}
 .floating-handle~main .turn-tracker{height:calc(100vh - 4.15rem)}
@@ -7,7 +7,7 @@
 .turn-row{border-bottom:1px solid hsl(var(--border));padding:.45rem .6rem}
 .turn-row:last-child{border-bottom:0}
 .turn-row.current{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
-.turn-row-main{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto;align-items:center;gap:.6rem}
+.turn-row-main{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto auto;align-items:center;gap:.6rem}
 .turn-avatar{position:relative;display:grid;place-items:center;width:2.4rem;height:2.4rem;border:2px solid hsl(var(--primary) / .7);border-radius:50%;background:hsl(var(--secondary));overflow:hidden;font-size:.8rem;font-weight:700;color:hsl(var(--foreground))}
 .turn-row.current .turn-avatar{border-color:hsl(var(--primary-foreground) / .6)}
 .turn-avatar img{width:100%;height:100%;object-fit:cover}
@@ -23,8 +23,6 @@
 .turn-initiative{font-family:Georgia,serif;font-size:1.6rem;line-height:1;min-width:2ch;text-align:right;color:hsl(var(--primary))}
 .turn-row.current .turn-initiative{color:hsl(var(--primary-foreground))}
 .turn-initiative-input{width:3.6rem;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.35rem;text-align:right}
-.turn-row.current .turn-details{border-top-color:hsl(var(--primary-foreground) / .3)}
-.turn-row.current .turn-details summary,.turn-row.current .turn-initiative-roll label{color:hsl(var(--primary-foreground))}
 .turn-tools{display:grid;gap:.4rem}
 .turn-tools button{border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.5rem}
 .turn-tools .turn-clear{color:hsl(var(--destructive))}
