@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tavernexplorer.vercel.app/tavernpack.schema.json",
+  "$id": "https://tavernexplorer-eta.vercel.app/tavernpack.schema.json",
   "title": "TavernExplorer Campaign Pack",
   "type": "object",
   "required": ["format", "formatVersion", "exportedAt", "rulesets", "data"],

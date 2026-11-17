@@ -431,7 +431,7 @@ export interface SharedInventoryItem {
 }
 
 export interface TavernPack {
-  $schema: "https://tavernexplorer.vercel.app/tavernpack.schema.json";
+  $schema: "https://tavernexplorer-eta.vercel.app/tavernpack.schema.json";
   format: "tavernpack";
   formatVersion: "1.0.0";
   exportedAt: string;

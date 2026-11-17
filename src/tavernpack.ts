@@ -54,7 +54,7 @@ function validateCampaign(value: unknown): boolean {
 
 export function createTavernPack(data: { characters: CharacterSheet[]; monsters: MonsterSheet[]; campaigns: CampaignDocument[]; sharedInventory: SharedInventoryItem[]; session?: { messages: ChatMessage[]; turnState: TurnState } }): TavernPack {
   return {
-    $schema: "https://tavernexplorer.vercel.app/tavernpack.schema.json",
+    $schema: "https://tavernexplorer-eta.vercel.app/tavernpack.schema.json",
     format: "tavernpack",
     formatVersion: "1.0.0",
     exportedAt: new Date().toISOString(),
