@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CONDITIONS, conditionRule } from "./conditions";
+import { CONCENTRATION, CONDITIONS, conditionRule, effectRule } from "./conditions";
 import { modifierTags } from "./effects";
 import { ChatIcon, EditIcon } from "./icons";
 import { ModifierEditor } from "./ModifierEditor";
@@ -9,8 +9,8 @@ import { Button, Card, Dialog, Input, Textarea } from "./ui";
 type EffectsUpdate = (update: (effects: CharacterEffect[]) => CharacterEffect[]) => void;
 export type ShareEffect = (entry: ActionEntry, card: RollCard) => void;
 
-// Scegliendo una condizione la descrizione diventa la sua regola; un testo scritto a mano non si tocca.
-const describe = (effect: CharacterEffect, name: string) => conditionRule(name) ?? (effect.description === conditionRule(effect.name) ? undefined : effect.description);
+// Scegliendo una condizione (o la concentrazione) la descrizione diventa la sua regola; un testo scritto a mano non si tocca.
+const describe = (effect: CharacterEffect, name: string) => effectRule(name) ?? (effect.description === effectRule(effect.name) ? undefined : effect.description);
 
 function shareEffect(effect: CharacterEffect, onShare: ShareEffect) {
   const stats = [effect.remainingRounds != null && { label: "Round rimasti", value: String(effect.remainingRounds) }, effect.modifiers.length > 0 && { label: "Modificatori", value: modifierTags(effect.modifiers).join(", ") }].filter((stat) => !!stat);
@@ -42,7 +42,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
     </div>)}
     <Dialog open={draft !== null} title={draft?.isNew ? "Nuovo effetto" : "Modifica effetto"} onClose={() => setDraft(null)}>{draft && <div className="action-form">
       <label><span>Nome</span><Input aria-label="Nome effetto" list="effect-conditions" value={draft.effect.name} autoFocus placeholder="Bless, Poisoned…" onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, name: event.target.value, description: describe(draft.effect, event.target.value) } })}/></label>
-      <datalist id="effect-conditions">{CONDITIONS.map((condition) => <option key={condition.name} value={condition.name}/>)}</datalist>
+      <datalist id="effect-conditions">{CONDITIONS.map((condition) => <option key={condition.name} value={condition.name}/>)}<option value={CONCENTRATION}/></datalist>
       <label><span>Descrizione</span><Textarea aria-label="Descrizione effetto" value={draft.effect.description ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, description: event.target.value || undefined } })}/></label>
       <label><span>Round rimasti (vuoto = senza scadenza)</span><Input type="number" min="0" value={draft.effect.remainingRounds ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, remainingRounds: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) } })}/></label>
       <ModifierEditor modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>

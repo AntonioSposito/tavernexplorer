@@ -1,3 +1,6 @@
+import { isEffectOn } from "./effects";
+import type { CharacterEffect, RollMode, TurnCondition } from "./types";
+
 // Condizioni (regole 2024, SRD 5.2.1): nome e regola in inglese, come le Weapon Mastery e i contenuti di 5e.tools.
 // Nessun tiro cambia da solo: la regola si legge e si manda in chat.
 export const CONDITIONS: Array<{ name: string; rule: string }> = [
@@ -18,5 +21,62 @@ export const CONDITIONS: Array<{ name: string; rule: string }> = [
   { name: "Unconscious", rule: "Inert. You have the Incapacitated and Prone conditions, and you drop whatever you're holding. When this condition ends, you remain Prone.\nSpeed 0. Your Speed is 0 and can't increase.\nAttacks Affected. Attack rolls against you have Advantage.\nSaving Throws Affected. You automatically fail Strength and Dexterity saving throws.\nAutomatic Critical Hits. Any attack roll that hits you is a Critical Hit if the attacker is within 5 feet of you.\nUnaware. You're unaware of your surroundings." },
 ];
 
-// Regola di una condizione dal nome, senza badare a maiuscole (anche "poisoned" delle immunità di 5e.tools).
-export const conditionRule = (name: string) => CONDITIONS.find((condition) => condition.name.toLowerCase() === name.trim().toLowerCase())?.rule;
+// Regola di una condizione dal nome, senza badare a maiuscole (anche "poisoned" delle immunità di 5e.tools) e col livello di Exhaustion.
+export const conditionRule = (name: string) => CONDITIONS.find((condition) => condition.name.toLowerCase() === (exhaustionLevel(name) ? "exhaustion" : name.trim().toLowerCase()))?.rule;
+
+// Tiri d20 toccati dalle condizioni: attacchi, prove (anche abilità e strumenti) e TS per caratteristica, e l'iniziativa,
+// che è una prova di Destrezza ma ha regole sue (Incapacitated, Invisible).
+export type D20Roll = "attack" | "initiative" | `check:${string}` | `save:${string}`;
+
+const isCheck = (roll: D20Roll) => roll === "initiative" || roll.startsWith("check:");
+const failsStrDex = (roll: D20Roll) => roll === "save:strength" || roll === "save:dexterity";
+type Rule = { advantage?: (roll: D20Roll) => boolean; disadvantage?: (roll: D20Roll) => boolean; fail?: (roll: D20Roll) => boolean };
+const incapacitated: Rule = { disadvantage: (roll) => roll === "initiative" };
+const helpless: Rule = { ...incapacitated, fail: failsStrDex };
+
+// Solo i tiri di chi ha la condizione: quelli "contro di te" li fa un altro e restano manuali.
+// shortcut: Blinded, Frightened e Invisible valgono sempre (vista e linea di vista non si conoscono); Grappled resta
+// manuale perché lo svantaggio non vale contro chi ti afferra. Charmed e Deafened non toccano i tuoi tiri.
+const CONDITION_RULES: Record<string, Rule> = {
+  blinded: { disadvantage: (roll) => roll === "attack" },
+  frightened: { disadvantage: (roll) => roll === "attack" || isCheck(roll) },
+  incapacitated,
+  invisible: { advantage: (roll) => roll === "attack" || roll === "initiative" },
+  paralyzed: helpless,
+  petrified: helpless,
+  poisoned: { disadvantage: (roll) => roll === "attack" || isCheck(roll) },
+  prone: { disadvantage: (roll) => roll === "attack" },
+  restrained: { disadvantage: (roll) => roll === "attack" || roll === "save:dexterity" },
+  stunned: helpless,
+  unconscious: helpless,
+};
+
+// Exhaustion col livello nel nome ("Exhaustion 3"); senza numero è il livello 1.
+export const exhaustionLevel = (name: string) => { const match = /^exhaustion(?:\s+(\d+))?$/i.exec(name.trim()); return match ? Math.max(1, Number(match[1] ?? 1)) : 0; };
+
+// Titolo, formula e modalità di un tiro d20 con le condizioni attive: "TS Forza · fallisce (Stunned) · svantaggio (Poisoned)".
+// mode resta una lista: la combina chi tira, insieme al menu Normale/Vantaggio/Svantaggio.
+export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Roll, title: string, formula: string, mode?: RollMode): { title: string; formula: string; mode: RollMode[] } {
+  const active = (effects ?? []).filter(isEffectOn);
+  const by = (kind: keyof Rule) => active.filter((effect) => CONDITION_RULES[effect.name.trim().toLowerCase()]?.[kind]?.(roll)).map((effect) => effect.name);
+  const [fail, advantage, disadvantage] = [by("fail"), by("advantage"), by("disadvantage")];
+  const exhaustion = active.reduce((level, effect) => level + exhaustionLevel(effect.name), 0);
+  const notes = [fail.length > 0 && `fallisce (${fail.join(", ")})`, advantage.length > 0 && `vantaggio (${advantage.join(", ")})`, disadvantage.length > 0 && `svantaggio (${disadvantage.join(", ")})`, exhaustion > 0 && `Exhaustion ${exhaustion} (−${2 * exhaustion})`].filter(Boolean);
+  return {
+    title: [title, ...notes].join(" · "),
+    formula: exhaustion > 0 ? `${formula}-${2 * exhaustion}[EXH]` : formula,
+    mode: [...mode ? [mode] : [], ...advantage.length ? ["advantage" as const] : [], ...disadvantage.length ? ["disadvantage" as const] : []],
+  };
+}
+
+// Concentrazione: un effetto come gli altri, col nome dell'incantesimo ("Concentrazione: Bless"); se ne ha una sola alla volta.
+export const CONCENTRATION = "Concentrazione";
+export const CONCENTRATION_RULE = "Finisce se lanci un altro incantesimo di concentrazione, se sei Incapacitated o se muori. Quando subisci danni fai un TS su Costituzione con CD 10 o metà del danno subito, se più alta (massimo CD 30): se fallisci la perdi.";
+const isConcentration = (name: string) => name.trim().toLowerCase().startsWith(CONCENTRATION.toLowerCase());
+
+// Regola da mettere nella descrizione: quella della condizione o della concentrazione.
+export const effectRule = (name: string) => conditionRule(name) ?? (isConcentration(name) ? CONCENTRATION_RULE : undefined);
+
+export function startConcentration(effects: CharacterEffect[], spell: string): CharacterEffect[] {
+  return [...effects.filter((effect) => !isConcentration(effect.name)), { id: crypto.randomUUID(), name: `${CONCENTRATION}: ${spell}`, active: true, modifiers: [], description: CONCENTRATION_RULE }];
+}

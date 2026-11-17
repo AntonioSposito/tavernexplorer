@@ -77,3 +77,10 @@ export function roll(formula: string, mode: RollMode = "normal"): RollResult {
   const kept = mode === "advantage" ? Math.max(first, second) : Math.min(first, second);
   return { formula: shown(`${mode === "advantage" ? "2d20kh1" : "2d20kl1"}${modifier >= 0 ? "+" : ""}${modifier}`), total: kept + modifier, dice: [first, second], natural: kept };
 }
+
+// Vantaggio e svantaggio da qualunque fonte (menu, scheda, condizioni) si annullano a vicenda, quanti che siano (regola 5e).
+export function combineModes(...modes: Array<RollMode | RollMode[] | undefined>): RollMode {
+  const all = modes.flat();
+  const advantage = all.includes("advantage"), disadvantage = all.includes("disadvantage");
+  return advantage === disadvantage ? "normal" : advantage ? "advantage" : "disadvantage";
+}

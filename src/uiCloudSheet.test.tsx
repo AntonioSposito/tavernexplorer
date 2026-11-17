@@ -1006,6 +1006,46 @@ it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira",
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card.d20.formula).toContain("1d20+3[CHA]+2[PROF]");
 });
 
+it("le condizioni cambiano attacchi e TS, con il motivo nel titolo; Exhaustion toglie 2 per livello", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.abilities.strength = { score: 16, mod: 3, save: 3, saveProficient: false };
+  sheet.abilities.dexterity = { score: 12, mod: 1, save: 1, saveProficient: false };
+  sheet.abilities.wisdom = { score: 10, mod: 0, save: 0, saveProficient: false };
+  sheet.actions = [{ id: "sword", name: "Spada", attack: { ability: "strength", bonus: 0, proficient: true }, damages: [{ dice: "1d8", ability: "strength", bonus: 0, type: "Tagliente", critDice: "1d8" }] }];
+  sheet.effects = [{ id: "p", name: "Poisoned", active: true, modifiers: [] }, { id: "r", name: "Restrained", active: true, modifiers: [] }, { id: "e", name: "Exhaustion 1", active: true, modifiers: [] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const last = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card;
+  const save = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".saves button")].find((button) => button.textContent?.includes(label))!.click());
+  await save("Destrezza");
+  expect(last()).toMatchObject({ name: "TS Destrezza · svantaggio (Restrained) · Exhaustion 1 (−2)", d20: { mode: "disadvantage" } });
+  await save("Saggezza");
+  expect(last()).toMatchObject({ name: "TS Saggezza · Exhaustion 1 (−2)", d20: { mode: "normal", formula: "1d20-2[EXH]" } });
+  await click("Azioni");
+  await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
+  expect(last()).toMatchObject({ name: "Spada · svantaggio (Poisoned, Restrained) · Exhaustion 1 (−2)", d20: { mode: "disadvantage" } });
+});
+
+it("lanciare un incantesimo di concentrazione mette l'effetto e toglie la concentrazione precedente", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.spells = [
+    { id: "bless", name: "Bless", level: 1, prepared: true, ritual: false, concentration: true },
+    { id: "hold", name: "Hold Person", level: 2, prepared: true, ritual: false, concentration: true },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  const cast = (name: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".entry-use")].find((button) => button.textContent?.includes(name))!.click());
+  await cast("Bless");
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects?.map((effect: { name: string }) => effect.name)).toEqual(["Concentrazione: Bless"]);
+  await cast("Hold Person");
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects?.map((effect: { name: string }) => effect.name)).toEqual(["Concentrazione: Hold Person"]);
+});
+
 it("crea, modifica ed elimina oggetti dello zaino nel popup", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, inventory: [{ name: "Leather Armor", count: 1, weight: null, equipped: false, properties: "AC", modifiers: "+1", description: "", _rowid: "armor" }] } });
   expect(sheet.inventory[0]).toMatchObject({ weight: null, properties: "AC", modifiersText: "+1" });

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ABILITY_LABELS, ABILITY_SHORT, ABILITY_TAGS } from "./constants";
+import { conditionRoll } from "./conditions";
 import { ChatIcon, EditIcon } from "./icons";
 import { labeledBonus } from "./rollCards";
-import type { ActionEntry, CharacterSheet, ProficiencyEntry, RollCard, ToolEntry, ToolProficiency } from "./types";
+import type { ActionEntry, CharacterSheet, ProficiencyEntry, RollCard, RollMode, ToolEntry, ToolProficiency } from "./types";
 import { Button, Card, Dialog, Input, Select } from "./ui";
 
 type Kind = ProficiencyEntry["type"] | "TOOL";
@@ -29,14 +30,14 @@ function toolParts(sheet: CharacterSheet, tool: ToolEntry, ability: string): Arr
 }
 const sum = (parts: Array<[number, string]>) => parts.reduce((total, [value]) => total + value, 0);
 
-export function ProficiencyPanel({ sheet, onUpdate, onRoll, onShare, editable }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRoll: (title: string, formula: string) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; editable: boolean }) {
+export function ProficiencyPanel({ sheet, onUpdate, onRoll, onShare, editable }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onRoll: (title: string, formula: string, attack?: undefined, mode?: RollMode[]) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; editable: boolean }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   // Strumento con caratteristica a scelta in attesa della scelta.
   const [asking, setAsking] = useState<ToolEntry | null>(null);
   const proficiencies = sheet.proficiencies ?? [];
   const tools = (sheet.tools ?? []).map((tool) => normalizeTool(sheet, tool));
 
-  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); onRoll(tool.name, `${sheet.options?.reliableTalent ? "1d20min10" : "1d20"}${labeledBonus(parts, sum(parts))}`); };
+  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); const check = conditionRoll(sheet.effects, `check:${ability}`, tool.name, `${sheet.options?.reliableTalent ? "1d20min10" : "1d20"}${labeledBonus(parts, sum(parts))}`); onRoll(check.title, check.formula, undefined, check.mode); };
   const share = (name: string, kind: Kind, tool?: ToolEntry) => {
     const stats = tool && [{ label: "Caratteristica", value: tool.ability ? ABILITY_LABELS[tool.ability] : "A scelta" }, { label: "Bonus", value: signed(sum(toolParts(sheet, tool, tool.ability))) }];
     onShare({ id: tool?.id ?? name, name, description: KIND_LABELS[kind] }, { name, subtitle: KIND_LABELS[kind], rolls: [], stats });

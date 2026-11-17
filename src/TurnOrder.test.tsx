@@ -73,6 +73,10 @@ it("effetti: del PG dalla scheda, del mostro dal suo token; le condizioni vecchi
   expect(document.querySelectorAll(".ui-dialog")).toHaveLength(1);
   await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Aggiungi")!.click());
   const name = document.querySelector<HTMLInputElement>('input[aria-label="Nome effetto"]')!;
+  // La concentrazione si sceglie a mano come una condizione e prende la sua regola.
+  expect(document.querySelector('#effect-conditions option[value="Concentrazione"]')).not.toBeNull();
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Concentrazione"); name.dispatchEvent(new Event("input", { bubbles: true })); });
+  expect(document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Descrizione effetto"]')!.value).toContain("TS su Costituzione");
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(name, "Frightened"); name.dispatchEvent(new Event("input", { bubbles: true })); });
   await act(async () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
   expect(onChange.mock.lastCall?.[0].entries[1].conditions).toEqual([
