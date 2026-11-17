@@ -1,6 +1,6 @@
 import { ABILITY_LABELS, SKILL_LABELS } from "./constants";
 import { itemModifierList } from "./itemModifiers";
-import type { CharacterSheet, StatModifier } from "./types";
+import type { CharacterEffect, CharacterSheet, StatModifier, TurnCondition } from "./types";
 import { metersText, speedMeters } from "./speed";
 
 export const MODIFIER_TARGETS = [
@@ -218,3 +218,11 @@ export function effectiveSheet(sheet: CharacterSheet): CharacterSheet {
   result.spellcasting.attackBonus += total("spellAttack");
   return result;
 }
+
+// Condizione salvata prima dell'effetto unico (solo nome e durata): attiva e senza modificatori.
+export const asEffect = (condition: TurnCondition): CharacterEffect => ({ active: true, modifiers: [], ...condition });
+// Conta solo se acceso e non scaduto, come nel calcolo dei modificatori.
+export const isEffectOn = (effect: TurnCondition) => effect.active !== false && (effect.remainingRounds === undefined || effect.remainingRounds > 0);
+export const effectLabel = (effect: TurnCondition) => effect.remainingRounds != null ? `${effect.name} (${effect.remainingRounds})` : effect.name;
+// Somma dei modificatori degli effetti accesi di un token di mostro o NPC, che non ha una scheda PG (es. la CA).
+export const effectsTotal = (effects: TurnCondition[] | undefined, target: string) => (effects ?? []).filter(isEffectOn).flatMap((effect) => effect.modifiers ?? []).filter((modifier) => modifier.target === target).reduce((sum, modifier) => sum + modifier.amount, 0);

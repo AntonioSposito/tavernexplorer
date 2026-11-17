@@ -100,12 +100,18 @@ export interface StatModifier {
   proficient?: boolean;
 }
 
+// Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).
 export interface CharacterEffect {
   id: string;
   name: string;
   active: boolean;
   modifiers: StatModifier[];
+  // Scende di 1 a ogni turno della creatura nel turn order; vuoto = senza scadenza.
   remainingRounds?: number;
+  // Regola della condizione o testo libero, mostrato in chat.
+  description?: string;
+  // Round in cui la durata è già scesa: tornare indietro e avanti non la riduce due volte.
+  lastTickRound?: number;
 }
 
 export type CounterRecovery = "none" | "short" | "long";
@@ -272,12 +278,8 @@ export interface TurnEntry {
   ac?: number;
 }
 
-export interface TurnCondition {
-  id: string;
-  name: string;
-  remainingRounds?: number;
-  lastTickRound?: number;
-}
+// Effetto del singolo token. Le condizioni salvate prima hanno solo nome e durata: valgono attive e senza modificatori.
+export type TurnCondition = Pick<CharacterEffect, "id" | "name" | "remainingRounds" | "lastTickRound"> & Partial<CharacterEffect>;
 
 export interface TurnState {
   round: number;

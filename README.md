@@ -220,7 +220,7 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.25.0
+## Limiti della versione 0.26.0
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.
@@ -263,4 +263,5 @@ SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International
 License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
 
 Il materiale SRD usato è il testo delle regole Weapon Mastery
-(`WEAPON_MASTERIES` in `src/constants.ts`).
+(`WEAPON_MASTERIES` in `src/constants.ts`) e delle condizioni
+(`CONDITIONS` in `src/conditions.ts`).

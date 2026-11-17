@@ -53,6 +53,8 @@ export function monsterCasterSheet(monster: MonsterSheet, cast?: MonsterSpellcas
   const pb = monsterProficiency(monster);
   sheet.id = monster.id;
   sheet.combat.proficiencyBonus = pb;
+  // Competenza del GS, non del livello della scheda vuota: effectiveSheet non deve ricalcolarla.
+  sheet.options = { ...sheet.options, proficiency: pb };
   for (const [short, long] of MONSTER_ABILITIES) {
     const score = monster.abilities[short] ?? 10; const mod = Math.floor((score - 10) / 2);
     sheet.abilities[long] = { score, mod, save: monster.saves[short] ?? mod, saveProficient: monster.saves[short] != null };

@@ -1,29 +1,33 @@
-import { useState, type FormEvent } from "react";
-import { addTurnCondition, removeTurnCondition, replaceTurnEntries, setTurnInitiative } from "./turns";
-import type { CharacterSheet, TurnEntry, TurnState } from "./types";
+import { useState } from "react";
+import { asEffect, effectLabel, effectsTotal, isEffectOn } from "./effects";
+import { EffectList } from "./EffectsEditor";
+import { replaceTurnEntries, setTurnInitiative } from "./turns";
+import type { ActionEntry, CharacterEffect, CharacterSheet, RollCard, TurnEntry, TurnState } from "./types";
 
-const CONDITION_SUGGESTIONS = ["Accecato", "Affascinato", "Afferrato", "Assordato", "Avvelenato", "Incapacitato", "Invisibile", "Paralizzato", "Pietrificato", "Prono", "Spaventato", "Stordito", "Trattenuto"];
 
-function ConditionEditor({ entry, state, canManage, onChange, onRollInitiative }: { entry: TurnEntry; state: TurnState; canManage: boolean; onChange: (state: TurnState) => void; onRollInitiative: (entry: TurnEntry) => void }) {
-  const [name, setName] = useState("");
-  const [rounds, setRounds] = useState("");
-  const conditions = entry.conditions ?? [];
-  const add = (event: FormEvent) => {
-    event.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const remainingRounds = rounds ? Number(rounds) : undefined;
-    if (remainingRounds !== undefined && (!Number.isInteger(remainingRounds) || remainingRounds < 1)) return;
-    onChange(addTurnCondition(state, entry.id, { id: crypto.randomUUID(), name: trimmed, remainingRounds }));
-    setName(""); setRounds("");
+// Effetti della voce: per un PG quelli della sua scheda, per mostri e NPC quelli del singolo token.
+function ConditionEditor({ entry, state, canManage, onChange, onRollInitiative, pcEffects, onPcEffects, onShareEffect }: { entry: TurnEntry; state: TurnState; canManage: boolean; onChange: (state: TurnState) => void; onRollInitiative: (entry: TurnEntry) => void } & EffectProps) {
+  const sheetEffects = entry.characterId ? pcEffects?.[entry.characterId] : undefined;
+  const effects = sheetEffects ?? (entry.conditions ?? []).map(asEffect);
+  const update = (change: (effects: CharacterEffect[]) => CharacterEffect[]) => {
+    if (sheetEffects && entry.characterId) onPcEffects?.(entry.characterId, change);
+    else onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id ? { ...item, conditions: change((item.conditions ?? []).map(asEffect)) } : item) });
   };
-  return <details className="turn-details"><summary>{conditions.length ? `${conditions.length} ${conditions.length === 1 ? "condizione" : "condizioni"}` : "Condizioni e iniziativa"}</summary>
-    <div className="turn-condition-list">{conditions.map((condition) => <span className="turn-condition" key={condition.id}>{condition.name}{condition.remainingRounds != null && <small> · {condition.remainingRounds} round</small>}{canManage && <button aria-label={`Rimuovi ${condition.name}`} onClick={() => onChange(removeTurnCondition(state, entry.id, condition.id))}>×</button>}</span>)}{conditions.length === 0 && <small>Nessuna condizione attiva.</small>}</div>
-    {canManage && <><form className="turn-condition-form" onSubmit={add}><input aria-label={`Condizione per ${entry.name}`} list="turn-condition-suggestions" value={name} onChange={(event) => setName(event.target.value)} placeholder="Condizione"/><input aria-label="Durata in round" type="number" min="1" max="99" value={rounds} onChange={(event) => setRounds(event.target.value)} placeholder="∞" title="Vuoto = fino alla rimozione manuale"/><button disabled={!name.trim()}>Aggiungi</button></form><div className="turn-initiative-roll"><label>Bonus iniziativa <input aria-label={`Bonus iniziativa di ${entry.name}`} type="number" value={entry.initiativeBonus ?? 0} onChange={(event) => onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id ? { ...item, initiativeBonus: Number(event.target.value) || 0 } : item) })}/></label><button onClick={() => onRollInitiative(entry)}>Tira d20</button></div></>}
+  const on = effects.filter(isEffectOn).length;
+  return <details className="turn-details"><summary>{on ? `${on} ${on === 1 ? "effetto" : "effetti"}` : "Effetti e iniziativa"}</summary>
+    <div className="turn-effects"><EffectList effects={effects} editable={canManage} round={state.round} onChange={update} onShare={(item, card) => onShareEffect?.(entry, item, card)}/></div>
+    {canManage && <div className="turn-initiative-roll"><label>Bonus iniziativa <input aria-label={`Bonus iniziativa di ${entry.name}`} type="number" value={entry.initiativeBonus ?? 0} onChange={(event) => onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id ? { ...item, initiativeBonus: Number(event.target.value) || 0 } : item) })}/></label><button onClick={() => onRollInitiative(entry)}>Tira d20</button></div>}
   </details>;
 }
 
-interface TurnOrderProps {
+interface EffectProps {
+  // Effetti delle schede dei PG (per id scheda) e loro modifica; i mostri li hanno nella voce dei turni.
+  pcEffects?: Record<string, CharacterEffect[]>;
+  onPcEffects?: (characterId: string, update: (effects: CharacterEffect[]) => CharacterEffect[]) => void;
+  onShareEffect?: (entry: TurnEntry, item: ActionEntry, card: RollCard) => void;
+}
+
+interface TurnOrderProps extends EffectProps {
   state: TurnState;
   canManage: boolean;
   images: Record<string, string>;
@@ -46,16 +50,15 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("");
 }
 
-export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onRollInitiative, onFocusToken, active, onAttach, onOpenForPlayers, showStats = false, pcStats = {}, onPcHp }: TurnOrderProps) {
+export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onRollInitiative, onFocusToken, active, onAttach, onOpenForPlayers, showStats = false, pcStats = {}, onPcHp, pcEffects, onPcEffects, onShareEffect }: TurnOrderProps) {
   const [editing, setEditing] = useState(false);
   const setHp = (entry: TurnEntry, current: number) => onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id && item.hp ? { ...item, hp: { ...item.hp, current: Math.max(0, current) } } : item) });
   const remove = (entry: TurnEntry) => onChange(replaceTurnEntries(state, state.entries.filter((item) => item.id !== entry.id)));
   return <div className="turn-tracker">
     <header className="turn-tracker-head"><span>Round {state.round}</span><span>Partecipanti: {state.entries.length}</span></header>
-    <datalist id="turn-condition-suggestions">{CONDITION_SUGGESTIONS.map((condition) => <option key={condition} value={condition}/>)}</datalist>
     <section className="turn-rows">
       {state.entries.length === 0 && <p className="turn-empty">Nessun partecipante. Seleziona un token sulla mappa e collegalo a una scheda.</p>}
-      {state.entries.map((entry, index) => { const stats = entry.hp ? { ...entry.hp, temp: 0, ac: entry.ac } : entry.characterId ? pcStats[entry.characterId] : undefined; return <article className={`turn-row ${index === state.activeIndex ? "current" : ""}`} key={entry.id} aria-current={index === state.activeIndex ? "true" : undefined}>
+      {state.entries.map((entry, index) => { const stats = entry.hp ? { ...entry.hp, temp: 0, ac: entry.ac == null ? undefined : entry.ac + effectsTotal(entry.conditions, "ac") } : entry.characterId ? pcStats[entry.characterId] : undefined; return <article className={`turn-row ${index === state.activeIndex ? "current" : ""}`} key={entry.id} aria-current={index === state.activeIndex ? "true" : undefined}>
         <div className="turn-row-main">
           <span className="turn-avatar">
             {images[entry.id] ? <img src={images[entry.id]} alt=""/> : <span>{initials(entry.name)}</span>}
@@ -66,11 +69,11 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
             {/* Il GM cambia i PF dalla riga, senza aprire ⚙: per i PG si aggiorna la scheda. Il numero comprende i
                 PF temporanei; scrivendo un totale più basso si consumano prima quelli. */}
             {showStats && stats && <small className="turn-stats">PF {canManage ? <input aria-label={`PF di ${entry.name}`} title="PF attuali + temporanei" type="number" min="0" value={stats.current + stats.temp} onChange={(event) => { const value = Math.max(0, Math.trunc(Number(event.target.value)) || 0); if (entry.hp) setHp(entry, value); else if (entry.characterId) onPcHp?.(entry.characterId, value); }}/> : stats.current + stats.temp}/{stats.max}{stats.temp > 0 && ` (${stats.temp} temp.)`}{stats.ac != null && ` · CA ${stats.ac}`}</small>}
-            {(entry.conditions?.length ?? 0) > 0 && <small>{entry.conditions?.map((condition) => condition.remainingRounds != null ? `${condition.name} (${condition.remainingRounds})` : condition.name).join(" · ")}</small>}
+            {(() => { const shown = ((entry.characterId && pcEffects?.[entry.characterId]) || entry.conditions || []).filter(isEffectOn); return shown.length > 0 && <small>{shown.map(effectLabel).join(" · ")}</small>; })()}
           </div>
           {editing && canManage ? <input className="turn-initiative-input" aria-label={`Iniziativa di ${entry.name}`} type="number" value={entry.initiative} onChange={(event) => onChange(setTurnInitiative(state, entry.id, Number(event.target.value) || 0))}/> : <strong className="turn-initiative">{entry.initiative}</strong>}
         </div>
-        {editing && <ConditionEditor entry={entry} state={state} canManage={canManage} onChange={onChange} onRollInitiative={onRollInitiative}/>}
+        {editing && <ConditionEditor entry={entry} state={state} canManage={canManage} onChange={onChange} onRollInitiative={onRollInitiative} pcEffects={pcEffects} onPcEffects={onPcEffects} onShareEffect={onShareEffect}/>}
       </article>; })}
     </section>
     {editing && canManage && <div className="turn-tools">
@@ -81,7 +84,7 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
     </div>}
     <footer className="turn-footer">
       <button className="turn-step" onClick={onPrevious} disabled={!canManage || !state.entries.length || (state.round === 1 && state.activeIndex === 0)} aria-label="Turno precedente">←</button>
-      <button className={`turn-settings ${editing ? "active" : ""}`} onClick={() => setEditing((value) => !value)} aria-pressed={editing} aria-label="Condizioni e modifica" title="Condizioni e modifica">⚙</button>
+      <button className={`turn-settings ${editing ? "active" : ""}`} onClick={() => setEditing((value) => !value)} aria-pressed={editing} aria-label="Effetti e modifica" title="Effetti e modifica">⚙</button>
       <button className="turn-step primary-step" onClick={onNext} disabled={!canManage || !state.entries.length} aria-label="Turno successivo">→</button>
     </footer>
   </div>;

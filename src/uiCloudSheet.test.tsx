@@ -15,14 +15,14 @@ vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined
 vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
-const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[] }));
+const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));
 const noop = () => undefined;
 const unsubscribe = () => noop;
 vi.mock("./obr", () => ({
   OBR: { isAvailable: true, isReady: true, onReady: (callback: () => void) => callback(), room: { id: "r1", getPermissions: async () => [], onPermissionsChange: unsubscribe }, party: { onChange: unsubscribe }, scene: { isReady: async () => false, onReadyChange: unsubscribe, items: { onChange: unsubscribe, getItems: async () => viewer.tokens } }, player: { getRole: async () => viewer.role }, popover: { close: async () => undefined }, notification: { show: async () => undefined } },
   DEFAULT_PERMISSIONS: { playersEditInventory: true, playersImportContent: false, playersManageTurns: false },
   getPlayerInfo: async () => ({ id: viewer.name, ...viewer }),
-  getTurnState: async () => ({ round: 1, activeIndex: 0, entries: [] }),
+  getTurnState: async () => ({ round: 1, activeIndex: 0, entries: viewer.turns }),
   getSharedInventory: async () => [], getPermissions: async () => ({ playersEditInventory: true, playersImportContent: false, playersManageTurns: false }),
   getPartyCharacters: async () => [], getPartyMembers: async () => [{ id: "marco", name: "Marco", role: "PLAYER" }], getTokenImages: async () => ({}),
   onTurnStateChange: unsubscribe, onBroadcastMessage: unsubscribe, onSharedInventoryChange: unsubscribe, onPermissionsChange: unsubscribe,
@@ -39,7 +39,7 @@ beforeEach(() => {
   Object.defineProperty(globalThis, "crypto", { configurable: true, value: webcrypto });
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
   vi.stubGlobal("fetch", apiFetch);
-  viewer.name = "GM"; viewer.role = "GM"; viewer.tokens = [];
+  viewer.name = "GM"; viewer.role = "GM"; viewer.tokens = []; viewer.turns = [];
   store.clear(); localStorage.clear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); window.history.replaceState(null, "", "/"); });
@@ -178,6 +178,30 @@ it("il GM rende incantatore un mostro: Magia come le schede PG, con CD calcolata
   await click("Dardo di fuoco");
   await settle();
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ author: "Mago", visibility: "gm" });
+});
+
+it("la finestra del token di un mostro usa gli effetti di quel token nei valori e nei tiri", async () => {
+  const mage = { schemaVersion: 1, id: "mage", name: "Mago", source: "MM", creatureType: "Umanoide", challengeRating: "6", ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }, size: "M", alignment: "N", ac: 12, hp: { average: 40, formula: "9d8" }, speed: "30 ft.", abilities: { int: 17 }, saves: { int: 6 }, skills: {}, passivePerception: 11, traits: [], actions: [], reactions: [], legendaryActions: [], importWarnings: [] };
+  localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([mage]));
+  viewer.tokens = [{ id: "t1", name: "Mago", metadata: { [TOKEN_META_KEY]: { characterId: "mage" } } }, { id: "t2", name: "Mago 2", metadata: { [TOKEN_META_KEY]: { characterId: "mage" } } }];
+  viewer.turns = [{ id: "e1", name: "Mago", initiative: 10, tokenId: "t1", characterId: "mage", conditions: [
+    { id: "buff", name: "Focus", active: true, modifiers: [{ id: "m1", target: "ability:intelligence", amount: 2 }, { id: "m2", target: "save:intelligence", amount: 1 }, { id: "m3", target: "ac", amount: 2 }] },
+    { id: "off", name: "Spento", active: false, modifiers: [{ id: "m4", target: "ac", amount: 5 }] },
+  ] }];
+  const open = async (token: string, section: string) => {
+    window.history.replaceState(null, "", `/?view=sheet&token=${token}&section=${section}`);
+    await act(async () => root.render(<App key={token + section}/>));
+    await settle();
+  };
+  await open("t1", "abilities");
+  // INT 17 → 19 (+4); TS +6, +1 dal modificatore e +1 dall'effetto.
+  expect(host.querySelector('[aria-label="Prova di Intelligenza"]')?.textContent).toBe("INT19+4");
+  expect([...host.querySelectorAll(".core-list.saves .proficient")].map((save) => save.textContent)).toEqual(["+8Intelligenza"]);
+  await open("t1", "details");
+  expect(host.querySelector(".quick-details")?.textContent).toContain("CA14");
+  // Un altro token dello stesso mostro non ha effetti.
+  await open("t2", "details");
+  expect(host.querySelector(".quick-details")?.textContent).toContain("CA12");
 });
 
 it("la finestra del token di un mostro mostra solo la parte scelta dal menu, come le schede PG", async () => {
@@ -949,6 +973,20 @@ it("crea e modifica un buff nel popup, senza salvare se si annulla", async () =>
   await dialogButton("Salva");
   await settle(1_700);
   expect(cloudSheet().sheet.effects).toMatchObject([{ name: "Benedetto", active: true, modifiers: [] }]);
+});
+
+it("scegliendo una condizione il buff prende la sua regola come descrizione", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica");
+  await click("Aggiungi");
+  await type('input[aria-label="Nome effetto"]', "Poisoned");
+  expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Descrizione effetto"]')?.value).toContain("Disadvantage on attack rolls and ability checks");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects?.[0]).toMatchObject({ name: "Poisoned", description: expect.stringContaining("Disadvantage") });
 });
 
 it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira", async () => {

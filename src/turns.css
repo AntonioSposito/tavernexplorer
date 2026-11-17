@@ -1,4 +1,4 @@
-.turn-details{margin-top:.55rem;border-top:1px solid hsl(var(--border));padding-top:.35rem;font-size:.76rem}.turn-details summary{cursor:pointer;color:hsl(var(--muted-foreground))}.turn-condition-list{display:flex;flex-wrap:wrap;gap:.3rem;margin:.55rem 0}.turn-condition-list>small{color:hsl(var(--muted-foreground))}.turn-condition{display:inline-flex;align-items:center;gap:.1rem;border:1px solid hsl(var(--primary) / .45);border-radius:999px;background:hsl(var(--primary) / .1);color:hsl(var(--foreground));padding:.15rem .25rem .15rem .5rem}.turn-condition small{color:hsl(var(--muted-foreground))}.turn-condition button{border:0;background:transparent;color:hsl(var(--foreground));padding:0 .2rem;font-size:.9rem}.turn-condition-form{display:grid;grid-template-columns:minmax(0,1fr) 3.2rem auto;gap:.35rem}.turn-condition-form input,.turn-initiative-roll input{min-width:0;width:100%;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.4rem}.turn-condition-form button,.turn-initiative-roll button{border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.3rem .5rem}.turn-initiative-roll{display:flex;align-items:end;justify-content:space-between;gap:.5rem;margin-top:.5rem}.turn-initiative-roll label{display:grid;gap:.2rem;color:hsl(var(--muted-foreground))}.turn-initiative-roll input{max-width:4.5rem}
+.turn-details{margin-top:.55rem;border-top:1px solid hsl(var(--border));padding-top:.35rem;font-size:.76rem}.turn-details summary{cursor:pointer;color:hsl(var(--muted-foreground))}.turn-initiative-roll input{min-width:0;width:100%;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.4rem}.turn-initiative-roll button{border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.3rem .5rem}.turn-initiative-roll{display:flex;align-items:end;justify-content:space-between;gap:.5rem;margin-top:.5rem}.turn-initiative-roll label{display:grid;gap:.2rem;color:hsl(var(--muted-foreground))}.turn-initiative-roll input{max-width:4.5rem}
 
 .turn-tracker{display:flex;flex-direction:column;gap:.6rem;min-height:0}
 .floating-handle~main .turn-tracker{height:calc(100vh - 4.15rem)}
@@ -24,7 +24,7 @@
 .turn-row.current .turn-initiative{color:hsl(var(--primary-foreground))}
 .turn-initiative-input{width:3.6rem;border:1px solid hsl(var(--border));border-radius:.4rem;background:hsl(var(--background));color:hsl(var(--foreground));padding:.35rem;text-align:right}
 .turn-row.current .turn-details{border-top-color:hsl(var(--primary-foreground) / .3)}
-.turn-row.current .turn-details summary,.turn-row.current .turn-condition,.turn-row.current .turn-condition small,.turn-row.current .turn-initiative-roll label{color:hsl(var(--primary-foreground))}
+.turn-row.current .turn-details summary,.turn-row.current .turn-initiative-roll label{color:hsl(var(--primary-foreground))}
 .turn-tools{display:grid;gap:.4rem}
 .turn-tools button{border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.5rem}
 .turn-tools .turn-clear{color:hsl(var(--destructive))}
@@ -33,3 +33,5 @@
 .turn-step.primary-step{border-color:hsl(var(--primary));background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
 .turn-settings{border:0;background:transparent;color:hsl(var(--muted-foreground));font-size:1.15rem;padding:.3rem}
 .turn-settings.active,.turn-settings:hover{color:hsl(var(--primary))}
+/* Effetti nella voce dei turni: stessa lista e stesso popup della scheda. */
+.turn-effects{display:grid;gap:.35rem;margin:.55rem 0}.turn-effects .effect-card{padding:.45rem .6rem;color:hsl(var(--foreground));background:hsl(var(--card))}

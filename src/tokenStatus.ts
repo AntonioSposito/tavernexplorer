@@ -1,16 +1,18 @@
 import OBR, { buildLabel, buildPath, buildShape, buildText, Command, isLabel, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
-import { armorClass, effectiveSheet } from "./effects";
+import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
 import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
 import { linkedCharacterId } from "./tokenTurns";
 import { fillTurnStats } from "./turnStats";
-import type { CloudSheet, MonsterSheet, TurnEntry, TurnState } from "./types";
+import type { CharacterEffect, CharacterSheet, CloudSheet, MonsterSheet, TurnEntry, TurnState } from "./types";
 
-// Etichetta sopra il token: le condizioni. I PF sono nella barra sotto il token.
-export function tokenStatusText(turn: TurnEntry | undefined, role: "GM" | "PLAYER"): string | null {
+// Etichetta sopra il token: gli effetti attivi, della scheda per i PG (anche fuori dai turni), del token per gli altri.
+// I PF sono nella barra sotto il token.
+export function tokenStatusText(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[]): string | null {
   const parts: string[] = [];
-  const conditions = role === "GM" || !turn?.hidden ? turn?.conditions?.map((condition) => `${condition.name}${condition.remainingRounds ? ` ${condition.remainingRounds}r` : ""}`) ?? [] : [];
+  const effects = (sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn);
+  const conditions = role === "GM" || !turn?.hidden ? effects.map((condition) => `${condition.name}${condition.remainingRounds ? ` ${condition.remainingRounds}r` : ""}`) : [];
   if (conditions.length) parts.push(conditions.slice(0, 2).join(" · ") + (conditions.length > 2 ? ` +${conditions.length - 2}` : ""));
   return parts.length ? parts.join(" | ") : null;
 }
@@ -26,7 +28,7 @@ export function tokenStats(entry: CloudSheet | undefined, monster: MonsterSheet 
   }
   const statblock = entry?.kind === "npc" ? entry.sheet : monster;
   if (!statblock) return null;
-  return { ...turn?.hp ? { hp: { ...turn.hp, temp: 0 } } : {}, ac: turn?.ac ?? statblock.ac };
+  return { ...turn?.hp ? { hp: { ...turn.hp, temp: 0 } } : {}, ac: (turn?.ac ?? statblock.ac) + effectsTotal(turn?.conditions, "ac") };
 }
 
 // Colori chiari come le barre di Roll20; il testo è bianco con il bordo scuro, leggibile su ogni colore.
@@ -133,7 +135,8 @@ async function syncTokenStatus(): Promise<void> {
   const desired = new Map<string, { text: string; position: { x: number; y: number } }>();
   for (const token of tokens) {
     if (role !== "GM" && !token.visible) continue;
-    const text = tokenStatusText(turnsByToken.get(token.id), role);
+    const sheet = roomSheets.find((entry) => entry.kind === "pc" && entry.sheet.id === linkedCharacterId(token))?.sheet as CharacterSheet | undefined;
+    const text = tokenStatusText(turnsByToken.get(token.id), role, sheet?.effects);
     if (text) desired.set(token.id, { text, position: { x: token.position.x, y: token.position.y - 48 } });
   }
 

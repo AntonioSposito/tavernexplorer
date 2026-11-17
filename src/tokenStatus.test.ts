@@ -55,6 +55,16 @@ it("l'etichetta mostra solo le condizioni, nascoste ai giocatori se il turno è 
   expect(tokenStatusText(turn, "GM")).toBe("Avvelenato 2r");
 });
 
+it("per i PG l'etichetta mostra gli effetti attivi della scheda, anche fuori dai turni", async () => {
+  const { tokenStatusText } = await import("./tokenStatus");
+  const effects = [
+    { id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 3 },
+    { id: "b", name: "Bless", active: false, modifiers: [] },
+    { id: "r", name: "Ring", active: true, modifiers: [] },
+  ];
+  expect(tokenStatusText(undefined, "PLAYER", effects)).toBe("Poisoned 3r · Ring");
+});
+
 it("barra e CA per i PG, solo CA per NPC e mostri", async () => {
   const { tokenStats } = await import("./tokenStatus");
   const sheet = pc();
@@ -105,4 +115,14 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
   scene.turns = { ...scene.turns, hideTokenStats: true };
   scene.listeners.forEach((callback) => callback());
   await vi.waitFor(() => expect(stats("t-ada")).toHaveLength(0));
+});
+
+it("la CA sul token di un mostro comprende gli effetti accesi del token", async () => {
+  const { tokenStats } = await import("./tokenStatus");
+  const turn: TurnEntry = { id: "t", name: "Goblin", initiative: 10, ac: 13, conditions: [
+    { id: "a", name: "Shield of Faith", active: true, modifiers: [{ id: "m", target: "ac", amount: 2 }] },
+    { id: "b", name: "Spento", active: false, modifiers: [{ id: "n", target: "ac", amount: 5 }] },
+    { id: "c", name: "Prone", remainingRounds: 1 },
+  ] };
+  expect(tokenStats(undefined, goblin, turn)?.ac).toBe(15);
 });
