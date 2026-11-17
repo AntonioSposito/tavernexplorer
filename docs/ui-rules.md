@@ -2,6 +2,10 @@
 
 Preferenze decise con l'utente. Valgono per ogni modifica futura.
 
+## Generali
+
+- **I box non si devono toccare.** Tra due box c'è sempre uno spazio: mai bordi attaccati o sovrapposti.
+
 ## Schede personaggio
 
 - **Creare e modificare sempre in un popup.** Ogni sezione di ogni scheda (azioni, magie, risorse, competenze, buff/debuff, …) apre un `Dialog` per creare o modificare una voce. Niente form o campi di modifica aperti direttamente nella pagina. "Elimina" sta dentro il popup di modifica, non sulla riga.

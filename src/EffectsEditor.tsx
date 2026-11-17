@@ -53,6 +53,6 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
 
 export function EffectsEditor({ sheet, onUpdate, onShare }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: ShareEffect }) {
   return <Card><div className="editor-heading"><h2>Effetti e condizioni</h2></div><p className="effect-note">Buff, debuff e condizioni. I modificatori attivi si sommano ai valori di base e ai tiri; un valore negativo è un debuff. I round rimasti scendono a ogni turno del personaggio nel turn order; a zero l'effetto si spegne.</p>
-    <EffectList effects={sheet.effects ?? []} editable onShare={onShare} onChange={(update) => onUpdate((next) => { next.effects = update(next.effects ?? []); return next; })}/>
+    <div className="effects-list"><EffectList effects={sheet.effects ?? []} editable onShare={onShare} onChange={(update) => onUpdate((next) => { next.effects = update(next.effects ?? []); return next; })}/></div>
   </Card>;
 }
