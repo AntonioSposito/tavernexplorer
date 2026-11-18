@@ -21,8 +21,17 @@ export const CONDITIONS: Array<{ name: string; rule: string }> = [
   { name: "Unconscious", rule: "Inert. You have the Incapacitated and Prone conditions, and you drop whatever you're holding. When this condition ends, you remain Prone.\nSpeed 0. Your Speed is 0 and can't increase.\nAttacks Affected. Attack rolls against you have Advantage.\nSaving Throws Affected. You automatically fail Strength and Dexterity saving throws.\nAutomatic Critical Hits. Any attack roll that hits you is a Critical Hit if the attacker is within 5 feet of you.\nUnaware. You're unaware of your surroundings." },
 ];
 
-// Regola di una condizione dal nome, senza badare a maiuscole (anche "poisoned" delle immunità di 5e.tools) e col livello di Exhaustion.
-export const conditionRule = (name: string) => CONDITIONS.find((condition) => condition.name.toLowerCase() === (exhaustionLevel(name) ? "exhaustion" : name.trim().toLowerCase()))?.rule;
+// Regola di una condizione dal nome, senza badare a maiuscole (anche "poisoned" delle immunità di 5e.tools) e col livello di Exhaustion:
+// "Exhaustion 3" ha in testa le penalità del suo livello.
+export const conditionRule = (name: string) => {
+  const level = exhaustionLevel(name);
+  const rule = CONDITIONS.find((condition) => condition.name.toLowerCase() === (level ? "exhaustion" : name.trim().toLowerCase()))?.rule;
+  if (!level || !/\d/.test(name)) return rule;
+  return `${level >= 6 ? "Exhaustion Level 6. You die." : `Exhaustion Level ${level}. Your D20 Tests are reduced by ${2 * level} and your Speed by ${5 * level} feet.`}\n${rule}`;
+};
+
+// Suggerimenti per il nome di un effetto: le condizioni, con Exhaustion da 1 a 6, e la concentrazione.
+export const EXHAUSTION_LEVELS = [1, 2, 3, 4, 5, 6].map((level) => `Exhaustion ${level}`);
 
 // Tiri d20 toccati dalle condizioni: attacchi, prove (anche abilità e strumenti) e TS per caratteristica, e l'iniziativa,
 // che è una prova di Destrezza ma ha regole sue (Incapacitated, Invisible).
@@ -71,7 +80,7 @@ export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Rol
 
 // Concentrazione: un effetto come gli altri, col nome dell'incantesimo ("Concentrazione: Bless"); se ne ha una sola alla volta.
 export const CONCENTRATION = "Concentrazione";
-export const CONCENTRATION_RULE = "Finisce se lanci un altro incantesimo di concentrazione, se sei Incapacitated o se muori. Quando subisci danni fai un TS su Costituzione con CD 10 o metà del danno subito, se più alta (massimo CD 30): se fallisci la perdi.";
+export const CONCENTRATION_RULE = "Another Concentration Effect. You lose Concentration the moment you start casting another spell that requires Concentration or activate another effect that requires Concentration.\nIncapacitated or Dead. Your Concentration ends if you have the Incapacitated condition or you die.\nTaking Damage. If you take damage, you must succeed on a Constitution saving throw to maintain Concentration. The DC equals 10 or half the damage taken (round down), whichever number is higher, up to a maximum DC of 30.";
 const isConcentration = (name: string) => name.trim().toLowerCase().startsWith(CONCENTRATION.toLowerCase());
 
 // Regola da mettere nella descrizione: quella della condizione o della concentrazione.

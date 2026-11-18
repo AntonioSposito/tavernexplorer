@@ -157,7 +157,7 @@ order: 1900
 - `effectiveSheet` (`effects.ts`): applicare la penalità a `save`, `skills[].bonus`, `initiative` e al bonus di attacco degli incantesimi. Per gli attacchi delle azioni passa da `modifierTotal(sheet, "attack")`: aggiungere lì la penalità oppure introdurre un `d20Penalty(sheet)` usato in `EntryList`. Scegliere un solo punto e documentarlo.
 - Velocità: `speed` è una stringa. Mostrare "30 ft (−10 indebolimento)" senza riscriverla.
 - `takeLongRest` (`rest.ts`): −1 livello e riportarlo nel riepilogo del riposo.
-- UI: selettore 0-6 vicino a ispirazione/PF in `MainSheet`. Al livello 6 la scheda segna "morto". Label sul token tramite `tokenStatusText` ("Indebolito 2").
+- UI: selettore 0-6 vicino a ispirazione/PF in `MainSheet`. Al livello 6 la scheda segna "morto". Sul token l'effetto "Exhaustion N" ha già l'icona 😫 (`tokenConditionIcons` in `src/tokenStatus.ts`), senza il livello: se il livello passa in `combat.exhaustion`, l'icona va presa da lì e il livello va mostrato sull'icona.
 
 **Accettazione.**
 - Indebolimento 2 → Furtività +5 diventa +1, iniziativa −4.
@@ -183,7 +183,7 @@ order: 2100
 - Inizio: da "Lancia" (TE-28) o con un toggle manuale sull'incantesimo. Fine: pulsante "Termina" in `MainSheet`.
 - `HitPointControl`: dopo un danno > 0 su un PG concentrato mostrare il banner "TS Costituzione CD X" con un pulsante che tira `1d20 + save.constitution` (passando da `performRoll`, quindi con vantaggio/svantaggio). Se il TS fallisce, rimuovere la concentrazione. Se i PF arrivano a 0, rimuoverla subito.
 - Se il tracker assegna "Incapacitato" (o Paralizzato, Pietrificato, Stordito, che includono Incapacitato) alla voce collegata alla scheda → avviso al proprietario. La scheda è separata dal turn state, quindi non rimuovere la concentrazione in automatico: mostrare un pulsante "Termina concentrazione".
-- Token: aggiungere "◎ Nome incantesimo" in `tokenStatusText` (visibile a tutti, è informazione pubblica al tavolo).
+- Token: fatto. L'effetto "Concentrazione: <incantesimo>" ha l'icona 🧠 in `tokenConditionIcons` (`src/tokenStatus.ts`), visibile a tutti come gli altri effetti del PG. Il nome dell'incantesimo non compare sul token.
 
 **Accettazione.**
 - 23 danni → CD 11; 70 danni → CD 30 (limite); 4 danni → CD 10.

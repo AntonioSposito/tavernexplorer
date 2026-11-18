@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CONCENTRATION, CONDITIONS, conditionRule, effectRule } from "./conditions";
+import { CONCENTRATION, CONDITIONS, EXHAUSTION_LEVELS, conditionRule, effectRule } from "./conditions";
 import { modifierTags } from "./effects";
 import { ChatIcon, EditIcon } from "./icons";
 import { ModifierEditor } from "./ModifierEditor";
@@ -42,7 +42,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
     </div>)}
     <Dialog open={draft !== null} title={draft?.isNew ? "Nuovo effetto" : "Modifica effetto"} onClose={() => setDraft(null)}>{draft && <div className="action-form">
       <label><span>Nome</span><Input aria-label="Nome effetto" list="effect-conditions" value={draft.effect.name} autoFocus placeholder="Bless, Poisoned…" onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, name: event.target.value, description: describe(draft.effect, event.target.value) } })}/></label>
-      <datalist id="effect-conditions">{CONDITIONS.map((condition) => <option key={condition.name} value={condition.name}/>)}<option value={CONCENTRATION}/></datalist>
+      <datalist id="effect-conditions">{CONDITIONS.flatMap(({ name }) => name === "Exhaustion" ? EXHAUSTION_LEVELS : [name]).map((name) => <option key={name} value={name}/>)}<option value={CONCENTRATION}/></datalist>
       <label><span>Descrizione</span><Textarea aria-label="Descrizione effetto" value={draft.effect.description ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, description: event.target.value || undefined } })}/></label>
       <label><span>Round rimasti (vuoto = senza scadenza)</span><Input type="number" min="0" value={draft.effect.remainingRounds ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, remainingRounds: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) } })}/></label>
       <ModifierEditor modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
