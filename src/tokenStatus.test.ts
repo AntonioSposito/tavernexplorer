@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it, vi } from "vitest";
-import { STORAGE_MONSTERS, TOKEN_META_KEY, TOKEN_STATS_META_KEY } from "./constants";
+import { STORAGE_MONSTERS, TOKEN_META_KEY, TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
 import { importRoll20 } from "./importer";
 import type { CloudSheet, MonsterSheet, TurnEntry } from "./types";
 
@@ -48,21 +48,33 @@ const pc = () => {
 };
 const goblin = { id: "goblin", name: "Goblin", ac: 13 } as MonsterSheet;
 
-it("l'etichetta mostra solo le condizioni, nascoste ai giocatori se il turno è nascosto", async () => {
-  const { tokenStatusText } = await import("./tokenStatus");
-  const turn: TurnEntry = { id: "turn", name: "Ada", initiative: 10, hidden: true, conditions: [{ id: "c", name: "Avvelenato", remainingRounds: 2 }] };
-  expect(tokenStatusText(turn, "PLAYER")).toBeNull();
-  expect(tokenStatusText(turn, "GM")).toBe("Avvelenato 2r");
+it("le icone delle condizioni sono nascoste ai giocatori se il turno è nascosto", async () => {
+  const { tokenConditionIcons } = await import("./tokenStatus");
+  const turn: TurnEntry = { id: "turn", name: "Ada", initiative: 10, hidden: true, conditions: [{ id: "c", name: "Poisoned", remainingRounds: 2 }] };
+  expect(tokenConditionIcons(turn, "PLAYER")).toEqual([]);
+  expect(tokenConditionIcons(turn, "GM")).toEqual([{ icon: "🤢", rounds: 2 }]);
 });
 
-it("per i PG l'etichetta mostra gli effetti attivi della scheda, anche fuori dai turni", async () => {
-  const { tokenStatusText } = await import("./tokenStatus");
-  const effects = [
-    { id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 3 },
-    { id: "b", name: "Bless", active: false, modifiers: [] },
-    { id: "r", name: "Ring", active: true, modifiers: [] },
-  ];
-  expect(tokenStatusText(undefined, "PLAYER", effects)).toBe("Poisoned 3r · Ring");
+it("per i PG le icone sono gli effetti attivi della scheda: emoji per le condizioni, iniziali per gli altri, +N oltre quattro", async () => {
+  const { tokenConditionIcons } = await import("./tokenStatus");
+  const effect = (name: string, active = true) => ({ id: name, name, active, modifiers: [] });
+  expect(tokenConditionIcons(undefined, "PLAYER", [effect("Poisoned"), effect("Bless", false), effect("Ring"), effect("Exhaustion 2"), effect("Concentrazione: Bless")])
+    .map(({ icon }) => icon)).toEqual(["🤢", "Ri", "😫", "🧠"]);
+  expect(tokenConditionIcons(undefined, "PLAYER", ["Prone", "Blinded", "Stunned", "Charmed", "Deafened"].map((name) => effect(name)))).toEqual(["🛌", "🙈", "😵", "+2"].map((icon) => ({ icon })));
+});
+
+it("disegna le icone in alto a sinistra, grandi come lo scudo della CA", async () => {
+  const { setupTokenStatus } = await import("./tokenStatus");
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ sheets: [] })));
+  scene.tokens = [{ id: "t-gob", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: {} }];
+  scene.turns = { ...scene.turns, entries: [{ id: "e", name: "Goblin", initiative: 1, tokenId: "t-gob", conditions: [{ id: "c", name: "Prone" }, { id: "d", name: "Poisoned", remainingRounds: 3 }] }] };
+  setupTokenStatus();
+  const icons = () => scene.local.filter((item) => (item.metadata[TOKEN_STATUS_META_KEY] as { tokenId?: string } | undefined)?.tokenId === "t-gob");
+  // Prone senza durata: cerchio ed emoji; Poisoned con 3 turni: anche il badge col numero.
+  await vi.waitFor(() => expect(icons()).toHaveLength(6));
+  expect(icons().map((item) => item.text?.plainText).filter(Boolean)).toEqual(["🛌", "🤢", "3"]);
+  // Misura fissa in caselle (DPI 150 × 0.32), come lo scudo.
+  expect(icons().find((item) => item.type === "SHAPE")).toMatchObject({ width: 48, height: 48 });
 });
 
 it("barra e CA per i PG, solo CA per NPC e mostri", async () => {

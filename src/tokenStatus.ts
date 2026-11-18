@@ -1,5 +1,6 @@
-import OBR, { buildLabel, buildPath, buildShape, buildText, Command, isLabel, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
+import OBR, { buildPath, buildShape, buildText, Command, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
+import { CONCENTRATION } from "./conditions";
 import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
 import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
@@ -7,14 +8,25 @@ import { linkedCharacterId } from "./tokenTurns";
 import { fillTurnStats } from "./turnStats";
 import type { CharacterEffect, CharacterSheet, CloudSheet, MonsterSheet, TurnEntry, TurnState } from "./types";
 
-// Etichetta sopra il token: gli effetti attivi, della scheda per i PG (anche fuori dai turni), del token per gli altri.
-// I PF sono nella barra sotto il token.
-export function tokenStatusText(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[]): string | null {
-  const parts: string[] = [];
-  const effects = (sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn);
-  const conditions = role === "GM" || !turn?.hidden ? effects.map((condition) => `${condition.name}${condition.remainingRounds ? ` ${condition.remainingRounds}r` : ""}`) : [];
-  if (conditions.length) parts.push(conditions.slice(0, 2).join(" · ") + (conditions.length > 2 ? ` +${conditions.length - 2}` : ""));
-  return parts.length ? parts.join(" | ") : null;
+// Icone degli effetti attivi in alto a sinistra del token: della scheda per i PG (anche fuori dai turni), del token per gli altri.
+// Le condizioni hanno un'emoji, gli altri effetti le prime due lettere; oltre MAX_ICONS l'ultima icona è "+N".
+// rounds: i turni rimasti, mostrati in un badge sull'icona.
+const CONDITION_ICONS: Record<string, string> = {
+  blinded: "🙈", charmed: "💘", deafened: "🔇", exhaustion: "😫", frightened: "😱", grappled: "🤼", incapacitated: "💫", invisible: "👻",
+  paralyzed: "⚡", petrified: "🗿", poisoned: "🤢", prone: "🛌", restrained: "⛓️", stunned: "😵", unconscious: "💤", [CONCENTRATION.toLowerCase()]: "🧠",
+};
+const MAX_ICONS = 4;
+const effectIcon = (name: string) => {
+  const key = name.trim().toLowerCase();
+  const known = Object.keys(CONDITION_ICONS).find((condition) => key === condition || key.startsWith(`${condition} `) || key.startsWith(`${condition}:`));
+  return known ? CONDITION_ICONS[known] : name.trim().slice(0, 2);
+};
+export interface ConditionIcon { icon: string; rounds?: number }
+export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[]): ConditionIcon[] {
+  if (role !== "GM" && turn?.hidden) return [];
+  const icons = (sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn)
+    .map((effect): ConditionIcon => ({ icon: effectIcon(effect.name), ...effect.remainingRounds ? { rounds: effect.remainingRounds } : {} }));
+  return icons.length > MAX_ICONS ? [...icons.slice(0, MAX_ICONS - 1), { icon: `+${icons.length - MAX_ICONS + 1}` }] : icons;
 }
 
 // Barra della vita e CA sotto il token, disegnate in locale da ognuno: i PG a tutti, NPC e mostri solo al GM
@@ -78,6 +90,57 @@ function statsItems(tokenId: string, bounds: BoundingBox, stats: TokenStats, sig
   return items;
 }
 
+// Icone delle condizioni: grandi come lo scudo della CA (misura fissa in caselle), la prima nel punto in alto a sinistra
+// speculare allo scudo, le altre in fila verso sinistra con uno spazio tra l'una e l'altra.
+// I turni rimasti sono un badge tondo in basso a destra dell'icona, che non arriva all'icona accanto.
+function conditionItems(tokenId: string, bounds: BoundingBox, icons: ConditionIcon[], sig: string, cell: number): Item[] {
+  const size = cell * 0.32;
+  const gap = cell * 0.04;
+  const edge = (bounds.width / 2) * Math.SQRT1_2;
+  const metadata = { [TOKEN_STATUS_META_KEY]: { tokenId, sig } };
+  const z = Date.now();
+  const badge = size * 0.5;
+  return icons.flatMap(({ icon, rounds }, index) => {
+    const center = { x: bounds.center.x - edge - index * (size + gap), y: bounds.center.y - edge };
+    return [
+      buildShape().shapeType("CIRCLE").width(size).height(size).position(center).fillColor("#334155").fillOpacity(0.95)
+        .strokeColor("#0f172a").strokeWidth(Math.max(1, size * 0.06)).zIndex(z)
+        .attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+      buildText().textType("PLAIN").plainText(icon).width(size).height(size).position({ x: center.x - size / 2, y: center.y - size / 2 })
+        .textAlign("CENTER").textAlignVertical("MIDDLE").padding(0).fontSize(size * 0.5).fontWeight(700).fillColor("#ffffff")
+        .zIndex(z + 1).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+      ...rounds ? [
+        buildShape().shapeType("CIRCLE").width(badge).height(badge).position({ x: center.x + size * 0.35, y: center.y + size * 0.35 })
+          .fillColor("#f59e0b").fillOpacity(1).strokeColor("#0f172a").strokeWidth(Math.max(1, badge * 0.08)).zIndex(z + 2)
+          .attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+        buildText().textType("PLAIN").plainText(String(rounds)).width(badge).height(badge)
+          .position({ x: center.x + size * 0.35 - badge / 2, y: center.y + size * 0.35 - badge / 2 })
+          .textAlign("CENTER").textAlignVertical("MIDDLE").padding(0).fontSize(badge * 0.65).fontWeight(700).fillColor("#0f172a")
+          .zIndex(z + 3).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+      ] : [],
+    ];
+  });
+}
+
+// Elementi locali attaccati ai token, marcati con key → { tokenId, sig }: un token resta com'è solo se tutti i suoi
+// elementi hanno la firma voluta, altrimenti si ricrea.
+async function syncAttached(key: string, desired: Map<string, { sig: string; build: () => Item[] }>): Promise<void> {
+  const drawn = new Map<string, Item[]>();
+  for (const item of await OBR.scene.local.getItems((entry) => !!entry.metadata[key])) {
+    const { tokenId } = item.metadata[key] as { tokenId: string };
+    drawn.set(tokenId, [...drawn.get(tokenId) ?? [], item]);
+  }
+  const kept = new Set<string>();
+  const remove: string[] = [];
+  for (const [tokenId, items] of drawn) {
+    if (items.every((item) => (item.metadata[key] as { sig: string }).sig === desired.get(tokenId)?.sig)) kept.add(tokenId);
+    else remove.push(...items.map((item) => item.id));
+  }
+  if (remove.length) await OBR.scene.local.deleteItems(remove);
+  const additions = [...desired].filter(([tokenId]) => !kept.has(tokenId)).flatMap(([, target]) => target.build());
+  if (additions.length) await OBR.scene.local.addItems(additions);
+}
+
 // Tutte le schede della stanza, lette dal server: la cache del giocatore ha solo quelle che può vedere.
 let roomSheets: CloudSheet[] = [];
 async function loadRoomSheets(): Promise<void> {
@@ -104,64 +167,32 @@ async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: Turn
   const desired = new Map(await Promise.all(wanted.map(async ({ token, stats }) => {
     const bounds = await OBR.scene.items.getItemBounds([token.id]);
     const sig = JSON.stringify([stats, Math.round(bounds.width), Math.round(bounds.height), cell]);
-    return [token.id, { bounds, stats, sig }] as const;
+    return [token.id, { sig, build: () => statsItems(token.id, bounds, stats, sig, cell) }] as const;
   })));
-  // Un token resta com'è solo se tutti i suoi elementi hanno la firma voluta, altrimenti si ricrea.
-  const drawn = new Map<string, Item[]>();
-  for (const item of await OBR.scene.local.getItems((entry) => !!entry.metadata[TOKEN_STATS_META_KEY])) {
-    const { tokenId } = item.metadata[TOKEN_STATS_META_KEY] as { tokenId: string };
-    drawn.set(tokenId, [...drawn.get(tokenId) ?? [], item]);
-  }
-  const kept = new Set<string>();
-  const remove: string[] = [];
-  for (const [tokenId, items] of drawn) {
-    if (items.every((item) => (item.metadata[TOKEN_STATS_META_KEY] as { sig: string }).sig === desired.get(tokenId)?.sig)) kept.add(tokenId);
-    else remove.push(...items.map((item) => item.id));
-  }
-  if (remove.length) await OBR.scene.local.deleteItems(remove);
-  const additions = [...desired].filter(([tokenId]) => !kept.has(tokenId)).flatMap(([tokenId, target]) => statsItems(tokenId, target.bounds, target.stats, target.sig, cell));
-  if (additions.length) await OBR.scene.local.addItems(additions);
+  await syncAttached(TOKEN_STATS_META_KEY, desired);
 }
 
 async function syncTokenStatus(): Promise<void> {
   if (!(await OBR.scene.isReady())) return;
-  const [tokens, labels, turns, role] = await Promise.all([
+  const [tokens, turns, role] = await Promise.all([
     OBR.scene.items.getItems((item) => item.layer === "CHARACTER"),
-    OBR.scene.local.getItems((item) => typeof item.metadata[TOKEN_STATUS_META_KEY] === "string"),
     getTurnState(), OBR.player.getRole(),
   ]);
   await syncTokenStats(tokens, role, turns);
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
-  const desired = new Map<string, { text: string; position: { x: number; y: number } }>();
-  for (const token of tokens) {
-    if (role !== "GM" && !token.visible) continue;
+  const wanted = tokens.flatMap((token) => {
+    if (role !== "GM" && !token.visible) return [];
     const sheet = roomSheets.find((entry) => entry.kind === "pc" && entry.sheet.id === linkedCharacterId(token))?.sheet as CharacterSheet | undefined;
-    const text = tokenStatusText(turnsByToken.get(token.id), role, sheet?.effects);
-    if (text) desired.set(token.id, { text, position: { x: token.position.x, y: token.position.y - 48 } });
-  }
-
-  const existing = new Set<string>();
-  const remove: string[] = [];
-  const change = new Map<string, string>();
-  for (const label of labels) {
-    const tokenId = label.metadata[TOKEN_STATUS_META_KEY];
-    if (typeof tokenId !== "string") continue;
-    const target = desired.get(tokenId);
-    if (!target || existing.has(tokenId) || !isLabel(label)) { remove.push(label.id); continue; }
-    existing.add(tokenId);
-    if (label.text.plainText !== target.text) change.set(label.id, target.text);
-  }
-  if (remove.length) await OBR.scene.local.deleteItems(remove);
-  if (change.size) await OBR.scene.local.updateItems([...change.keys()], (items) => {
-    for (const item of items) if (isLabel(item)) item.text.plainText = change.get(item.id) ?? item.text.plainText;
+    const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects);
+    return icons.length ? [{ token, icons }] : [];
   });
-  const additions = [...desired].filter(([tokenId]) => !existing.has(tokenId)).map(([tokenId, target]) =>
-    buildLabel().plainText(target.text).attachedTo(tokenId).position(target.position)
-      .fontSize(14).fontWeight(700).fillColor("#f8fafc").backgroundColor("#18181b")
-      .backgroundOpacity(0.9).cornerRadius(8).padding(5).locked(true).disableHit(true)
-      .metadata({ [TOKEN_STATUS_META_KEY]: tokenId }).build(),
-  );
-  if (additions.length) await OBR.scene.local.addItems(additions);
+  const cell = await OBR.scene.grid.getDpi();
+  const desired = new Map(await Promise.all(wanted.map(async ({ token, icons }) => {
+    const bounds = await OBR.scene.items.getItemBounds([token.id]);
+    const sig = JSON.stringify([icons, Math.round(bounds.width), Math.round(bounds.height), cell]);
+    return [token.id, { sig, build: () => conditionItems(token.id, bounds, icons, sig, cell) }] as const;
+  })));
+  await syncAttached(TOKEN_STATUS_META_KEY, desired);
 }
 
 export function setupTokenStatus(): void {
