@@ -58,6 +58,8 @@ body {
 .floating-handle + main { padding: .65rem; }
 .floating-handle ~ main .messages { height: calc(100vh - 4.15rem); }
 .message-list { min-height: 0; padding-right: .2rem; }
+/* Sticky dentro la lista: resta in basso a destra mentre si scorre. */
+.message-jump { position: sticky; bottom: .4rem; align-self: flex-end; flex: none; width: 2.2rem; height: 2.2rem; border-radius: 999px; border: 1px solid hsl(var(--primary) / .7); background: hsl(var(--background)); color: hsl(var(--primary)); font-size: 1.1rem; box-shadow: 0 2px 8px hsl(0 0% 0% / .4); }
 .message-filters { display:flex; gap:.35rem; overflow:auto; padding-bottom:.2rem; }
 .message-filters button { border:1px solid hsl(var(--border)); background:hsl(var(--secondary)); color:hsl(var(--muted-foreground)); border-radius:999px; padding:.35rem .7rem; white-space:nowrap; font-size:.78rem; }
 .message-filters button.active { color:hsl(var(--primary)); border-color:hsl(var(--primary) / .7); background:hsl(var(--primary) / .1); }

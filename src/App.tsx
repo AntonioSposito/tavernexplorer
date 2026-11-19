@@ -825,10 +825,25 @@ function Messages({ messages, speakers, speakAs, setSpeakAs, playerName, draft, 
   const fresh = useFreshMessages(messages);
   const shown = filter === "all" ? messages : messages.filter((message) => message.visibility === filter);
   const lastId = messages.at(-1)?.id;
-  useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [lastId, filter]);
+  // Resta agganciata al fondo finché l'utente non scorre in su; le card crescono dopo il render (icone), quindi serve il ResizeObserver.
+  const stickRef = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
+  const toBottom = () => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; };
+  const jumpToBottom = () => { stickRef.current = true; setAtBottom(true); toBottom(); };
+  useEffect(jumpToBottom, [filter]);
+  useEffect(() => { if (stickRef.current) toBottom(); }, [lastId]);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => { if (stickRef.current) toBottom(); });
+    observer.observe(list);
+    for (const child of list.children) observer.observe(child);
+    return () => observer.disconnect();
+  }, [shown]);
+  const onScroll = () => { const list = listRef.current!; stickRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 40; setAtBottom(stickRef.current); };
   return <div className="messages">
     <nav className="message-filters" aria-label="Filtra messaggi">{([ ["all", "Tutti"], ["everyone", "Pubblici"], ["gm", "GM"], ["self", "Personali"] ] as const).map(([id, label]) => <button key={id} className={filter === id ? "active" : ""} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</nav>
-    <section className="message-list" ref={listRef} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{messageTime(message.createdAt)} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}</section>
+    <section className="message-list" ref={listRef} onScroll={onScroll} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{messageTime(message.createdAt)} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}{!atBottom && <button className="message-jump" aria-label="Vai all'ultimo messaggio" title="Vai all'ultimo messaggio" onClick={jumpToBottom}>↓</button>}</section>
     <section className="composer"><textarea aria-label="Nuovo messaggio" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim()) onSend(); } }} placeholder="Scrivi un messaggio…"/><div><select aria-label="Parla come" value={speakAs} onChange={(event) => setSpeakAs(event.target.value)}><option value="">{playerName}</option>{speakers.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}</select><select aria-label="Destinatari" value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select><button className="primary" disabled={!draft.trim()} onClick={onSend}>Invia</button></div>{visibility === "gm" && <small className="composer-note">Il GM deve avere l'estensione aperta almeno una volta per ricevere messaggi cifrati.</small>}</section>
   </div>;
 }
