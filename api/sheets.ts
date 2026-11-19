@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { CharacterSheet, CloudSheet, JournalFolder, JournalNote, MonsterSheet } from "../src/types";
+import type { CharacterSheet, CloudSheet, JournalFolder, JournalNote, MonsterSheet } from "../src/types.js";
 
 // Le schede di una stanza stanno in un hash: campo = id scheda, valore = CloudSheet.
 // L'ID della stanza Owlbear fa da chiave condivisa: chi non lo conosce non legge nulla.

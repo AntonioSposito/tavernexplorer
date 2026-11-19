@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { PermissionSettings, SharedInventoryItem, TurnState } from "../src/types";
+import type { PermissionSettings, SharedInventoryItem, TurnState } from "../src/types.js";
 
 // Turni, inventario comune e permessi per chi è fuori da Owlbear: un hash con un campo per voce, vince l'ultima scrittura.
 // Come per le schede, l'ID della stanza fa da chiave condivisa e i permessi li applica il client.

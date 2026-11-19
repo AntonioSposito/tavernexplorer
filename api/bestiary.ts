@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { MonsterSheet } from "../src/types";
+import type { MonsterSheet } from "../src/types.js";
 import { isGmToken } from "./_gmToken.js";
 
 // Bestiario del GM: un hash con un campo per mostro, leggibile e scrivibile solo con il token GM.

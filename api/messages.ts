@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { ChatMessage } from "../src/types";
+import type { ChatMessage } from "../src/types.js";
 import { isGmToken } from "./_gmToken.js";
 
 // Chat della stanza: due liste degli ultimi messaggi. "Tutti" è leggibile da chi conosce la stanza, come le schede;
