@@ -110,3 +110,7 @@ body {
 /* Parla come, destinatari e Invia su una riga: i menu si stringono. */
 .composer div { align-items: center; }
 .composer div select { flex: 0 1 11rem; min-width: 0; }
+/* Chat in finestra: niente topbar (c'è la maniglia), quindi non vale 100vh - --topbar-height. La colonna occupa la finestra e la lista finisce sopra il box di scrittura. */
+.app:has(> .floating-handle):has(.messages) { height: 100vh; display: flex; flex-direction: column; }
+.app:has(> .floating-handle) > .app-body { flex: 1; min-height: 0; }
+.app:has(> .floating-handle) > .app-body > main:has(> .messages) { height: 100%; }
