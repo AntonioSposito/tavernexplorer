@@ -23,6 +23,8 @@ const putSheet = (name: string, edit: string[]) => apiFetch("/api/sheets", { met
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
+  // jsdom non ha matchMedia: schermo largo, barra delle tab di lato.
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: () => undefined, removeEventListener: () => undefined }));
   store.clear(); localStorage.clear();
   vi.stubEnv("PHONE_ROOM", "r1"); vi.stubEnv("PHONE_PASSWORD", "taverna");
   vi.stubGlobal("fetch", route);

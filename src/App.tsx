@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { ABILITY_LABELS, ABILITY_SHORT, ABILITY_TAGS, SKILL_ABILITIES, SKILL_LABELS, TOKEN_META_KEY } from "./constants";
 import { conditionRoll, startConcentration, type D20Roll } from "./conditions";
 import { combineModes, roll, type RollResult } from "./dice";
@@ -82,7 +82,12 @@ async function migrateLocalSheets(cloud: ReturnType<typeof createCloudLibrary>, 
   storage.characters.set([]);
 }
 
+// Più stretto del pannello Owlbear (480px) la barra di lato ruba troppo spazio: le tab stanno sempre in alto.
+const NARROW_SCREEN = "(max-width: 479px)";
+const watchNarrow = (onChange: () => void) => { const query = window.matchMedia(NARROW_SCREEN); query.addEventListener("change", onChange); return () => query.removeEventListener("change", onChange); };
+
 export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPhoneExit?: () => void }) {
+  const narrow = useSyncExternalStore(watchNarrow, () => window.matchMedia(NARROW_SCREEN).matches);
   const viewParam = new URLSearchParams(window.location.search).get("view");
   const floatingView = viewParam && viewParam in TAB_LABELS ? viewParam as AppTab : null;
   // Finestra del menu del token: una sola parte della scheda (azioni, magia, risorse, prove, TS o abilità), senza maniglie (si chiude cliccando fuori).
@@ -521,7 +526,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     </header>
     </>}
 
-    <div className={`app-body${tabsOnTop ? " tabs-top" : ""}`}>
+    <div className={`app-body${tabsOnTop || narrow ? " tabs-top" : ""}`}>
     {!floatingView && <nav className="app-tabs">
       {([
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null], ["compendium", null],
@@ -534,7 +539,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     </nav>}
 
     <main>
-      {phone && <div className="popout-row"><Button variant="ghost" onClick={() => { storage.phoneTabsOnTop.set(!tabsOnTop); setTabsOnTop(!tabsOnTop); }}>{tabsOnTop ? "Barra di lato" : "Barra in alto"}</Button><Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
+      {phone && <div className="popout-row">{!narrow && <Button variant="ghost" onClick={() => { storage.phoneTabsOnTop.set(!tabsOnTop); setTabsOnTop(!tabsOnTop); }}>{tabsOnTop ? "Barra di lato" : "Barra in alto"}</Button>}<Button variant="ghost" onClick={onPhoneExit}>Cambia giocatore ({phone.name})</Button></div>}
       {!floatingView && OBR.isAvailable && <div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel(tab)}>Apri {TAB_LABELS[tab].toLowerCase()} in finestra ↗</Button></div>}
       {floatingView === "sheet" && !section && <select className="floating-select" aria-label="Scheda" value={activeId ?? ""} onChange={(event) => setActiveId(event.target.value || null)}><option value="">Nessuna scheda</option>{sortedCharacters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select>}
       {tokenNotice && <Alert tone="danger">{tokenNotice}</Alert>}

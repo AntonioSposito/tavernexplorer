@@ -38,6 +38,12 @@
 .entry summary .entry-use:hover, .proficiencies .entry-use:hover, .resource-row .entry-use:hover { text-decoration-style: solid; }
 .entry summary .entry-values { margin-left: auto; color: #e7b467; }
 .entry summary .entry-icons { display: flex; gap: .25rem; }
+/* Su schermo stretto valori e icone vanno a capo invece di schiacciare il nome. */
+.entry summary { flex-wrap: wrap; }
+.entry summary > span:first-child { flex: 1 1 8rem; min-width: 0; }
+/* Il nome cresce e spinge a destra valori e icone; se vanno a capo, le icone restano a destra. */
+.entry summary .entry-values { margin-left: 0; }
+.entry summary .entry-icons { margin-left: auto; }
 .entry-icons button { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 6px; background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
 .entry-icons button:hover { color: hsl(var(--primary)); }
 
@@ -89,9 +95,17 @@
 input.inventory-qty { width: 100%; min-width: 0; padding: .2rem; border: 1px solid hsl(var(--input)); border-radius: 6px; background: hsl(var(--background)); color: hsl(var(--foreground)); text-align: center; }
 /* Schermi stretti: colonne fisse più piccole e niente icona, altrimenti al nome resta quasi zero spazio. */
 @media (max-width: 480px) {
-  .inventory-head, .inventory-item > summary { grid-template-columns: 2.6rem 2.4rem minmax(0, 1fr) 3rem auto; gap: .35rem; }
+  .inventory-head, .inventory-item > summary { grid-template-columns: 2.6rem 2.4rem minmax(0, 1fr) 3rem 4.25rem; gap: .35rem; }
   .inventory-head span:nth-child(3), .inventory-item .inventory-icon { display: none; }
   .inventory-body { padding-left: .25rem; }
+  /* Il nome sta su una riga sua sopra equip., quantità, peso e icone: così non si schiaccia. */
+  .inventory-item .inventory-name { grid-column: 1 / -1; grid-row: 1; }
+  .inventory-item > summary > input[type="checkbox"] { grid-column: 1; grid-row: 2; }
+  .inventory-item .inventory-qty { grid-column: 2; grid-row: 2; }
+  .inventory-item .inventory-weight { grid-column: 4; grid-row: 2; }
+  .inventory-item .entry-icons { grid-column: 5; grid-row: 2; }
+  .inventory-head span:nth-child(4) { display: none; }
+  .inventory-head span:nth-child(5) { grid-column: 4; }
 }
 .inventory-over { color: hsl(var(--destructive)) !important; }
 .metric-explained { cursor: help; }
@@ -147,7 +161,7 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .journal-folder>summary{cursor:pointer;list-style:none;border:1px solid hsl(var(--primary) / .45);background:hsl(var(--secondary))}
 .journal-folder>summary::-webkit-details-marker{display:none}
 .journal-folder>summary strong{flex:1;min-width:0;overflow-wrap:anywhere}
-.journal-note{border:1px solid transparent;border-bottom-color:hsl(var(--border))}
+.journal-note{flex-wrap:wrap;border:1px solid transparent;border-bottom-color:hsl(var(--border))}
 .journal-note:hover{background:hsl(var(--card))}
 .journal-icon{display:inline-flex;flex:none;color:hsl(var(--muted-foreground))}
 .journal-folder>summary .journal-icon{color:hsl(var(--primary))}
@@ -156,7 +170,7 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .journal-count{padding:0 .45rem;border-radius:999px;background:hsl(var(--muted));color:hsl(var(--muted-foreground));font-size:.7rem}
 .journal-empty{color:hsl(var(--muted-foreground));font-style:italic;padding:.2rem .6rem}
 .journal-children{display:grid;gap:.35rem;margin:.35rem 0 0 1rem;padding-left:.5rem;border-left:1px dashed hsl(var(--border))}
-.journal-open{flex:1;min-width:0;padding:0;border:0;background:none;color:hsl(var(--foreground));text-align:left;overflow-wrap:anywhere}
+.journal-open{flex:1 1 8rem;min-width:0;padding:0;border:0;background:none;color:hsl(var(--foreground));text-align:left;overflow-wrap:anywhere}
 .journal-open:hover{color:hsl(var(--primary))}
 .journal-note .entry-icons,.journal-folder .entry-icons{display:flex;gap:.25rem}
 /* Condivisione di estratti di avventura (era in notes.css). */

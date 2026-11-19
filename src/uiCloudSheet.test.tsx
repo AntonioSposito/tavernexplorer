@@ -36,6 +36,8 @@ const { default: App } = await import("./App");
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
+  // jsdom non ha matchMedia: schermo largo, barra delle tab di lato.
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: () => undefined, removeEventListener: () => undefined }));
   Object.defineProperty(globalThis, "crypto", { configurable: true, value: webcrypto });
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
   vi.stubGlobal("fetch", apiFetch);

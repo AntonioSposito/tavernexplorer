@@ -95,6 +95,15 @@ body {
 .app-body.tabs-top > .app-tabs { z-index:9; flex-direction:row; height:var(--tabs-top-height); border-right:0; border-bottom:1px solid hsl(var(--border)); }
 .app-body.tabs-top > .app-tabs button { flex:1; border-left:0; border-bottom:3px solid transparent; }
 .app-body.tabs-top > .app-tabs button.active { border-bottom-color:hsl(var(--primary)); }
+/* Schermo stretto: i pulsanti si dividono la larghezza e l'icona si rimpicciolisce, così tutte le tab restano visibili. */
+.app-body.tabs-top > .app-tabs button { flex:1 1 0; min-width:0; padding-left:2px; padding-right:2px; }
+.app-body.tabs-top > .app-tabs .tab-icon { width:min(34px, 8vw); height:min(34px, 8vw); }
+.app-body.tabs-top > .app-tabs .tab-separator { width:1px; height:auto; margin:8px 4px; }
+/* Il select della scheda si accorcia invece di uscire dall'header. */
+.topbar select { min-width:0; }
+/* Le colonne non crescono oltre lo schermo per il contenuto (azioni della Libreria, composer dei Messaggi). */
+.stack, .messages { grid-template-columns:minmax(0, 1fr); }
+.library-actions { flex-wrap:wrap; }
 .app-body.tabs-top > main:has(> .messages) { height:calc(100vh - var(--topbar-height) - var(--tabs-top-height)); }
 /* Parla come, destinatari e Invia su una riga: i menu si stringono. */
 .composer div { align-items: center; }
