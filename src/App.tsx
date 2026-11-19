@@ -823,7 +823,8 @@ function Messages({ messages, speakers, speakAs, setSpeakAs, playerName, draft, 
   const [filter, setFilter] = useState<"all" | Visibility>("all");
   const listRef = useRef<HTMLElement>(null);
   const fresh = useFreshMessages(messages);
-  const shown = filter === "all" ? messages : messages.filter((message) => message.visibility === filter);
+  // Solo gli ultimi 100 della vista scelta: i più vecchi restano salvati ma non si vedono.
+  const shown = (filter === "all" ? messages : messages.filter((message) => message.visibility === filter)).slice(-100);
   const lastId = messages.at(-1)?.id;
   // Resta agganciata al fondo finché l'utente non scorre in su; le card crescono dopo il render (icone), quindi serve il ResizeObserver.
   const stickRef = useRef(true);

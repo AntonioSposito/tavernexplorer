@@ -70,6 +70,9 @@ it("la chat scorre in fondo anche con il limite di 200 messaggi", async () => {
   localStorage.setItem(STORAGE_MESSAGES, chat([...ids.slice(1), 200]));
   await act(async () => window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_MESSAGES })));
   expect(host.textContent).toContain("Messaggio 200");
+  expect(list.querySelectorAll("article")).toHaveLength(100);
+  expect(list.querySelector("article")!.textContent).toContain("Messaggio 101");
+  expect(host.textContent).not.toContain("Messaggio 100");
   expect(list.scrollTop).toBe(999);
 });
 
