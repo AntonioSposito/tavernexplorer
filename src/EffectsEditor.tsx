@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { EFFECT_CHOICES, conditionModifiers, conditionRule, effectPreset, effectRule, withEmoji } from "./conditions";
+import { EFFECT_CHOICES, conditionRule, named, opened, withEmoji } from "./conditions";
 import { modifierTags } from "./effects";
 import { ChatIcon, EditIcon } from "./icons";
 import { ModifierEditor } from "./ModifierEditor";
@@ -8,25 +8,6 @@ import { Button, Card, Dialog, Input, Select, Textarea } from "./ui";
 
 type EffectsUpdate = (update: (effects: CharacterEffect[]) => CharacterEffect[]) => void;
 export type ShareEffect = (entry: ActionEntry, card: RollCard) => void;
-
-// Scegliendo una condizione (o la concentrazione) la descrizione diventa la sua regola; un testo scritto a mano non si tocca.
-const describe = (effect: CharacterEffect, name: string) => effectRule(name) ?? (effect.description === effectRule(effect.name) ? undefined : effect.description);
-// Come la descrizione: cambiando nome, modificatori e round diventano quelli del nuovo effetto pronto o condizione,
-// ma solo se sono ancora quelli del nome precedente (o vuoti); se li hai cambiati a mano restano.
-// fromMenu: scelto da "Effetto pronto", si sostituiscono sempre.
-const defaultModifiers = (name: string) => effectPreset(name)?.modifiers ?? conditionModifiers(name);
-const withoutIds = (modifiers: CharacterEffect["modifiers"]) => JSON.stringify(modifiers.map((mod) => ({ ...mod, id: "" })));
-// Condizione mai salvata dal popup (versioni vecchie, menu del token): si apre con i modificatori che già valgono nei tiri.
-const opened = (effect: CharacterEffect): CharacterEffect => effect.edited || effect.modifiers.length ? structuredClone(effect) : { ...structuredClone(effect), modifiers: conditionModifiers(effect.name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) };
-export function named(effect: CharacterEffect, name: string, fromMenu = false): CharacterEffect {
-  const sameModifiers = fromMenu || withoutIds(effect.modifiers) === withoutIds(defaultModifiers(effect.name).map((mod) => ({ ...mod, id: "" })));
-  const sameRounds = fromMenu || effect.remainingRounds === effectPreset(effect.name)?.rounds;
-  return {
-    ...effect, name, description: describe(effect, name),
-    ...sameModifiers ? { modifiers: defaultModifiers(name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) } : {},
-    ...sameRounds ? { remainingRounds: effectPreset(name)?.rounds } : {},
-  };
-}
 
 function shareEffect(effect: CharacterEffect, onShare: ShareEffect) {
   const stats = [effect.remainingRounds != null && { label: "Round rimasti", value: String(effect.remainingRounds) }, effect.modifiers.length > 0 && { label: "Modificatori", value: modifierTags(effect.modifiers).join(", ") }].filter((stat) => !!stat);

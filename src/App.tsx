@@ -489,7 +489,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   function storeMonsters(next: MonsterSheet[]) {
     setMonsters(next);
     try { storage.monsters.set(next); }
-    catch { setSyncNotice("Memoria del browser piena: il bestiario non è salvato su questo browser. Collega il token GM in Permessi per tenerlo nel cloud."); }
+    catch { setSyncNotice(`Memoria del browser piena: il bestiario non è salvato su questo browser. ${gmToken ? "Resta nel cloud e torna al prossimo aggiornamento." : "Collega il token GM in Permessi per tenerlo nel cloud."}`); }
   }
 
   async function changeTurns(next: TurnState): Promise<boolean> {

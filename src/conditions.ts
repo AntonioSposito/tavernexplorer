@@ -142,3 +142,22 @@ export const effectRule = (name: string) => conditionRule(name) ?? (isConcentrat
 export function startConcentration(effects: CharacterEffect[], spell: string): CharacterEffect[] {
   return [...effects.filter((effect) => !isConcentration(effect.name)), { id: crypto.randomUUID(), name: `${CONCENTRATION}: ${spell}`, active: true, modifiers: [], description: CONCENTRATION_RULE }];
 }
+
+// Scegliendo una condizione (o la concentrazione) la descrizione diventa la sua regola; un testo scritto a mano non si tocca.
+const describe = (effect: CharacterEffect, name: string) => effectRule(name) ?? (effect.description === effectRule(effect.name) ? undefined : effect.description);
+// Come la descrizione: cambiando nome, modificatori e round diventano quelli del nuovo effetto pronto o condizione,
+// ma solo se sono ancora quelli del nome precedente (o vuoti); se li hai cambiati a mano restano.
+// fromMenu: scelto da "Effetto pronto", si sostituiscono sempre.
+const defaultModifiers = (name: string) => effectPreset(name)?.modifiers ?? conditionModifiers(name);
+const withoutIds = (modifiers: CharacterEffect["modifiers"]) => JSON.stringify(modifiers.map((mod) => ({ ...mod, id: "" })));
+// Condizione mai salvata dal popup (versioni vecchie, menu del token): si apre con i modificatori che già valgono nei tiri.
+export const opened = (effect: CharacterEffect): CharacterEffect => effect.edited || effect.modifiers.length ? structuredClone(effect) : { ...structuredClone(effect), modifiers: conditionModifiers(effect.name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) };
+export function named(effect: CharacterEffect, name: string, fromMenu = false): CharacterEffect {
+  const sameModifiers = fromMenu || withoutIds(effect.modifiers) === withoutIds(defaultModifiers(effect.name).map((mod) => ({ ...mod, id: "" })));
+  const sameRounds = fromMenu || effect.remainingRounds === effectPreset(effect.name)?.rounds;
+  return {
+    ...effect, name, description: describe(effect, name),
+    ...sameModifiers ? { modifiers: defaultModifiers(name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) } : {},
+    ...sameRounds ? { remainingRounds: effectPreset(name)?.rounds } : {},
+  };
+}

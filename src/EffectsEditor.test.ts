@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { named } from "./EffectsEditor";
+import { named } from "./conditions";
 
 const targets = (effect: ReturnType<typeof named>) => effect.modifiers.map((mod) => mod.target);
 
