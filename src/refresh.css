@@ -106,7 +106,8 @@ body {
 /* Le colonne non crescono oltre lo schermo per il contenuto (azioni della Libreria, composer dei Messaggi). */
 .stack, .messages { grid-template-columns:minmax(0, 1fr); }
 .library-actions { flex-wrap:wrap; }
-.app-body.tabs-top > main:has(> .messages) { height:calc(100vh - var(--topbar-height) - var(--tabs-top-height)); }
+/* flex:none: in colonna flex:1 ignora l'altezza e main cresce col contenuto, così scorre la pagina invece della lista. */
+.app-body.tabs-top > main:has(> .messages) { flex:none; height:calc(100vh - var(--topbar-height) - var(--tabs-top-height)); }
 /* Parla come, destinatari e Invia su una riga: i menu si stringono. */
 .composer div { align-items: center; }
 .composer div select { flex: 0 1 11rem; min-width: 0; }
