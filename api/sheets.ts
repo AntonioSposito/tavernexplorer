@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import type { CharacterSheet, CloudSheet, JournalFolder, JournalNote, MonsterSheet } from "../src/types.js";
+import { dropOldTombstones } from "./_tombstones.js";
 
 // Le schede di una stanza stanno in un hash: campo = id scheda, valore = CloudSheet.
 // L'ID della stanza Owlbear fa da chiave condivisa: chi non lo conosce non legge nulla.
@@ -71,7 +72,7 @@ export async function GET(request: Request): Promise<Response> {
 export async function PUT(request: Request): Promise<Response> {
   const body = await readBody(request);
   if (!body || !validRev(body.rev) || !validEntry(body.entry)) return fail("Richiesta non valida");
-  if (body.rev === 0 && await redis.hlen(roomKey(body.room)) >= MAX_SHEETS) return fail("Troppe schede nella stanza", 413);
+  if (body.rev === 0 && await redis.hlen(roomKey(body.room)) >= MAX_SHEETS && Object.keys(await dropOldTombstones(redis, roomKey(body.room))).length >= MAX_SHEETS) return fail("Troppe schede nella stanza", 413);
   const { kind, sheet, acl, updatedBy } = body.entry;
   return writeIfRev(body.room, body.rev, { kind, sheet, acl, updatedBy, rev: body.rev + 1, updatedAt: Date.now() } as CloudSheet);
 }

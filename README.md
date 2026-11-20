@@ -184,6 +184,22 @@ Il GM trova una sezione **Permessi** nell’estensione. Le impostazioni vengono
 salvate nei metadata della stanza e controllano modifica dell’inventario comune
 e ordine dei turni per i giocatori. Bestiario e Avventure sono visibili solo al GM.
 
+**I permessi sono un patto d'onore, non una protezione.** Chi può vedere e chi
+può modificare schede, note, NPC e cartelle lo decide solo l'estensione. Il server `/api/sheets` restituisce
+tutta la libreria della stanza a chiunque ne conosca l'ID, e ogni giocatore in
+Owlbear lo conosce. Un giocatore che apre gli strumenti del browser può quindi
+leggere le note riservate al GM, gli NPC non condivisi e le schede degli altri, e
+anche modificarli. I nomi dei giocatori li sceglie ognuno, quindi il server non
+potrebbe comunque verificarli.
+
+Sono protetti davvero solo il bestiario del GM e i messaggi “Solo GM”, che il
+server restituisce solo con il token GM (vedi **Privacy** in “Dati e sincronizzazione”).
+
+Al tavolo vale la regola di sempre: niente sbirciate. Chi non vuole spoiler non
+apre gli strumenti del browser e non chiama le API a mano; il GM tiene i segreti
+davvero importanti fuori dalla libreria (per esempio nelle Avventure, che restano
+nel suo browser).
+
 ## Backup TavernPack
 
 Da **Libreria → Esporta tutto** si scarica un file versionato conforme a
@@ -220,7 +236,7 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.33.0
+## Limiti della versione 0.33.1
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.

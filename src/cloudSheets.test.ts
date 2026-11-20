@@ -136,3 +136,13 @@ it("le cartelle del Journal arrivano a tutti, le note solo a chi le può vedere"
   expect(marco.state.entries.map((entry) => entry.sheet.id).sort()).toEqual(["f1", "n2"]);
   expect(() => marco.library.update("f1", (entry) => entry)).toThrow("permesso");
 });
+
+it("con la memoria del browser piena la libreria si aggiorna lo stesso: la cache non si salva e basta", async () => {
+  const gm = open("GM", "GM");
+  await gm.library.add(pc("ada"));
+  const full = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); });
+  await gm.library.add(pc("bea"));
+  await gm.library.refresh();
+  expect(gm.state.entries.map((entry) => entry.sheet.id).sort()).toEqual(["ada", "bea"]);
+  full.mockRestore();
+});

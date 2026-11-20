@@ -85,7 +85,7 @@ export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Rol
   const active = (effects ?? []).filter(isEffectOn);
   const targets = rollTargets(roll);
   // Condizioni salvate prima dei modificatori (o aggiunte dal menu del token): valgono quelli predefiniti.
-  const modifiersOf = (effect: TurnCondition) => effect.modifiers?.length ? effect.modifiers : conditionModifiers(effect.name);
+  const modifiersOf = (effect: TurnCondition) => effect.edited || effect.modifiers?.length ? effect.modifiers ?? [] : conditionModifiers(effect.name);
   const by = (prefix: string) => active.filter((effect) => modifiersOf(effect).some((mod) => mod.target.startsWith(prefix) && targets.includes(mod.target.slice(prefix.length)))).map((effect) => effect.name);
   const fail = roll === "save:strength" || roll === "save:dexterity" ? active.filter((effect) => FAILS_STR_DEX.includes(conditionKey(effect.name) ?? "")).map((effect) => effect.name) : [];
   const [advantage, disadvantage] = [by("adv:"), by("dis:")];

@@ -16,7 +16,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!room || !password) return fail("Accesso da telefono non configurato", 503);
   const attempts = `te:join:${request.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown"}`;
   const count = await redis.incr(attempts);
-  if (count === 1) await redis.expire(attempts, WINDOW_SECONDS);
+  // A ogni tentativo e solo se manca: se una volta non arriva, il contatore non resta senza scadenza (IP bloccato per sempre).
+  await redis.expire(attempts, WINDOW_SECONDS, "NX");
   if (count > MAX_ATTEMPTS) return fail("Troppi tentativi: riprova tra 15 minuti", 429);
   const body = await request.json().catch(() => null) as { password?: unknown } | null;
   const gm = !!gmPassword && body?.password === gmPassword;

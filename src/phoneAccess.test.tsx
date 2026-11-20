@@ -208,3 +208,10 @@ it("il GM ha Bestiario e Permessi ma non Avventure, e il token non valido non le
   await settle();
   expect((await roomState()).permissions.value.playersEditInventory).toBe(false);
 });
+
+it("il contatore dei tentativi riprende la scadenza anche se una volta non è stata salvata", async () => {
+  await join("no");
+  store.get("te:join:1.1.1.1")!.delete("ttl");
+  await join("no");
+  expect(store.get("te:join:1.1.1.1")!.get("ttl")).toBe("900");
+});

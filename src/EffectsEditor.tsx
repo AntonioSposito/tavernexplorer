@@ -15,7 +15,9 @@ const describe = (effect: CharacterEffect, name: string) => effectRule(name) ?? 
 // ma solo se sono ancora quelli del nome precedente (o vuoti); se li hai cambiati a mano restano.
 // fromMenu: scelto da "Effetto pronto", si sostituiscono sempre.
 const defaultModifiers = (name: string) => effectPreset(name)?.modifiers ?? conditionModifiers(name);
-const withoutIds = (modifiers: CharacterEffect["modifiers"]) => JSON.stringify(modifiers.map(({ id: _id, ...rest }) => rest));
+const withoutIds = (modifiers: CharacterEffect["modifiers"]) => JSON.stringify(modifiers.map((mod) => ({ ...mod, id: "" })));
+// Condizione mai salvata dal popup (versioni vecchie, menu del token): si apre con i modificatori che già valgono nei tiri.
+const opened = (effect: CharacterEffect): CharacterEffect => effect.edited || effect.modifiers.length ? structuredClone(effect) : { ...structuredClone(effect), modifiers: conditionModifiers(effect.name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) };
 export function named(effect: CharacterEffect, name: string, fromMenu = false): CharacterEffect {
   const sameModifiers = fromMenu || withoutIds(effect.modifiers) === withoutIds(defaultModifiers(effect.name).map((mod) => ({ ...mod, id: "" })));
   const sameRounds = fromMenu || effect.remainingRounds === effectPreset(effect.name)?.rounds;
@@ -39,7 +41,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
   const save = () => {
     if (!draft) return;
     // Un modificatore senza voce scelta non vale niente: non si salva.
-    const effect = { ...draft.effect, name: draft.effect.name.trim() || "Effetto senza nome", modifiers: draft.effect.modifiers.filter((mod) => mod.target), ...draft.isNew && round != null ? { lastTickRound: round } : {} };
+    const effect: CharacterEffect = { ...draft.effect, edited: true, name: draft.effect.name.trim() || "Effetto senza nome", modifiers: draft.effect.modifiers.filter((mod) => mod.target), ...draft.isNew && round != null ? { lastTickRound: round } : {} };
     onChange((list) => draft.isNew ? [...list, effect] : list.map((item) => item.id === effect.id ? effect : item));
     setDraft(null);
   };
@@ -52,7 +54,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
       <small>{[effect.modifiers.length > 0 && `${effect.modifiers.length} modificatori`, effect.remainingRounds != null && `${effect.remainingRounds} round`].filter(Boolean).join(" · ")}</small>
       <span className="entry-icons">
         <button aria-label={`Mostra in chat ${effect.name}`} title="Mostra in chat" onClick={() => shareEffect(effect, onShare)}><ChatIcon/></button>
-        {editable && <button aria-label={`Modifica ${effect.name}`} title="Modifica" onClick={() => setDraft({ effect: structuredClone(effect), isNew: false })}><EditIcon/></button>}
+        {editable && <button aria-label={`Modifica ${effect.name}`} title="Modifica" onClick={() => setDraft({ effect: opened(effect), isNew: false })}><EditIcon/></button>}
       </span>
     </div>)}
     <Dialog open={draft !== null} title={draft?.isNew ? "Nuovo effetto" : "Modifica effetto"} onClose={() => setDraft(null)}>{draft && <div className="action-form">

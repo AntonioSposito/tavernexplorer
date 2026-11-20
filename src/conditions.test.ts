@@ -78,3 +78,9 @@ it("le condizioni hanno i loro modificatori; se l'effetto ne ha di suoi, valgono
   expect(conditionRoll([poisoned], "check:wisdom", "Saggezza", "1d20").mode).toEqual([]);
   expect(conditionRoll([{ ...poisoned, name: "Stunned", modifiers: [] }], "save:dexterity", "TS", "1d20").title).toBe("TS · fallisce (Stunned)");
 });
+
+it("una condizione salvata dal popup senza modificatori non ha più quelli predefiniti; una vecchia sì", () => {
+  const prone = { id: "p", name: "Prono", active: true, modifiers: [] };
+  expect(conditionRoll([prone], "attack", "Ascia", "1d20").mode).toEqual(["disadvantage"]);
+  expect(conditionRoll([{ ...prone, edited: true as const }], "attack", "Ascia", "1d20").mode).toEqual([]);
+});

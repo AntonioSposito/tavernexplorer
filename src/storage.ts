@@ -35,7 +35,7 @@ export const storage = {
   },
   messages: {
     get: () => read<ChatMessage[]>(STORAGE_MESSAGES, []).slice(-200),
-    set: (value: ChatMessage[]) => write(STORAGE_MESSAGES, value.slice(-200)),
+    set: (value: ChatMessage[]) => { try { write(STORAGE_MESSAGES, value.slice(-200)); } catch { /* storage pieno o bloccato: resta in memoria, il cloud ha la chat */ } },
   },
   // createdAt dell'ultimo messaggio letto: alla prima apertura la cronologia non conta come non letta.
   messagesSeen: {
@@ -57,7 +57,7 @@ export const storage = {
   // Solo cache di lettura della libreria cloud, una per stanza: la fonte di verità resta il server.
   cloudCache: {
     get: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []),
-    set: (room: string, value: CloudSheet[]) => write(`${STORAGE_CLOUD_CACHE}/${room}`, value),
+    set: (room: string, value: CloudSheet[]) => { try { write(`${STORAGE_CLOUD_CACHE}/${room}`, value); } catch { /* storage pieno: è solo una cache, il server resta la fonte */ } },
     characters: (room: string) => read<CloudSheet[]>(`${STORAGE_CLOUD_CACHE}/${room}`, []).flatMap((entry) => entry.kind === "pc" ? [entry.sheet] : []),
   },
   // Livelli di magie chiusi, come "idScheda:livello": solo comodità di questo browser.

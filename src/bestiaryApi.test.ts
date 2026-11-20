@@ -67,3 +67,15 @@ it("prende la versione più recente di un mostro modificato in un altro browser"
 it("se non cambia nulla lo segnala", () => {
   expect(mergeBestiary([monster("a")], [{ id: "a", monster: monster("a") }])).toMatchObject({ changed: false, upload: [] });
 });
+
+it("al limite di 3000 mostri si modificano quelli esistenti e le lapidi vecchie fanno posto", async () => {
+  const month = 31 * 24 * 60 * 60 * 1000;
+  store.set("te:room:r1:bestiary", new Map(Array.from({ length: 3000 }, (_, index) => [`m${index}`, JSON.stringify(index < 2 ? { id: `m${index}`, deletedAt: Date.now() - (index ? month : 0) } : { id: `m${index}`, monster: monster(`m${index}`) })])));
+  await putMonsters("r1", token, [{ ...monster("m5"), name: "Lupo grande" }]);
+  await putMonsters("r1", token, [monster("nuovo")]);
+  await expect(putMonsters("r1", token, [monster("altro")])).rejects.toThrow("413");
+  const entries = await fetchBestiary("r1", token);
+  expect(entries.find((item) => item.id === "m5")?.monster?.name).toBe("Lupo grande");
+  expect(entries.some((item) => item.id === "m1")).toBe(false);
+  expect(entries.some((item) => item.id === "m0")).toBe(true);
+});

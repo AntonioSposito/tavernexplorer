@@ -1,6 +1,7 @@
 import { Redis } from "@upstash/redis";
 import type { MonsterSheet } from "../src/types.js";
 import { isGmToken } from "./_gmToken.js";
+import { dropOldTombstones } from "./_tombstones.js";
 
 // Bestiario del GM: un hash con un campo per mostro, leggibile e scrivibile solo con il token GM.
 // Cancellazione logica come per le schede: un browser che ha ancora il mostro non deve ricaricarlo.
@@ -39,7 +40,11 @@ export async function PUT(request: Request): Promise<Response> {
   const { monsters } = body;
   if (!Array.isArray(monsters) || monsters.length === 0 || monsters.length > MAX_BATCH || !monsters.every(validMonster)) return fail("Richiesta non valida");
   if (monsters.some((monster) => JSON.stringify(monster).length > MAX_MONSTER_BYTES)) return fail("Mostro troppo grande", 413);
-  if (await redis.hlen(bestiaryKey(body.room)) + monsters.length > MAX_MONSTERS) return fail("Troppi mostri nella stanza", 413);
+  // Al limite contano solo i mostri nuovi: modificarne uno che c'è già non occupa altro spazio.
+  if (await redis.hlen(bestiaryKey(body.room)) + monsters.length > MAX_MONSTERS) {
+    const kept = await dropOldTombstones(redis, bestiaryKey(body.room));
+    if (Object.keys(kept).length + (monsters as MonsterSheet[]).filter((monster) => !Object.hasOwn(kept, monster.id)).length > MAX_MONSTERS) return fail("Troppi mostri nella stanza", 413);
+  }
   await redis.hset(bestiaryKey(body.room), Object.fromEntries((monsters as MonsterSheet[]).map((monster) => [monster.id, { id: monster.id, monster }])));
   return Response.json({ ok: true });
 }

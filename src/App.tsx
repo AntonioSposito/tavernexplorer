@@ -55,7 +55,7 @@ import {
   getSharedInventory, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onTurnStateChange, getFloatingPanelPosition, getFloatingPanelSize, getTokenImages, openFloatingPanel, pickOwlbearImage, openPanelForPlayers, resizeFloatingPanel, type PanelSize, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMapAsScene, uploadMonsterTokens, uploadRemoteMapAsScene,
 } from "./obr";
 import { TOKEN_ACTIONS_ID, TOKEN_SHEET_SECTIONS, type TokenSheetSection } from "./tokenMenuActions";
-import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterEffect, CharacterSheet, ChatMessage, JournalFolder, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnEntry, TurnState, Visibility } from "./types";
+import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CampaignDocument, CharacterEffect, CharacterSheet, ChatMessage, JournalFolder, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnState, Visibility } from "./types";
 
 const GM_TABS: AppTab[] = ["campaigns", "settings"];
 // Senza gli avvisi broadcast di Owlbear il telefono rilegge le schede più spesso.
@@ -252,7 +252,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     if (!room || floatingView || player.role !== "GM" || !gmToken) return;
     const refresh = () => { if (!document.hidden) void fetchBestiary(room, gmToken).then(async (remote) => {
       const { monsters: next, upload, changed } = mergeBestiary(storage.monsters.get(), remote);
-      if (changed) { setMonsters(next); storage.monsters.set(next); }
+      if (changed) { storeMonsters(next); }
       await putMonsters(room, gmToken, upload);
     }).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Bestiario non sincronizzato")); };
     refresh();
@@ -268,7 +268,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     const missing = library.entries.flatMap((entry) => entry.kind === "npc" && !known.has(entry.sheet.id) ? [entry.sheet] : []);
     if (!missing.length) return;
     const next = [...storage.monsters.get(), ...missing];
-    setMonsters(next); storage.monsters.set(next);
+    storeMonsters(next);
     syncMonsters((room, token) => putMonsters(room, token, missing));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- syncMonsters legge solo stanza e token GM correnti
   }, [library.entries, player.role, floatingView]);
@@ -344,7 +344,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
         if (!window.confirm("Importare questo TavernPack sostituendo i dati locali correnti?")) return;
         const skipped = player.role === "GM" ? await addToLibrary(pack.data.characters) : pack.data.characters.length;
         if (skipped) setSyncNotice(`${skipped} schede del TavernPack non importate: già presenti nella libreria o riservate al GM.`);
-        setMonsters(pack.data.monsters); storage.monsters.set(pack.data.monsters);
+        storeMonsters(pack.data.monsters);
         setCampaigns(pack.data.campaigns); storage.campaigns.set(pack.data.campaigns);
         await saveSharedInventory(pack.data.sharedInventory);
         if (pack.data.session) { saveMessages(pack.data.session.messages); await changeTurns(pack.data.session.turnState); }
@@ -412,7 +412,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     const saved = { ...monster, updatedAt: Date.now() };
     const current = storage.monsters.get();
     const next = current.some((item) => item.id === saved.id) ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved];
-    setMonsters(next); storage.monsters.set(next);
+    storeMonsters(next);
     syncMonsters((room, token) => putMonsters(room, token, [saved]));
     if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === saved.id)) libraryRef.current?.update(saved.id, (entry) => entry.kind === "npc" ? { ...entry, sheet: saved } : entry);
   }
@@ -494,6 +494,12 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     const room = chatRoom();
     if (room && gmToken) void write(room, gmToken).catch((error) => setSyncNotice(error instanceof Error ? error.message : "Bestiario non salvato nel cloud"));
   }
+  // Memoria del browser piena: il bestiario resta in pagina (e nel cloud, col token GM) e l'errore non blocca il salvataggio nel cloud.
+  function storeMonsters(next: MonsterSheet[]) {
+    setMonsters(next);
+    try { storage.monsters.set(next); }
+    catch { setSyncNotice("Memoria del browser piena: il bestiario non è salvato su questo browser. Collega il token GM in Permessi per tenerlo nel cloud."); }
+  }
 
   async function changeTurns(next: TurnState): Promise<boolean> {
     if (player.role !== "GM" && !permissions.playersManageTurns) return false;
@@ -555,10 +561,10 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {tab === "library" && <p className="icon-credits">Icone da <a href="https://game-icons.net" target="_blank" rel="noreferrer">game-icons.net</a> di lorc, delapouite, skoll, sbed, caro-asercion, carl-olsen, cathelineau, willdabeast, darkzaitzev, faithtoken, lucasms, kier-heyl, zeromancer, sparker, lord-berandas, seregacthtuf, pierre-leducq, zajkonur; licenza <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>, ricolorate e incorniciate. Nomi di incantesimi e oggetti dal System Reference Document 5.1 e 5.2 di Wizards of the Coast LLC, licenza <a href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>}
       {tab === "compendium" && section && selectedMonster && <><div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel("compendium", undefined, new URLSearchParams(window.location.search).get("token") ?? undefined).then(() => OBR.popover.close(TOKEN_ACTIONS_ID))}>Apri scheda completa ↗</Button></div><h2>{TOKEN_SHEET_SECTIONS[section]} · {selectedMonster.name}</h2><MonsterStatblock section={section} readOnly={!canRollMonster(selectedMonster.id)} monster={selectedMonster} effects={tokenEffects(selectedMonster.id)} onRoll={performRoll} onShare={shareEntry} roll={monsterRoll} onRollChange={setMonsterRoll}/></>}
       {tab === "compendium" && player.role !== "GM" && !section && <Bestiary effectsOf={tokenEffects} monsterRoll={monsterRoll} onMonsterRollChange={setMonsterRoll} folders={visibleFolders(bestiaryFolders, sharedMonsters, false)} onMove={() => undefined} onSaveMonster={() => undefined} onSaveFolder={async () => undefined} onDeleteFolder={async () => undefined} canManage={false} canManageTurns={!phone && permissions.playersManageTurns} canRoll={canRollMonster} monsters={sharedMonsters} pending={[]} onPending={() => undefined} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => undefined} onImported={() => undefined} onDelete={() => undefined} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void runAction(() => publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target }))); }} onAddTurn={(monster) => void addMonsterToTurns(monster)} aclOf={() => ({ view: [], edit: [] })} aclCandidates={[]} onAclChange={() => undefined}/>}
-      {tab === "compendium" && player.role === "GM" && !section && <Bestiary effectsOf={tokenEffects} monsterRoll={monsterRoll} onMonsterRollChange={setMonsterRoll} folders={bestiaryFolders} onMove={moveInBestiary} onSaveMonster={saveMonster} onSaveFolder={(draft) => runAction(() => saveBestiaryFolder(draft))} onDeleteFolder={(id) => runAction(() => deleteBestiaryFolder(id))} canManage={player.role === "GM"} canManageTurns={!phone && (player.role === "GM" || permissions.playersManageTurns)} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { const added = next.filter((item) => !monsters.includes(item)); setMonsters(next); storage.monsters.set(next); syncMonsters((room, token) => putMonsters(room, token, added)); }} onDelete={(id) => void runAction(async () => {
+      {tab === "compendium" && player.role === "GM" && !section && <Bestiary effectsOf={tokenEffects} monsterRoll={monsterRoll} onMonsterRollChange={setMonsterRoll} folders={bestiaryFolders} onMove={moveInBestiary} onSaveMonster={saveMonster} onSaveFolder={(draft) => runAction(() => saveBestiaryFolder(draft))} onDeleteFolder={(id) => runAction(() => deleteBestiaryFolder(id))} canManage={player.role === "GM"} canManageTurns={!phone && (player.role === "GM" || permissions.playersManageTurns)} monsters={monsters} pending={pendingMonsters} onPending={setPendingMonsters} selectedId={selectedMonsterId} onSelect={setSelectedMonsterId} onImport={() => contentRef.current?.click()} onImported={(next) => { const added = next.filter((item) => !monsters.includes(item)); storeMonsters(next); syncMonsters((room, token) => putMonsters(room, token, added)); }} onDelete={(id) => void runAction(async () => {
         // Prima la voce condivisa: finché esiste, il mostro tornerebbe nel bestiario (vedi la migrazione degli NPC).
         if (library.entries.some((entry) => entry.kind === "npc" && entry.sheet.id === id)) await libraryRef.current?.remove(id);
-        const next = storage.monsters.get().filter((item) => item.id !== id); setMonsters(next); storage.monsters.set(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id));
+        const next = storage.monsters.get().filter((item) => item.id !== id); storeMonsters(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id));
       })} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={(monster) => void addMonsterToTurns(monster)} aclOf={(id) => library.entries.find((entry) => entry.kind === "npc" && entry.sheet.id === id)?.acl ?? { view: [], edit: [] }} aclCandidates={aclCandidates(library.entries, partyMembers)} onAclChange={setMonsterAcl}/>}
       {tab === "campaigns" && player.role === "GM" && <Campaigns canManage={player.role === "GM"} canManageMaps={player.role === "GM"} documents={campaigns} selectedId={selectedCampaignId} onSelect={setSelectedCampaignId} onImport={() => contentRef.current?.click()} onImported={(next) => { setCampaigns(next); storage.campaigns.set(next); }} onDelete={(id) => { const next = campaigns.filter((item) => item.id !== id); setCampaigns(next); storage.campaigns.set(next); setSelectedCampaignId(null); }} onMap={() => { if (player.role === "GM") mapRef.current?.click(); }} onAdventureMap={async (image) => { if (player.role !== "GM") return; try { await uploadRemoteMapAsScene(image.url, image.title); if (OBR.isAvailable) await OBR.notification.show(`${image.title} caricata nelle scene`, "SUCCESS"); } catch (error) { const message = error instanceof Error ? error.message : "Caricamento mappa fallito"; if (OBR.isAvailable) await OBR.notification.show(message, "ERROR"); else window.alert(message); } }} onShare={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body: body.slice(0, 6000), visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}

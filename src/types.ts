@@ -114,6 +114,8 @@ export interface CharacterEffect {
   description?: string;
   // Round in cui la durata è già scesa: tornare indietro e avanti non la riduce due volte.
   lastTickRound?: number;
+  // Salvato dal popup: i modificatori sono quelli scritti, anche se vuoti. Senza, una condizione usa i suoi predefiniti.
+  edited?: true;
 }
 
 export type CounterRecovery = "none" | "short" | "long";

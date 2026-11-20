@@ -65,3 +65,12 @@ it("accetta note e cartelle del Journal con riferimenti validi", async () => {
   expect((await put(0, entry({ kind: "note", sheet: { ...note, id: "n3", folderId: "../x" } }))).status).toBe(400);
   expect((await put(0, entry({ kind: "folder", sheet: { ...folder, id: "f3", parentId: 7 } }))).status).toBe(400);
 });
+
+it("al limite di 500 voci le schede cancellate da più di 30 giorni fanno posto, quelle recenti no", async () => {
+  const fill = (deletedAt: number) => new Map(Array.from({ length: 500 }, (_, index) => [`s${index}`, JSON.stringify({ ...entry({ sheet: sheet(`s${index}`) }), rev: 1, deletedAt })]));
+  store.set("te:room:r1:sheets", fill(Date.now() - 1000));
+  expect((await put(0, entry())).status).toBe(413);
+  store.set("te:room:r1:sheets", fill(Date.now() - 31 * 24 * 60 * 60 * 1000));
+  expect((await put(0, entry())).status).toBe(200);
+  expect(store.get("te:room:r1:sheets")!.size).toBe(1);
+});

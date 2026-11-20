@@ -7,12 +7,14 @@ export const fakeRedisModule = {
   Redis: { fromEnv: () => ({
     hvals: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     incr: async (key: string) => { const next = Number(hash(key).get("count") ?? 0) + 1; hash(key).set("count", String(next)); return next; },
-    expire: async () => 1,
+    // La scadenza si segna nel campo "ttl" della chiave; NX non la cambia se c'è già.
+    expire: async (key: string, seconds: number, option?: string) => { if (option === "NX" && hash(key).has("ttl")) return 0; hash(key).set("ttl", String(seconds)); return 1; },
     rpush: async (key: string, value: string) => { const list = hash(key); list.set(String(list.size), value); return list.size; },
     ltrim: async (key: string, start: number) => { const list = hash(key); const values = [...list.values()].slice(start); list.clear(); values.forEach((value, index) => list.set(String(index), value)); return "OK"; },
     lrange: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     del: async (key: string) => Number(store.delete(key)),
     hlen: async (key: string) => hash(key).size,
+    hdel: async (key: string, ...fields: string[]) => fields.filter((field) => hash(key).delete(field)).length,
     hset: async (key: string, fields: Record<string, unknown>) => { for (const [field, value] of Object.entries(fields)) hash(key).set(field, JSON.stringify(value)); return 1; },
     hgetall: async (key: string) => hash(key).size ? Object.fromEntries([...hash(key)].map(([field, value]) => [field, JSON.parse(value)])) : null,
     hget: async (key: string, field: string) => { const value = hash(key).get(field); return value ? JSON.parse(value) : null; },
