@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { parseXp, xpProgress } from "./experience";
+import { LevelUpDialog } from "./LevelUpDialog";
+import { applyLevelUp } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input } from "./ui";
 
 const format = (value: number) => value.toLocaleString("it-IT");
 
 // PE sotto il nome: barra fino alla soglia del livello dopo; chi può modificare la scheda apre il popup per cambiarli.
-// Superata la soglia è solo un avviso: il livello si alza a mano (classi, scelte, PF).
-export function XpControl({ sheet, editable, onUpdate }: { sheet: CharacterSheet; editable: boolean; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void }) {
+// Superata la soglia, chi può modificare la scheda vede "Sali di livello"; gli altri solo l'avviso.
+export function XpControl({ sheet, editable, onUpdate, onNotice }: { sheet: CharacterSheet; editable: boolean; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onNotice: (title: string, body: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [levelingUp, setLevelingUp] = useState(false);
   const [amount, setAmount] = useState("");
   const [total, setTotal] = useState("");
   const xp = parseXp(sheet.identity.experience);
@@ -21,12 +24,18 @@ export function XpControl({ sheet, editable, onUpdate }: { sheet: CharacterSheet
   const bar = <>
     <span className="xp-text">PE {format(xp)}{next != null ? ` / ${format(next)}` : ""}</span>
     {next != null && <span className="xp-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (xp / next) * 100)}%` }}/></span>}
-    {readyFor != null && <strong className="xp-ready">↑ Pronto per il livello {readyFor}</strong>}
+    {readyFor != null && !editable && <strong className="xp-ready">↑ Pronto per il livello {readyFor}</strong>}
   </>;
   return <>
     {editable
       ? <button type="button" className="xp-control" aria-label={`Modifica esperienza di ${sheet.name}`} title="Modifica esperienza" onClick={() => { setAmount(""); setTotal(String(xp)); setOpen(true); }}>{bar}</button>
       : <div className="xp-control">{bar}</div>}
+    {editable && readyFor != null && <button type="button" className="xp-ready level-up-open" onClick={() => setLevelingUp(true)}>↑ Sali di livello</button>}
+    {levelingUp && <LevelUpDialog sheet={sheet} onClose={() => setLevelingUp(false)} onConfirm={(plan) => {
+      onUpdate((current) => applyLevelUp(current, plan));
+      onNotice(`${sheet.name} sale al livello ${sheet.identity.level + 1}`, [`${plan.className}${plan.subclass ? ` (${plan.subclass})` : ""}`, `PF +${plan.hitPoints}`, ...plan.features.map((feature) => feature.name), ...plan.feat ? [plan.feat.name] : [], ...plan.spells.map((spell) => spell.name)].join(" · "));
+      setLevelingUp(false);
+    }}/>}
     <Dialog open={open} title="Esperienza" description={`${sheet.name} · ${format(xp)} PE`} onClose={() => setOpen(false)}>
       <div className="action-form">
         <label><span>PE da aggiungere o togliere</span><Input type="number" min="0" aria-label="PE da aggiungere o togliere" value={amount} autoFocus onChange={(event) => setAmount(event.target.value)}/></label>

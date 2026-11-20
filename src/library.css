@@ -18,7 +18,8 @@
 .action-form .form-field>span{display:flex;align-items:center;gap:.3rem}
 .action-form label>span,.action-form .form-field>span,.action-form legend{font-size:.75rem;color:hsl(var(--muted-foreground))}
 .action-form fieldset{display:grid;gap:.5rem;margin:0;padding:.6rem;border:1px solid hsl(var(--border));border-radius:var(--radius)}
-.action-form legend label,.action-form-check{display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:hsl(var(--foreground))}
+/* .action-form .action-form-check: più specifico di ".action-form label{display:grid}", che altrimenti mette la spunta sopra il testo. */
+.action-form legend label,.action-form-check,.action-form .action-form-check{display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:hsl(var(--foreground))}
 .action-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(7rem,1fr));gap:.5rem;align-items:end}
 .action-form-preview{margin:0;font-size:.8rem;color:hsl(var(--primary))}
 .action-form-buttons{display:flex;justify-content:flex-end;gap:.5rem}
@@ -216,3 +217,9 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 /* Crediti delle icone (CC BY 3.0) in fondo alla Libreria. */
 .icon-credits { margin-top: 1rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
 .icon-credits a { color: inherit; text-decoration: underline; }
+/* Extra Attack: ×N accanto al nome dell'azione. */
+.entry summary .entry-multi{margin-left:.35rem;padding:.05rem .4rem;border:1px solid hsl(var(--primary) / .6);border-radius:999px;background:hsl(var(--primary) / .1);color:hsl(var(--primary));font-size:.72rem;font-weight:700;cursor:pointer}
+.sneak-toggle{padding:.5rem .7rem;border:1px solid hsl(var(--border));border-radius:var(--radius)}
+/* span: deve battere ".entry summary span:first-child", che mette in colonna. */
+.entry summary span.entry-name-row{display:flex;flex-direction:row;align-items:center;gap:.35rem}
+.entry summary .entry-name-row .entry-multi{margin-left:0}

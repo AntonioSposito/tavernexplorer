@@ -5,6 +5,7 @@ Preferenze decise con l'utente. Valgono per ogni modifica futura.
 ## Generali
 
 - **I box non si devono toccare.** Tra due box c'è sempre uno spazio: mai bordi attaccati o sovrapposti.
+- **Spunte e radio sempre a sinistra del testo, sulla stessa riga.** Si scrivono come `<label className="action-form-check"><input type="checkbox"/> Testo</label>`, la classe usata in tutta l'app. Dentro `.action-form` le label normali sono in colonna (`display:grid`): una spunta senza `action-form-check` finisce sopra il testo. Dopo ogni popup nuovo, controllare che nessuna spunta stia sopra il suo testo.
 
 ## Schede personaggio
 

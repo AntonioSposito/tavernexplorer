@@ -27,3 +27,12 @@ button.xp-control{cursor:pointer}
 .xp-bar{display:block;height:.4rem;border-radius:999px;background:hsl(var(--secondary));overflow:hidden}
 .xp-bar>span{display:block;height:100%;background:hsl(var(--primary))}
 .xp-ready{font-size:.78rem;color:hsl(var(--primary))}
+button.level-up-open{margin-top:.25rem;padding:.3rem .6rem;border:1px solid hsl(var(--primary) / .7);border-radius:999px;background:hsl(var(--primary) / .12);cursor:pointer;justify-self:start}
+.level-up-summary{border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.6rem .8rem}
+.level-up-summary h3{margin:0 0 .35rem;font-size:.9rem}
+.level-up-summary ul{margin:0;padding-left:1.1rem;display:grid;gap:.2rem;font-size:.85rem}
+.level-up-feature{border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.35rem .6rem}
+.level-up-feature-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.level-up-feature-row .ui-button{min-height:1.8rem;padding:.3rem .6rem;font-size:.78rem}
+.level-up-feature p{margin:.4rem 0 .2rem;white-space:pre-wrap;font-size:.8rem;color:hsl(var(--muted-foreground))}
+.level-up-skills{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:.3rem .8rem}

@@ -1,5 +1,5 @@
 import { import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseLevelFeats, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type Feature, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { MonsterSheet } from "./types";
 
@@ -88,4 +88,24 @@ export function loadItems(): Promise<FiveToolsItem[]> {
   itemsCache ??= Promise.all([request("items-base.json"), request("items.json")]).then(([base, items]) => import5eToolsItems(base, items));
   itemsCache.catch(() => { itemsCache = null; });
   return itemsCache;
+}
+
+const classFiles = new Map<string, Promise<Record<string, unknown>>>();
+// File 5e.tools di una classe (privilegi di tutti i livelli e sottoclassi), scaricato una volta per la salita di livello.
+export function loadClassFile(className: string): Promise<Record<string, unknown>> {
+  const name = className.toLowerCase();
+  if (!/^[a-z]+$/.test(name)) return Promise.reject(new Error(`Classe ${className} non disponibile su 5e.tools`));
+  if (!classFiles.has(name)) {
+    const file = request(`class/class-${name}.json`);
+    file.catch(() => classFiles.delete(name));
+    classFiles.set(name, file);
+  }
+  return classFiles.get(name)!;
+}
+
+let levelFeatsCache: Promise<Feature[]> | null = null;
+export function loadLevelFeats(): Promise<Feature[]> {
+  levelFeatsCache ??= request("feats.json").then(parseLevelFeats);
+  levelFeatsCache.catch(() => { levelFeatsCache = null; });
+  return levelFeatsCache;
 }

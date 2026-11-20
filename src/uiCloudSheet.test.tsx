@@ -12,7 +12,12 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
+vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [],
+  // Salita di livello: Fighter con Second Wind al 2° (finto) e aumento caratteristiche al 4°.
+  loadClassFile: async (name: string) => name === "Bard" ? { class: [{ name: "Bard", source: "XPHB", classFeatures: ["Expertise|Bard|XPHB|2", "Jack of All Trades|Bard|XPHB|2"] }], classFeature: [{ name: "Expertise", source: "XPHB", className: "Bard", level: 2, entries: ["Two skills."] }, { name: "Jack of All Trades", source: "XPHB", className: "Bard", level: 2, entries: ["Half proficiency."] }] }
+    : name === "Wizard" ? { class: [{ name: "Wizard", source: "XPHB", preparedSpellsProgression: [4, 5], cantripProgression: [3, 3], classFeatures: [] }] } : ({ class: [{ name: "Fighter", source: "XPHB", classFeatures: ["Action Surge|Fighter|XPHB|2", "Ability Score Improvement|Fighter|XPHB|4"] }], classFeature: [{ name: "Action Surge", source: "XPHB", className: "Fighter", level: 2, entries: ["One more action."] }, { name: "Ability Score Improvement", source: "XPHB", className: "Fighter", level: 4, entries: ["Increase."] }] }),
+  loadLevelFeats: async () => [{ name: "Great Weapon Master", description: "Heavy hits." }],
+  loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));
@@ -1548,7 +1553,7 @@ it("i PE si aggiungono dal popup e superata la soglia la scheda avvisa che si pu
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica esperienza di Eroe"]')!.click());
   await type('input[aria-label="PE da aggiungere o togliere"]', "100");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "+ Aggiungi")!.click());
-  expect(host.querySelector(".xp-ready")?.textContent).toBe("↑ Pronto per il livello 2");
+  expect(host.querySelector(".level-up-open")?.textContent).toBe("↑ Sali di livello");
   await settle(1_700);
   expect(cloudSheet().sheet.identity.experience).toBe("350");
 });
@@ -1585,4 +1590,125 @@ it("nella tab Modifica la sottoclasse si sceglie dal menu della classe, o si scr
   await type('input[aria-label="Classe principale: nome sottoclasse"]', "Rune Knight");
   await settle(1_700);
   expect(cloudSheet().sheet.classes[0].subclass).toBe("Rune Knight");
+});
+
+it("con i PE sufficienti si sale di livello: riepilogo, conferma, scheda aggiornata e messaggio in chat", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", class: "Fighter", level: 1, experience: "300" }, combat: { hp: { current: 10, max: 10 } }, abilities: { constitution: { score: 14, mod: 2 } } } });
+  sheet.classes = [{ name: "Fighter", level: 1 }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  const summary = () => [...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent);
+  await vi.waitFor(() => expect(summary()).toEqual(["Fighter 1 → 2 · livello 2", "PF massimi 10 → 18 (+8)", "Privilegi: Action Surge"]));
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.identity.level).toBe(2);
+  expect(cloudSheet().sheet.combat.hp.max).toBe(18);
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Eroe sale al livello 2", body: "Fighter · PF +8 · Action Surge" });
+  expect(cloudSheet().sheet.traits.map((item: { name: string }) => item.name)).toContain("Action Surge");
+});
+
+it("al 4° livello si sceglie l'aumento di caratteristiche, e il riepilogo lo mostra prima della conferma", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", class: "Fighter", level: 3, experience: "2700" }, combat: { hp: { current: 20, max: 20 } }, abilities: { strength: { score: 16, mod: 3 } } } });
+  sheet.classes = [{ name: "Fighter", level: 3 }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  await vi.waitFor(() => expect(host.querySelector(".ui-dialog")?.textContent).toContain("Aumento caratteristiche"));
+  const select = [...host.querySelectorAll<HTMLSelectElement>(".ui-dialog select")].find((item) => item.getAttribute("aria-label") === "Caratteristica +2")!;
+  await act(async () => { select.value = "strength"; select.dispatchEvent(new Event("change", { bubbles: true })); });
+  expect([...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent)).toContain("Caratteristiche: Forza +2");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.abilities.strength).toMatchObject({ score: 18, mod: 4 });
+});
+
+it("un mago che sale sceglie i nuovi incantesimi solo fino al livello di slot che ha", async () => {
+  const sheet = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga", class: "Wizard", level: 1, experience: "300" }, combat: { hp: { current: 6, max: 6 } } } });
+  sheet.classes = [{ name: "Wizard", level: 1 }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  await vi.waitFor(() => expect(host.querySelector('[aria-label="Scegli Sleep"]')).not.toBeNull());
+  expect(host.querySelector('[aria-label="Scegli Fireball"]')).toBeNull();
+  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Scegli Sleep"]')!.click());
+  expect([...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent)).toContain("Incantesimi: Sleep");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.spells.map((spell: { name: string }) => spell.name)).toContain("Sleep");
+});
+
+it("un bardo al 2° livello sceglie le abilità della Maestria e attiva Jack of all trades nel tab Modifica", async () => {
+  const sheet = importRoll20({ character: { name: "Lira" }, normalized: { identity: { character_name: "Lira", class: "Bard", level: 1, experience: "300" }, combat: { hp: { current: 9, max: 9 } } } });
+  sheet.classes = [{ name: "Bard", level: 1 }];
+  for (const key of ["persuasion", "performance", "deception"]) sheet.skills[key] = { ability: "charisma", bonus: 2, proficient: true };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  await vi.waitFor(() => expect(host.querySelector('[aria-label="Maestria in Persuasione"]')).not.toBeNull());
+  const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
+  expect(confirm().disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Maestria in Persuasione"]')!.click());
+  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Maestria in Intrattenere"]')!.click());
+  expect(host.querySelector<HTMLInputElement>('[aria-label="Maestria in Inganno"]')!.disabled).toBe(true);
+  expect([...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent)).toContain("Opzione attivata: Jack of all trades");
+  await act(async () => confirm().click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.options).toMatchObject({ jackOfAllTrades: true, expertise: ["persuasion", "performance"] });
+});
+
+it("attivare l'Ira consuma un uso della risorsa, e a zero usi avvisa", async () => {
+  const sheet = importRoll20({ character: { name: "Grog" }, normalized: { identity: { character_name: "Grog", class: "Barbarian", level: 1 } } });
+  sheet.classes = [{ name: "Barbarian", level: 1 }];
+  sheet.counters = [{ id: "rage", name: "Ira", current: 1, max: 2, recovery: "long", shortRestGain: 1, classResource: "rage" }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica");
+  const addRage = async () => {
+    await click("Aggiungi");
+    await type('input[aria-label="Nome effetto"]', "Ira");
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
+  };
+  await addRage();
+  await settle(1_700);
+  expect(cloudSheet().sheet.counters[0].current).toBe(0);
+  expect(host.textContent).not.toContain("Nessun uso dell'Ira rimasto");
+  await addRage();
+  expect(host.textContent).toContain("Nessun uso dell'Ira rimasto");
+});
+
+it("Extra Attack tira tutti gli attacchi dell'azione; l'Attacco furtivo si aggiunge al primo attacco con arma accurata e poi si spegne", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.classes = [{ name: "Rogue", level: 5 }];
+  sheet.traits = [{ id: "x", name: "Extra Attack", description: "" }, { id: "s", name: "Sneak Attack", description: "" }];
+  sheet.actions = [
+    { id: "rapier", name: "Stocco", weapon: "Rapier", attack: { ability: "dexterity", bonus: 0, proficient: true }, damages: [{ dice: "1d8", ability: "dexterity", bonus: 0, type: "Perforante", critDice: "1d8" }] },
+    { id: "axe", name: "Ascia", weapon: "Greataxe", attack: { ability: "strength", bonus: 0, proficient: true }, damages: [{ dice: "1d12", ability: "strength", bonus: 0, type: "Tagliente", critDice: "1d12" }] },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Azioni");
+  const titles = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").filter((message: { kind: string }) => message.kind === "roll").map((message: { title: string }) => message.title);
+  // d20 fisso a 10: colpisce senza critico, così il danno (e l'Attacco furtivo) c'è sempre e non raddoppia.
+  vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => { (array as Uint32Array)[0] = 9; return array; });
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="2 attacchi con Ascia"]')!.click());
+  await settle();
+  expect(titles()).toEqual(["Ascia (1/2)", "Ascia (2/2)"]);
+  const sneak = () => [...host.querySelectorAll<HTMLInputElement>(".sneak-toggle input")][0];
+  expect(host.querySelector(".sneak-toggle")?.textContent).toContain("+3d6");
+  await act(async () => sneak().click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="2 attacchi con Stocco"]')!.click());
+  await settle();
+  expect(titles().slice(2)).toEqual(["Stocco (1/2) · Attacco furtivo", "Stocco (2/2)"]);
+  const stocco = JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").filter((message: { title: string }) => message.title.startsWith("Stocco"));
+  expect(JSON.stringify(stocco[0].card)).toContain("3d6[Furtivo]");
+  expect(JSON.stringify(stocco[1].card)).not.toContain("Furtivo");
+  vi.restoreAllMocks();
+  expect(sneak().checked).toBe(false);
 });
