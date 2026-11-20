@@ -1538,3 +1538,34 @@ it("i pallini dell'Indebolimento creano, cambiano e tolgono l'effetto della sche
   await settle(1_700);
   expect(cloudSheet().sheet.effects).toEqual([]);
 });
+
+it("i PE si aggiungono dal popup e superata la soglia la scheda avvisa che si può salire di livello", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", level: 1, experience: "250" }, combat: { hp: { current: 5, max: 10 } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  expect(host.querySelector(".xp-text")?.textContent).toBe("PE 250 / 300");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica esperienza di Eroe"]')!.click());
+  await type('input[aria-label="PE da aggiungere o togliere"]', "100");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "+ Aggiungi")!.click());
+  expect(host.querySelector(".xp-ready")?.textContent).toBe("↑ Pronto per il livello 2");
+  await settle(1_700);
+  expect(cloudSheet().sheet.identity.experience).toBe("350");
+});
+
+it("il GM divide i PE di un incontro tra i PG scelti dalla tab Turni", async () => {
+  for (const name of ["Ada", "Bea"]) {
+    const sheet = importRoll20({ character: { name }, normalized: { identity: { character_name: name, experience: "100" }, combat: { hp: { current: 5, max: 10 } } } });
+    await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  }
+  await act(async () => root.render(<App/>));
+  await settle();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Turni"]')!.click());
+  await click("Punti esperienza");
+  await type('input[aria-label="PE dell\'incontro"]', "1000");
+  expect(host.querySelector(".ui-dialog small")?.textContent).toBe("500 PE a ciascuno dei 2 PG");
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Dai PE")!.click());
+  await settle(1_700);
+  const xp = [...store.get("te:room:r1:sheets")!.values()].map((value) => JSON.parse(value).sheet.identity.experience);
+  expect(xp).toEqual(["600", "600"]);
+});
