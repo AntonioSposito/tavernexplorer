@@ -1,14 +1,13 @@
-import { import5eToolsCampaign, import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
+import { import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
 import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
-import type { CampaignDocument, MonsterSheet } from "./types";
+import type { MonsterSheet } from "./types";
 
 // Il sito applica una challenge Cloudflare; il mirror del progetto espone gli
 // stessi file generati con CORS pubblico, adatto all'iframe di Owlbear Rodeo.
 const DEFAULT_BASE = "https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data";
 
 export interface FiveToolsSource { id: string; file: string; label: string }
-export interface FiveToolsAdventure { id: string; name: string; source: string }
 
 async function request(path: string, base = DEFAULT_BASE): Promise<Record<string, unknown>> {
   const response = await fetch(`${base.replace(/\/$/, "")}/${path}`, { headers: { Accept: "application/json" } });
@@ -55,18 +54,6 @@ const findMonster: FindMonster = async (name, source) => {
   const lower = name.toLowerCase();
   return (await bestiaryFiles.get(file)!).find((monster) => String(monster.name).toLowerCase() === lower && String(monster.source).toLowerCase() === source.toLowerCase());
 };
-
-export async function listAdventures(): Promise<FiveToolsAdventure[]> {
-  const root = await request("adventures.json");
-  const rows = Array.isArray(root.adventure) ? root.adventure as Array<Record<string, unknown>> : [];
-  return rows.map((row) => ({ id: String(row.id ?? row.source ?? ""), name: String(row.name ?? row.id ?? "Avventura"), source: String(row.source ?? row.id ?? "") })).filter((row) => row.id).sort((a, b) => a.name.localeCompare(b.name));
-}
-
-export async function loadAdventure(adventure: FiveToolsAdventure): Promise<CampaignDocument> {
-  if (!/^[a-z0-9-]+$/i.test(adventure.id)) throw new Error("ID avventura 5e.tools non valido");
-  const document = await request(`adventure/adventure-${adventure.id.toLowerCase()}.json`);
-  return import5eToolsCampaign({ ...document, adventure: [{ id: adventure.id, name: adventure.name, source: adventure.source }] });
-}
 
 const CLASS_FILES = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"];
 let optionsCache: Promise<CharacterOptions> | null = null;

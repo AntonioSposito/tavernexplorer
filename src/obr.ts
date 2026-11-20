@@ -1,4 +1,4 @@
-import OBR, { buildImageUpload, buildSceneUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
+import OBR, { buildImageUpload, buildText, isImage } from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID, INVENTORY_META_KEY, MESSAGE_CHANNEL, SHEETS_CHANNEL, PERMISSIONS_META_KEY, ROLL_LABEL_META_KEY, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
 import type { ChatMessage, PermissionSettings, SharedInventoryItem, TurnEntry, TurnState } from "./types";
 import { monsterTokenSize } from "./monsterSheet";
@@ -77,20 +77,6 @@ export async function addSelectedTokenToTurns(characterId: string, characterName
   const state = await getTurnState();
   const entry: TurnEntry = { id: crypto.randomUUID(), name: characterName, initiative, initiativeBonus, tokenId, characterId };
   await setTurnState(replaceTurnEntries(state, [...state.entries.filter((item) => item.tokenId !== tokenId), entry]));
-}
-
-export async function uploadMapAsScene(file: File, sceneName: string): Promise<void> {
-  if (!OBR.isAvailable) throw new Error("Il caricamento scene è disponibile solo dentro Owlbear Rodeo");
-  const copy = new File([await file.arrayBuffer()], file.name, { type: file.type });
-  const image = buildImageUpload(copy).name(sceneName).build();
-  const scene = buildSceneUpload().name(sceneName).baseMap(image).build();
-  await OBR.assets.uploadScenes([scene]);
-}
-
-export async function uploadRemoteMapAsScene(url: string, sceneName: string): Promise<void> {
-  const response = await fetch(url); if (!response.ok) throw new Error(`Download mappa fallito (${response.status})`);
-  const blob = await response.blob(); const extension = blob.type.split("/")[1]?.replace("jpeg", "jpg") || "webp";
-  await uploadMapAsScene(new File([blob], `${sceneName}.${extension}`, { type: blob.type || "image/webp" }), sceneName);
 }
 
 // Token di riserva: iniziali del mostro su disco colorato, cosi' ogni import produce comunque un token.

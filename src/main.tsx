@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { STORAGE_CAMPAIGNS } from "./constants";
 import { OBR } from "./obr";
 import { PhoneApp } from "./PhoneAccess";
 import { TokenInitiativePicker } from "./TokenInitiativePicker";
@@ -27,6 +28,9 @@ if (import.meta.env.DEV) {
   document.documentElement.dataset.env = "dev";
   void import("./dev.css");
 }
+
+// Le Avventure non ci sono più: i libri importati occupavano MB nella memoria del browser.
+try { localStorage.removeItem(STORAGE_CAMPAIGNS); } catch { /* storage bloccato: niente da liberare */ }
 
 // Il popover del turn order per i token senza scheda e le tendine del menu del token caricano solo il loro modulo, non l'app intera.
 // In locale resta l'anteprima: ?phone prova l'accesso da telefono.

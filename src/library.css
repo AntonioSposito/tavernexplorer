@@ -173,8 +173,6 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .journal-open{flex:1 1 8rem;min-width:0;padding:0;border:0;background:none;color:hsl(var(--foreground));text-align:left;overflow-wrap:anywhere}
 .journal-open:hover{color:hsl(var(--primary))}
 .journal-note .entry-icons,.journal-folder .entry-icons{display:flex;gap:.25rem}
-/* Condivisione di estratti di avventura (era in notes.css). */
-.content-share{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.7rem;border:1px solid hsl(var(--border));border-radius:var(--radius);background:hsl(var(--card))}.content-share span{flex:1 1 10rem;color:hsl(var(--muted-foreground));font-size:.8rem}.content-share .ui-select{flex:0 1 9rem;width:auto;min-width:8rem}
 
 /* Statblock dei mostri in stile 5e.tools: poche righe compatte, il resto della pagina è per tratti e azioni. */
 .statblock{display:grid;gap:.55rem;padding-bottom:.7rem;border-bottom:2px solid hsl(var(--primary) / .5)}

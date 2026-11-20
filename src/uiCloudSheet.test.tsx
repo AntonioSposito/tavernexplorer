@@ -12,7 +12,7 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], listAdventures: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
+vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));

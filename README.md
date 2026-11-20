@@ -71,7 +71,7 @@ vercel dev
   una cache di lettura: se il server non risponde le schede restano visibili in
   sola lettura. All'apertura le schede salvate localmente dalle versioni
   precedenti vengono caricate nel cloud una volta sola e poi rimosse dal browser.
-- Bestiario e avventure: storage locale del browser. Ultimi 200 messaggi: storage
+- Bestiario: storage locale del browser. Ultimi 200 messaggi: storage
   locale e cloud della stanza (i messaggi “Solo io” restano locali).
 - Owlbear documenta **200 MB di spazio cloud nel piano gratuito** per i dati
   dell'account ([piani e cloud storage](https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage)).
@@ -116,8 +116,6 @@ vercel dev
   secondo il profilo di regole. Per la Magia del Patto si può scegliere il
   recupero degli slot al riposo breve. Ogni riposo richiede conferma e viene
   registrato nei messaggi con la visibilità selezionata.
-- Le mappe individuate nelle avventure 5e.tools possono essere caricate
-  direttamente come scene Owlbear.
 - Collegamento token/scheda: metadata del token. Nella tab **Turni** il GM vede
   tutti i token dello strato Personaggi della scena, inclusi quelli senza
   scheda. Può cercare un token e collegarlo a una scheda del party.
@@ -151,8 +149,8 @@ vercel dev
 - Nuovi messaggi e risultati: broadcast effimero Owlbear e `/api/messages`
   (Redis), riletto ogni 15 secondi da telefono e Owlbear.
 
-**Privacy:** bestiario e avventure restano nel browser che li ha importati; non
-sono sincronizzati con gli altri partecipanti. I messaggi “Solo io” restano
+**Privacy:** il bestiario resta nel browser che lo ha importato; non è
+sincronizzato con gli altri partecipanti. I messaggi “Solo io” restano
 locali. I messaggi “Tutti” nel cloud sono leggibili da chi conosce l'ID stanza,
 come le schede. I messaggi “Solo GM” stanno su Redis **in chiaro** e il server li
 restituisce solo con il token ottenuto da `PHONE_GM_PASSWORD`. Sono cifrati solo
@@ -160,7 +158,7 @@ nel broadcast Owlbear. Il GM deve aver aperto l'estensione per pubblicare la sua
 pubblica. La chiave privata resta nel browser del GM; se quel browser viene
 azzerato, i nuovi messaggi useranno una nuova chiave. Le vecchie copie locali
 dei messaggi inviati con versioni precedenti non vengono cifrate retroattivamente.
-I riepiloghi dei mostri e gli estratti delle avventure partono da “Privato”:
+I riepiloghi dei mostri partono da “Privato”:
 l'invio di una copia al party o al GM richiede una scelta per ogni elemento.
 
 I contenuti 5e.tools vengono richiesti dal mirror sorgente pubblico del progetto
@@ -182,7 +180,7 @@ formato generale della scheda.
 
 Il GM trova una sezione **Permessi** nell’estensione. Le impostazioni vengono
 salvate nei metadata della stanza e controllano modifica dell’inventario comune
-e ordine dei turni per i giocatori. Bestiario e Avventure sono visibili solo al GM.
+e ordine dei turni per i giocatori. Il Bestiario è visibile solo al GM.
 
 **I permessi sono un patto d'onore, non una protezione.** Chi può vedere e chi
 può modificare schede, note, NPC e cartelle lo decide solo l'estensione. Il server `/api/sheets` restituisce
@@ -197,13 +195,13 @@ server restituisce solo con il token GM (vedi **Privacy** in “Dati e sincroniz
 
 Al tavolo vale la regola di sempre: niente sbirciate. Chi non vuole spoiler non
 apre gli strumenti del browser e non chiama le API a mano; il GM tiene i segreti
-davvero importanti fuori dalla libreria (per esempio nelle Avventure, che restano
-nel suo browser).
+davvero importanti fuori dalla libreria (per esempio nel Bestiario, che il server
+dà solo con il token GM).
 
 ## Backup TavernPack
 
 Da **Libreria → Esporta tutto** si scarica un file versionato conforme a
-`public/tavernpack.schema.json`: personaggi, mostri, avventure, inventario
+`public/tavernpack.schema.json`: personaggi, mostri, inventario
 comune, messaggi e stato dei turni. Le note del Journal restano nella libreria
 cloud e non sono incluse nel file. Lo stesso pulsante d'importazione accetta
 sia export Roll20 sia TavernPack.
@@ -236,7 +234,7 @@ La GitHub Action esegue build, lint e test su ogni push a `main` e sulle pull
 request. Il progetto Vercel collegato a GitHub pubblica automaticamente i push
 su `main`.
 
-## Limiti della versione 0.33.1
+## Limiti della versione 0.34.0
 
 - L'importatore richiede il blocco `normalized` di `roll20-sheet-export`.
 - Le formule ricavate dalle descrizioni vengono segnalate nelle note d'import.

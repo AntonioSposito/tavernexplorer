@@ -1,5 +1,5 @@
 import { DEFAULT_RULESET } from "./rulesets";
-import type { CampaignDocument, CharacterSheet, ChatMessage, MonsterSheet, SharedInventoryItem, TavernPack, TurnState } from "./types";
+import type { CharacterSheet, ChatMessage, MonsterSheet, SharedInventoryItem, TavernPack, TurnState } from "./types";
 
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
@@ -40,26 +40,14 @@ function validateMonster(value: unknown): boolean {
     && ["traits", "actions", "reactions", "legendaryActions"].every((key) => Array.isArray(monster[key]));
 }
 
-function validateChapter(value: unknown): boolean {
-  const chapter = record(value);
-  return !!chapter && typeof chapter.id === "string" && typeof chapter.title === "string" && typeof chapter.body === "string"
-    && Array.isArray(chapter.images) && Array.isArray(chapter.children) && chapter.children.every(validateChapter);
-}
-
-function validateCampaign(value: unknown): boolean {
-  const campaign = record(value);
-  return !!campaign && typeof campaign.id === "string" && typeof campaign.title === "string"
-    && Array.isArray(campaign.chapters) && campaign.chapters.every(validateChapter);
-}
-
-export function createTavernPack(data: { characters: CharacterSheet[]; monsters: MonsterSheet[]; campaigns: CampaignDocument[]; sharedInventory: SharedInventoryItem[]; session?: { messages: ChatMessage[]; turnState: TurnState } }): TavernPack {
+export function createTavernPack(data: { characters: CharacterSheet[]; monsters: MonsterSheet[]; sharedInventory: SharedInventoryItem[]; session?: { messages: ChatMessage[]; turnState: TurnState } }): TavernPack {
   return {
     $schema: "https://tavernexplorer-eta.vercel.app/tavernpack.schema.json",
     format: "tavernpack",
     formatVersion: "1.0.0",
     exportedAt: new Date().toISOString(),
     rulesets: [{ id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version }],
-    data: structuredClone(data),
+    data: { ...structuredClone(data), campaigns: [] },
   };
 }
 
@@ -70,7 +58,6 @@ export function parseTavernPack(value: unknown): TavernPack {
   requireShape(!!data, "TavernPack: dati mancanti");
   requireShape(Array.isArray(data?.characters) && data.characters.every((sheet: unknown) => { try { parseCharacterSheet(sheet); return true; } catch { return false; } }), "TavernPack: schede");
   requireShape(Array.isArray(data?.monsters) && data.monsters.every(validateMonster), "TavernPack: mostri");
-  requireShape(Array.isArray(data?.campaigns) && data.campaigns.every(validateCampaign), "TavernPack: avventure");
   requireShape(Array.isArray(data?.sharedInventory) && data.sharedInventory.every((item: unknown) => { const row = record(item); return !!row && typeof row.id === "string" && typeof row.name === "string" && typeof row.quantity === "number"; }), "TavernPack: inventario");
   const session = record(data?.session);
   requireShape(data?.session === undefined || !!session && Array.isArray(session.messages) && Array.isArray(record(session.turnState)?.entries), "TavernPack: sessione");

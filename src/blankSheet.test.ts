@@ -9,7 +9,7 @@ it("crea una scheda valida che passa dal TavernPack senza perdite", () => {
   expect(parseCharacterSheet(sheet)).toBe(sheet);
   expect(Object.keys(sheet.skills).sort()).toEqual(Object.keys(SKILL_LABELS).sort());
   expect(sheet.skills.stealth.ability).toBe("dexterity");
-  const pack = createTavernPack({ characters: [sheet], monsters: [], campaigns: [], sharedInventory: [] });
+  const pack = createTavernPack({ characters: [sheet], monsters: [], sharedInventory: [] });
   const back = parseTavernPack(JSON.parse(JSON.stringify(pack))).data.characters[0];
   expect(back).toEqual(sheet);
 });

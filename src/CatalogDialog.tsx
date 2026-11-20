@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, Input } from "./ui";
 
-// Ricerca in un elenco lungo (manuali, avventure, oggetti 5e.tools).
+// Ricerca in un elenco lungo (manuali e oggetti 5e.tools).
 export function CatalogDialog({ open, title, description, items, selectedId, onSelect, onClose }: { open: boolean; title: string; description: string; items: Array<{ id: string; label: string; detail: string }>; selectedId: string; onSelect: (id: string) => void; onClose: () => void }) {
   const [query, setQuery] = useState("");
   useEffect(() => { if (open) setQuery(""); }, [open]);

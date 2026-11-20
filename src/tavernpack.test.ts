@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { importRoll20 } from "./importer";
-import { parseCharacterSheet, parseTavernPack } from "./tavernpack";
+import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 
 const pack = () => ({ format: "tavernpack", formatVersion: "1.0.0", data: { characters: [], monsters: [], campaigns: [], sharedInventory: [], notes: [] } });
 
@@ -26,4 +26,13 @@ describe("TavernPack validation", () => {
   it("rifiuta una scheda JSON parziale", () => {
     expect(() => parseCharacterSheet({ schemaVersion: 1, id: "x", name: "X" })).toThrow("scheda: identità");
   });
+});
+
+it("le avventure non ci sono più: i backup vecchi che le hanno si importano, i nuovi le salvano vuote", () => {
+  const old = pack();
+  old.data.campaigns = [{ id: "c", title: "Curse of Strahd", chapters: [{ id: "x", title: "Capitolo", body: "…", images: [], children: [] }] }] as never[];
+  expect(() => parseTavernPack(old)).not.toThrow();
+  const { data } = parseTavernPack({ ...pack(), data: { characters: [], monsters: [], sharedInventory: [] } });
+  expect(data.characters).toEqual([]);
+  expect(createTavernPack({ characters: [], monsters: [], sharedInventory: [] }).data.campaigns).toEqual([]);
 });

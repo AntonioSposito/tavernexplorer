@@ -15,7 +15,7 @@
       "properties": {
         "characters": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
         "monsters": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
-        "campaigns": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
+        "campaigns": { "type": "array", "description": "Avventure, non più usate: sempre vuoto. Resta per le versioni precedenti, che lo richiedono." },
         "sharedInventory": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
         "notes": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
         "noteOrganization": { "type": "object", "required": ["folders", "placements"], "properties": { "folders": { "type": "array", "items": { "type": "object", "required": ["id", "name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } } }, "placements": { "type": "object", "additionalProperties": { "type": "string" } } } },

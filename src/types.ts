@@ -1,6 +1,6 @@
 export type RollMode = "normal" | "advantage" | "disadvantage";
 export type Visibility = "everyone" | "self" | "gm";
-export type AppTab = "sheet" | "turns" | "messages" | "notes" | "library" | "compendium" | "campaigns" | "shared" | "settings";
+export type AppTab = "sheet" | "turns" | "messages" | "notes" | "library" | "compendium" | "shared" | "settings";
 export interface PermissionSettings { playersEditInventory: boolean; playersImportContent: boolean; playersManageTurns: boolean }
 
 export interface AbilityStat {
@@ -393,14 +393,6 @@ export interface MonsterSheet {
   updatedAt?: number;
 }
 
-export interface CampaignChapter {
-  id: string;
-  title: string;
-  body: string;
-  children: CampaignChapter[];
-  images: Array<{ title: string; url: string; kind: "map" | "mapPlayer" | "image" }>;
-}
-
 // Journal come su Roll20: note in cartelle, salvate nel cloud della stanza. Solo il GM crea e organizza.
 export interface JournalNote { schemaVersion: 1; id: string; name: string; body: string; folderId?: string }
 // area: "bestiary" per le cartelle del Bestiario; senza, cartella del Journal.
@@ -416,16 +408,6 @@ export type CloudSheet = {
   deletedAt?: number;
   acl: { view: string[]; edit: string[] };
 } & ({ kind: "pc"; sheet: CharacterSheet } | { kind: "npc"; sheet: MonsterSheet } | { kind: "note"; sheet: JournalNote } | { kind: "folder"; sheet: JournalFolder });
-
-export interface CampaignDocument {
-  schemaVersion: 1;
-  id: string;
-  title: string;
-  source: string;
-  ruleset: { id: string; version: string };
-  chapters: CampaignChapter[];
-  importedAt: number;
-}
 
 export interface SharedInventoryItem {
   id: string;
@@ -445,7 +427,8 @@ export interface TavernPack {
   data: {
     characters: CharacterSheet[];
     monsters: MonsterSheet[];
-    campaigns: CampaignDocument[];
+    // Avventure, tolte: i pacchetti le hanno ancora (vuote) per le versioni precedenti, che le richiedono.
+    campaigns: unknown[];
     sharedInventory: SharedInventoryItem[];
     session?: { messages: ChatMessage[]; turnState: TurnState };
   };

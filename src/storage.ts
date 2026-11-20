@@ -1,5 +1,5 @@
-import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CAMPAIGNS, STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_GM_TOKEN, STORAGE_LAST_SHEET, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
-import type { CampaignDocument, CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
+import { STORAGE_PHONE_SESSION, STORAGE_PHONE_TABS_ON_TOP, STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPELL_LEVELS, STORAGE_CLOUD_CACHE, STORAGE_EQUIPPED_FIRST, STORAGE_GM_TOKEN, STORAGE_LAST_SHEET, STORAGE_LIBRARY_SORT, STORAGE_MESSAGES, STORAGE_MESSAGES_SEEN, STORAGE_MONSTERS, STORAGE_SHARED_INVENTORY } from "./constants";
+import type { CharacterSheet, ChatMessage, CloudSheet, MonsterSheet, SharedInventoryItem } from "./types";
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -45,10 +45,6 @@ export const storage = {
   monsters: {
     get: () => read<MonsterSheet[]>(STORAGE_MONSTERS, []),
     set: (value: MonsterSheet[]) => write(STORAGE_MONSTERS, value),
-  },
-  campaigns: {
-    get: () => read<CampaignDocument[]>(STORAGE_CAMPAIGNS, []),
-    set: (value: CampaignDocument[]) => write(STORAGE_CAMPAIGNS, value),
   },
   sharedInventory: {
     get: () => read<SharedInventoryItem[]>(STORAGE_SHARED_INVENTORY, []),
