@@ -18,6 +18,52 @@ export const CLASSES: Record<string, ClassRule> = {
   Wizard: { hitDie: 6, caster: "full", spellAbility: "intelligence", saves: ["intelligence", "wisdom"] },
 };
 // Sottoclassi "terzo incantatore" (Roll20: Arcane Fighter / Arcane Rogue).
+// Sottoclassi del Player's Handbook 2024 (Artificer: Eberron 2025), per il menu del tab Modifica. Le altre si scrivono a mano.
+export const SUBCLASSES: Record<string, string[]> = {
+  Artificer: ["Alchemist", "Armorer", "Artillerist", "Battle Smith"],
+  Barbarian: ["Path of the Berserker", "Path of the Wild Heart", "Path of the World Tree", "Path of the Zealot"],
+  Bard: ["College of Dance", "College of Glamour", "College of Lore", "College of Valor"],
+  Cleric: ["Life Domain", "Light Domain", "Trickery Domain", "War Domain"],
+  Druid: ["Circle of the Land", "Circle of the Moon", "Circle of the Sea", "Circle of the Stars"],
+  Fighter: ["Battle Master", "Champion", "Eldritch Knight", "Psi Warrior"],
+  Monk: ["Warrior of Mercy", "Warrior of Shadow", "Warrior of the Elements", "Warrior of the Open Hand"],
+  Paladin: ["Oath of Devotion", "Oath of Glory", "Oath of the Ancients", "Oath of Vengeance"],
+  Ranger: ["Beast Master", "Fey Wanderer", "Gloom Stalker", "Hunter"],
+  Rogue: ["Arcane Trickster", "Assassin", "Soulknife", "Thief"],
+  Sorcerer: ["Aberrant Sorcery", "Clockwork Sorcery", "Draconic Sorcery", "Wild Magic Sorcery"],
+  Warlock: ["Archfey Patron", "Celestial Patron", "Fiend Patron", "Great Old One Patron"],
+  Wizard: ["Abjurer", "Diviner", "Evoker", "Illusionist"],
+};
+// Xanathar e Tasha, senza quelle ristampate nel PHB 2024 con un altro nome (es. Way of Mercy → Warrior of Mercy).
+export const SUBCLASSES_XANATHAR: Record<string, string[]> = {
+  Barbarian: ["Path of the Ancestral Guardian", "Path of the Storm Herald"],
+  Bard: ["College of Swords", "College of Whispers"],
+  Cleric: ["Forge Domain", "Grave Domain"],
+  Druid: ["Circle of Dreams", "Circle of the Shepherd"],
+  Fighter: ["Arcane Archer", "Cavalier", "Samurai"],
+  Monk: ["Way of the Drunken Master", "Way of the Kensei", "Way of the Sun Soul"],
+  Paladin: ["Oath of Conquest", "Oath of Redemption"],
+  Ranger: ["Horizon Walker", "Monster Slayer"],
+  Rogue: ["Inquisitive", "Mastermind", "Scout", "Swashbuckler"],
+  Sorcerer: ["Divine Soul", "Shadow Magic", "Storm Sorcery"],
+  Warlock: ["The Hexblade"],
+  Wizard: ["War Magic"],
+};
+export const SUBCLASSES_TASHA: Record<string, string[]> = {
+  Barbarian: ["Path of the Beast", "Path of Wild Magic"],
+  Bard: ["College of Creation", "College of Eloquence"],
+  Cleric: ["Order Domain", "Peace Domain", "Twilight Domain"],
+  Druid: ["Circle of Wildfire"],
+  Fighter: ["Rune Knight"],
+  Monk: ["Way of the Astral Self"],
+  Paladin: ["Oath of the Watchers"],
+  Ranger: ["Swarmkeeper"],
+  Rogue: ["Phantom"],
+  Warlock: ["The Fathomless", "The Genie"],
+  Wizard: ["Bladesinging", "Order of Scribes"],
+};
+// Gruppi del menu sottoclasse, nell'ordine in cui compaiono.
+export const SUBCLASS_BOOKS: Array<[string, Record<string, string[]>]> = [["Player's Handbook 2024", SUBCLASSES], ["Xanathar", SUBCLASSES_XANATHAR], ["Tasha", SUBCLASSES_TASHA]];
 export const THIRD_CASTER_SUBCLASSES: Record<string, string> = { "Eldritch Knight": "Fighter", "Arcane Trickster": "Rogue" };
 
 // Slot per livello da incantatore (tabella del multiclasse, PHB 2024), livelli 1–9.

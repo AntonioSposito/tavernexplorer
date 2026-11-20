@@ -1,4 +1,5 @@
-import { CLASSES, casterLevel, classDisplay } from "./classes";
+import { useState } from "react";
+import { CLASSES, SUBCLASS_BOOKS, casterLevel, classDisplay } from "./classes";
 import { applyClassChanges, derivedSlots } from "./classSync";
 import { ABILITY_LABELS } from "./constants";
 import type { CharacterClass, CharacterSheet, ClassCaster, SheetOptions } from "./types";
@@ -15,6 +16,8 @@ export function ClassOptions({ sheet, onUpdate }: { sheet: CharacterSheet; onUpd
   const change = (update: (next: CharacterSheet) => void) => onUpdate((next) => { const previous = structuredClone(next); update(next); applyClassChanges(next, previous); return next; });
   const setClass = (index: number, patch: Partial<CharacterClass>) => change((next) => { next.classes = (next.classes ?? []).map((entry, position) => position === index ? { ...entry, ...patch } : entry); });
   const setOption = <K extends keyof SheetOptions>(key: K, value: SheetOptions[K]) => change((next) => { next.options = { ...next.options, [key]: value }; });
+  // Righe con la sottoclasse scritta a mano (anche vuota, appena scelto "Personalizzata…").
+  const [typed, setTyped] = useState<number[]>([]);
   const slots = derivedSlots(sheet);
   const arcane = { fighter: options.arcaneFighter, rogue: options.arcaneRogue };
 
@@ -22,13 +25,30 @@ export function ClassOptions({ sheet, onUpdate }: { sheet: CharacterSheet; onUpd
     <label className="action-form-check"><input type="checkbox" checked={!!options.autoLevel} onChange={(event) => setOption("autoLevel", event.target.checked)}/> Calcolo automatico dei livelli (livello, dadi vita, slot, TS e caratteristica da incantatore dalle classi)</label>
     {classes.map((entry, index) => <div className="class-row" key={index}>
       <strong>{ORDINALS[index]}</strong>
-      <label><span>Classe</span><Select aria-label={`${ORDINALS[index]}: classe`} value={entry.custom ? "custom" : entry.name} onChange={(event) => setClass(index, event.target.value === "custom" ? { name: entry.name || "Classe personalizzata", custom: { hitDie: 8, caster: "none", saves: [] } } : { name: event.target.value, custom: undefined })}>
+      <label><span>Classe</span><Select aria-label={`${ORDINALS[index]}: classe`} value={entry.custom ? "custom" : entry.name} onChange={(event) => { setTyped(typed.filter((row) => row !== index)); setClass(index, event.target.value === "custom" ? { name: entry.name || "Classe personalizzata", custom: { hitDie: 8, caster: "none", saves: [] } } : { name: event.target.value, custom: undefined, subclass: undefined }); }}>
         {!entry.custom && !CLASSES[entry.name] && <option value={entry.name}>{entry.name}</option>}
         {Object.keys(CLASSES).map((name) => <option key={name} value={name}>{name}</option>)}
         <option value="custom">Personalizzata…</option>
       </Select></label>
       <label><span>Livello</span><Input type="number" min="1" max="20" aria-label={`${ORDINALS[index]}: livello`} value={entry.level} onChange={(event) => setClass(index, { level: Math.min(20, Math.max(1, Math.trunc(Number(event.target.value)) || 1)) })}/></label>
-      <label><span>Sottoclasse</span><Input aria-label={`${ORDINALS[index]}: sottoclasse`} value={entry.subclass ?? ""} placeholder="Eldritch Knight…" onChange={(event) => setClass(index, { subclass: event.target.value || undefined })}/></label>
+      {(() => {
+        // Sottoclassi della classe scelta; una fuori elenco (homebrew, import Roll20) si scrive a mano.
+        const books = SUBCLASS_BOOKS.flatMap(([book, lists]) => lists[entry.name]?.length ? [[book, lists[entry.name]] as const] : []);
+        const known = books.flatMap(([, names]) => names);
+        const manual = typed.includes(index) || (!!entry.subclass && !known.includes(entry.subclass));
+        return <>
+          <label><span>Sottoclasse</span><Select aria-label={`${ORDINALS[index]}: sottoclasse`} value={manual ? "custom" : entry.subclass ?? ""} onChange={(event) => {
+            const custom = event.target.value === "custom";
+            setTyped(custom ? [...typed, index] : typed.filter((row) => row !== index));
+            setClass(index, { subclass: custom ? entry.subclass : event.target.value || undefined });
+          }}>
+            <option value="">Nessuna</option>
+            {books.map(([book, names]) => <optgroup key={book} label={book}>{names.map((name) => <option key={name} value={name}>{name}</option>)}</optgroup>)}
+            <option value="custom">Personalizzata…</option>
+          </Select></label>
+          {manual && <label><span>Nome sottoclasse</span><Input aria-label={`${ORDINALS[index]}: nome sottoclasse`} value={entry.subclass ?? ""} onChange={(event) => setClass(index, { subclass: event.target.value || undefined })}/></label>}
+        </>;
+      })()}
       {index > 0 && <Button variant="ghost" aria-label={`Rimuovi ${ORDINALS[index]}`} onClick={() => change((next) => { next.classes = (next.classes ?? []).filter((_, position) => position !== index); })}>×</Button>}
       {entry.custom && <div className="custom-class">
         <label><span>Nome</span><Input aria-label={`${ORDINALS[index]}: nome`} value={entry.name} onChange={(event) => setClass(index, { name: event.target.value })}/></label>

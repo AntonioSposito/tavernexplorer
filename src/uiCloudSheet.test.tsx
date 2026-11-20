@@ -1569,3 +1569,20 @@ it("il GM divide i PE di un incontro tra i PG scelti dalla tab Turni", async () 
   const xp = [...store.get("te:room:r1:sheets")!.values()].map((value) => JSON.parse(value).sheet.identity.experience);
   expect(xp).toEqual(["600", "600"]);
 });
+
+it("nella tab Modifica la sottoclasse si sceglie dal menu della classe, o si scrive a mano", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe", class: "Fighter", level: 3 }, combat: { proficiency_bonus: 2 } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Modifica");
+  const pick = async (value: string) => { const select = host.querySelector<HTMLSelectElement>('select[aria-label="Classe principale: sottoclasse"]')!; await act(async () => { select.value = value; select.dispatchEvent(new Event("change", { bubbles: true })); }); };
+  expect([...host.querySelectorAll<HTMLOptionElement>('select[aria-label="Classe principale: sottoclasse"] option')].map((option) => option.value)).toEqual(["", "Battle Master", "Champion", "Eldritch Knight", "Psi Warrior", "Arcane Archer", "Cavalier", "Samurai", "Rune Knight", "custom"]);
+  await pick("Eldritch Knight");
+  await settle(1_700);
+  expect(cloudSheet().sheet.classes[0].subclass).toBe("Eldritch Knight");
+  await pick("custom");
+  await type('input[aria-label="Classe principale: nome sottoclasse"]', "Rune Knight");
+  await settle(1_700);
+  expect(cloudSheet().sheet.classes[0].subclass).toBe("Rune Knight");
+});
