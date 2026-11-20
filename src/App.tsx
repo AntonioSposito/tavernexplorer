@@ -8,7 +8,7 @@ import { canViewMessage, messageTime } from "./messageVisibility";
 import { publishGmMessageKey } from "./privateMessages";
 import { Journal } from "./Journal";
 import { EffectsEditor } from "./EffectsEditor";
-import { DeathSaveControl, HitDiceControl, HitPointControl } from "./HitPointControl";
+import { DeathSaveControl, ExhaustionControl, HitDiceControl, HitPointControl } from "./HitPointControl";
 import { AssignmentPanel } from "./AssignmentPanel";
 import { useFreshMessages } from "./freshMessages";
 import { fetchRoomState, putRoomState, ROOM_STATE_POLL_MS } from "./cloudState";
@@ -526,7 +526,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     <div className={`app-body${tabsOnTop || narrow ? " tabs-top" : ""}`}>
     {!floatingView && <nav className="app-tabs">
       {([
-        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", library.entries.filter((entry) => entry.kind === "note").length || null], ["shared", null], ["library", null], ["compendium", null],
+        ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", null], ["shared", null], ["library", null], ["compendium", null],
         // Tab solo GM in fondo, dopo un separatore.
         ...(player.role === "GM" ? [["gm-separator", null], ["settings", null]] as const : []),
       ] as const).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
@@ -664,6 +664,7 @@ function MainSheet({ sheet, base, onRoll, onRollValue, onUpdate, editable, only,
     {(!only || only === "abilities") && <section className="paper"><h2>Caratteristiche</h2><div className="core-abilities">{Object.entries(sheet.abilities).map(([key, stat]) => <button key={key} aria-label={`Prova di ${ABILITY_LABELS[key] ?? key}`} className={explainValue(base, sheet, `ability:${key}`, "", 0) ? "value-explained" : undefined} title={explainValue(base, sheet, `ability:${key}`, ABILITY_LABELS[key] ?? key, stat.score, false)} onClick={() => d20(`check:${key}`, ABILITY_LABELS[key] ?? key, `1d20${labeledBonus([[stat.mod, tag(key)]], stat.mod)}`)}><small>{ABILITY_SHORT[key] ?? key}</small><strong>{stat.score}</strong><span>{signed(stat.mod)}</span></button>)}</div></section>}
     {(!only || only === "abilities") && <section className="paper"><h2>Tiri salvezza</h2><div className="core-list saves">{Object.entries(sheet.abilities).map(([key, stat]) => <button key={key} className={[stat.saveProficient && "proficient", explainValue(base, sheet, `save:${key}`, "", 0) && "value-explained"].filter(Boolean).join(" ") || undefined} title={explainCheck(base, sheet, `save:${key}`, `TS ${ABILITY_LABELS[key] ?? key}`, stat.save)} onClick={() => d20(`save:${key}`, `TS ${ABILITY_LABELS[key] ?? key}`, `1d20${labeledBonus([[stat.mod, tag(key)], [stat.saveProficient ? prof : 0, "PROF"]], stat.save)}`)}><span className={stat.saveProficient ? "dot filled" : "dot"} aria-label={stat.saveProficient ? "Competente" : undefined}/><strong>{signed(stat.save)}</strong><span>{ABILITY_LABELS[key] ?? key}</span></button>)}</div></section>}
     {(!only || only === "skills") && <section className="paper"><h2>Abilità</h2><div className="core-list">{Object.entries(sheet.skills).map(([key, skill]) => <button key={key} className={[skill.proficient && "proficient", explainValue(base, sheet, `skill:${key}`, "", 0) && "value-explained"].filter(Boolean).join(" ") || undefined} title={explainCheck(base, sheet, `skill:${key}`, SKILL_LABELS[key] ?? key, skill.bonus)} onClick={() => d20(`check:${SKILL_ABILITIES[key]}:${key}`, SKILL_LABELS[key] ?? key, `${reliableDie(sheet, skill.proficient)}${labeledBonus([[sheet.abilities[SKILL_ABILITIES[key]]?.mod ?? 0, tag(SKILL_ABILITIES[key])], [skill.proficient ? prof : 0, "PROF"]], skill.bonus)}`)}><span className={skill.proficient ? "dot filled" : "dot"} aria-label={skill.proficient ? "Competente" : undefined}/><strong>{signed(skill.bonus)}</strong><span>{SKILL_LABELS[key] ?? key} <small>({ABILITY_SHORT[SKILL_ABILITIES[key]] ?? "—"})</small></span></button>)}</div><p className="core-passive"><span>Percezione passiva</span><strong className={explainValue(base, sheet, "passivePerception", "", 0) ? "value-explained" : undefined} title={explainCheck(base, sheet, "passivePerception", "Percezione passiva", sheet.combat.passivePerception)}>{sheet.combat.passivePerception}</strong></p></section>}
+    {!only && <ExhaustionControl sheet={sheet} editable={editable} onUpdate={onUpdate}/>}
   </div>;
 }
 

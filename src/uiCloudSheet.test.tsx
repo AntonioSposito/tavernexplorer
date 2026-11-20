@@ -1522,3 +1522,19 @@ it("Journal: eliminando una cartella il suo contenuto sale di un livello", async
   expect([...host.querySelectorAll(".journal-folder strong")].map((item) => item.textContent)).toEqual(["Fuori"]);
   vi.restoreAllMocks();
 });
+
+it("i pallini dell'Indebolimento creano, cambiano e tolgono l'effetto della scheda", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 5, max: 10 } } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Indebolimento 3"]')!.click());
+  expect(host.querySelector('[aria-label="Indebolimento: livello 3 su 6"]')).not.toBeNull();
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects?.map((effect: { name: string }) => effect.name)).toEqual(["Indebolimento 3"]);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Indebolimento 3"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Indebolimento 2"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Indebolimento 1"]')!.click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.effects).toEqual([]);
+});

@@ -1,4 +1,5 @@
-import { modifierTotal } from "./effects";
+import { exhaustionLevel, withExhaustion } from "./conditions";
+import { isEffectOn, modifierTotal } from "./effects";
 import { useState } from "react";
 import { adjustHitPoints, applyDeathSave, deathSaveNotice, type HitPointField } from "./hitPoints";
 import type { RollResult } from "./dice";
@@ -117,6 +118,27 @@ export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue, onNot
       <button type="button" className="hit-dice-roll" disabled={!canRoll} title={sheet.combat.hp.current > 0 ? "Si tira solo a 0 PF" : successes >= 3 ? "Stabile" : failures >= 3 ? "Morto" : "Tira d20: da 10 successo, 1 = due fallimenti, 20 = 1 PF"} onClick={() => void rollSave()}>TS morte</button>
       <div className="hit-point-box"><small>Successi</small>{dots(successes, "successes", "Successi")}</div>
       <div className="hit-point-box"><small>Fallimenti</small>{dots(failures, "failures", "Fallimenti")}</div>
+    </div>
+  </section>;
+}
+
+// Indebolimento come i TS contro la morte: 6 pallini. Il livello è l'effetto "Indebolimento N" della scheda (lo usano tiri e token).
+export function ExhaustionControl({ sheet, editable, onUpdate }: HitPointControlProps) {
+  const level = (sheet.effects ?? []).filter(isEffectOn).reduce((sum, effect) => sum + exhaustionLevel(effect.name), 0);
+  // Clic su un pallino: lo accende con quelli prima; sull'ultimo acceso lo spegne. A 0 l'effetto si toglie.
+  const setLevel = (index: number) => {
+    const count = level === index + 1 ? index : index + 1;
+    onUpdate((next) => { next.effects = withExhaustion(next.effects ?? [], count); return next; });
+  };
+  return <section className="paper hit-point-control death-save-control">
+    <h2>Indebolimento</h2>
+    <div className="hit-point-boxes">
+      <div className="hit-point-box"><small>Livello {level}{level >= 6 ? " · morto" : level ? ` · −${2 * level} ai d20` : ""}</small>
+        <span className="death-dots" aria-label={`Indebolimento: livello ${level} su 6`}>{[0, 1, 2, 3, 4, 5].map((index) => {
+          const className = `death-dot${index < level ? " failure" : ""}`;
+          return editable ? <button key={index} type="button" className={className} aria-label={`Indebolimento ${index + 1}`} aria-pressed={index < level} onClick={() => setLevel(index)}/> : <span key={index} className={className}/>;
+        })}</span>
+      </div>
     </div>
   </section>;
 }

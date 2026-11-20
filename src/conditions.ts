@@ -4,20 +4,20 @@ import type { CharacterEffect, RollMode, StatModifier, TurnCondition } from "./t
 // Condizioni (regole 2024): nome italiano (quello che si salva), nome inglese, emoji e regola tradotta dall'SRD 5.2.1 (CC BY 4.0).
 // Si riconoscono da entrambi i nomi: gli effetti salvati prima in inglese continuano a valere.
 export const CONDITIONS: Array<{ name: string; en: string; emoji: string; rule: string }> = [
-  { name: "Accecato", en: "Blinded", emoji: "🙈", rule: "Non vedi. Non puoi vedere e fallisci automaticamente ogni prova di caratteristica che richiede la vista.\nAttacchi. I tiri per colpire contro di te hanno vantaggio e i tuoi hanno svantaggio." },
+  { name: "Accecato", en: "Blinded", emoji: "🕶️", rule: "Non vedi. Non puoi vedere e fallisci automaticamente ogni prova di caratteristica che richiede la vista.\nAttacchi. I tiri per colpire contro di te hanno vantaggio e i tuoi hanno svantaggio." },
   { name: "Affascinato", en: "Charmed", emoji: "💘", rule: "Non puoi nuocere a chi ti affascina. Non puoi attaccarlo né sceglierlo come bersaglio di capacità o effetti magici che infliggono danni.\nVantaggio sociale. Chi ti affascina ha vantaggio alle prove di caratteristica per interagire socialmente con te." },
   { name: "Assordato", en: "Deafened", emoji: "🔇", rule: "Non senti. Non puoi sentire e fallisci automaticamente ogni prova di caratteristica che richiede l'udito." },
-  { name: "Indebolimento", en: "Exhaustion", emoji: "😫", rule: "Livelli. La condizione è cumulativa: ogni volta che la subisci guadagni 1 livello di Indebolimento. Muori se arrivi al livello 6.\nTiri d20. I tuoi tiri d20 diminuiscono del doppio del tuo livello di Indebolimento.\nVelocità ridotta. La tua velocità diminuisce di 1,5 m per livello di Indebolimento.\nRecupero. Un riposo lungo toglie 1 livello; a livello 0 la condizione finisce." },
-  { name: "Spaventato", en: "Frightened", emoji: "😱", rule: "Prove e attacchi. Hai svantaggio alle prove di caratteristica e ai tiri per colpire finché la fonte della paura è nella tua linea di vista.\nNon ti avvicini. Non puoi avvicinarti di tua volontà alla fonte della paura." },
+  { name: "Indebolimento", en: "Exhaustion", emoji: "🪫", rule: "Livelli. La condizione è cumulativa: ogni volta che la subisci guadagni 1 livello di Indebolimento. Muori se arrivi al livello 6.\nTiri d20. I tuoi tiri d20 diminuiscono del doppio del tuo livello di Indebolimento.\nVelocità ridotta. La tua velocità diminuisce di 1,5 m per livello di Indebolimento.\nRecupero. Un riposo lungo toglie 1 livello; a livello 0 la condizione finisce." },
+  { name: "Spaventato", en: "Frightened", emoji: "⚠️", rule: "Prove e attacchi. Hai svantaggio alle prove di caratteristica e ai tiri per colpire finché la fonte della paura è nella tua linea di vista.\nNon ti avvicini. Non puoi avvicinarti di tua volontà alla fonte della paura." },
   { name: "Afferrato", en: "Grappled", emoji: "🤼", rule: "Velocità 0. La tua velocità è 0 e non può aumentare.\nAttacchi. Hai svantaggio ai tiri per colpire contro qualsiasi bersaglio diverso da chi ti afferra.\nTrascinabile. Chi ti afferra può trascinarti o portarti con sé, ma ogni metro gli costa 1 metro in più, a meno che tu non sia Minuscolo o di due o più taglie più piccolo." },
   { name: "Incapacitato", en: "Incapacitated", emoji: "💫", rule: "Inattivo. Non puoi effettuare azioni, azioni bonus né reazioni.\nNiente concentrazione. La tua concentrazione si interrompe.\nMuto. Non puoi parlare.\nSorpreso. Se sei Incapacitato quando tiri l'iniziativa, hai svantaggio al tiro." },
   { name: "Invisibile", en: "Invisible", emoji: "👻", rule: "Sorpresa. Se sei Invisibile quando tiri l'iniziativa, hai vantaggio al tiro.\nNascosto. Non subisci gli effetti che richiedono di vedere il bersaglio, a meno che chi li crea non riesca in qualche modo a vederti. Anche l'equipaggiamento che indossi o porti è nascosto.\nAttacchi. I tiri per colpire contro di te hanno svantaggio e i tuoi hanno vantaggio. Contro una creatura che riesce in qualche modo a vederti non hai questo beneficio." },
   { name: "Paralizzato", en: "Paralyzed", emoji: "🧊", rule: "Incapacitato. Hai la condizione Incapacitato.\nVelocità 0. La tua velocità è 0 e non può aumentare.\nTiri salvezza. Fallisci automaticamente i TS di Forza e Destrezza.\nAttacchi. I tiri per colpire contro di te hanno vantaggio.\nCritici automatici. Un attacco che ti colpisce è un colpo critico se l'attaccante è entro 1,5 m da te." },
   { name: "Pietrificato", en: "Petrified", emoji: "🗿", rule: "Materia inanimata. Tu e gli oggetti non magici che indossi o porti diventate una sostanza solida e inanimata (di solito pietra). Il tuo peso si moltiplica per dieci e smetti di invecchiare.\nIncapacitato. Hai la condizione Incapacitato.\nVelocità 0. La tua velocità è 0 e non può aumentare.\nAttacchi. I tiri per colpire contro di te hanno vantaggio.\nTiri salvezza. Fallisci automaticamente i TS di Forza e Destrezza.\nResistenza. Hai resistenza a tutti i danni.\nImmune al veleno. Sei immune alla condizione Avvelenato." },
-  { name: "Avvelenato", en: "Poisoned", emoji: "🤢", rule: "Prove e attacchi. Hai svantaggio ai tiri per colpire e alle prove di caratteristica." },
+  { name: "Avvelenato", en: "Poisoned", emoji: "🧪", rule: "Prove e attacchi. Hai svantaggio ai tiri per colpire e alle prove di caratteristica." },
   { name: "Prono", en: "Prone", emoji: "🛌", rule: "Movimento limitato. Puoi solo strisciare, oppure spendere metà della tua velocità (per difetto) per rialzarti e terminare la condizione. Se la tua velocità è 0 non puoi rialzarti.\nAttacchi. Hai svantaggio ai tiri per colpire. Un tiro per colpire contro di te ha vantaggio se l'attaccante è entro 1,5 m, altrimenti ha svantaggio." },
   { name: "Trattenuto", en: "Restrained", emoji: "⛓️", rule: "Velocità 0. La tua velocità è 0 e non può aumentare.\nAttacchi. I tiri per colpire contro di te hanno vantaggio e i tuoi hanno svantaggio.\nTiri salvezza. Hai svantaggio ai TS di Destrezza." },
-  { name: "Stordito", en: "Stunned", emoji: "😵", rule: "Incapacitato. Hai la condizione Incapacitato.\nTiri salvezza. Fallisci automaticamente i TS di Forza e Destrezza.\nAttacchi. I tiri per colpire contro di te hanno vantaggio." },
+  { name: "Stordito", en: "Stunned", emoji: "🌀", rule: "Incapacitato. Hai la condizione Incapacitato.\nTiri salvezza. Fallisci automaticamente i TS di Forza e Destrezza.\nAttacchi. I tiri per colpire contro di te hanno vantaggio." },
   { name: "Privo di sensi", en: "Unconscious", emoji: "💤", rule: "Inerte. Hai le condizioni Incapacitato e Prono e lasci cadere ciò che tieni. Quando la condizione finisce resti Prono.\nVelocità 0. La tua velocità è 0 e non può aumentare.\nAttacchi. I tiri per colpire contro di te hanno vantaggio.\nTiri salvezza. Fallisci automaticamente i TS di Forza e Destrezza.\nCritici automatici. Un attacco che ti colpisce è un colpo critico se l'attaccante è entro 1,5 m da te.\nIgnaro. Non sei consapevole di ciò che ti circonda." },
 ];
 
@@ -108,7 +108,7 @@ const isConcentration = (name: string) => /^(concentrazione|concentration)/i.tes
 type EffectPreset = { emoji: string; name: string; en: string; description: string; modifiers: Array<Omit<StatModifier, "id">>; rounds?: number };
 const adv = (target: string) => ({ target: `adv:${target}`, amount: 0 });
 export const EFFECT_PRESETS: EffectPreset[] = [
-  { emoji: "🔥", name: "Ira", en: "Rage", description: "Vantaggio alle prove e ai TS di Forza. Bonus ai danni degli attacchi con Forza: +2, +3 dal 9° livello da barbaro, +4 dal 16°. Resistenza ai danni contundenti, perforanti e taglienti. Niente incantesimi né concentrazione. Dura fino alla fine del tuo prossimo turno; si prolunga attaccando, imponendo un TS o con un'azione bonus, fino a 10 minuti.",
+  { emoji: "💢", name: "Ira", en: "Rage", description: "Vantaggio alle prove e ai TS di Forza. Bonus ai danni degli attacchi con Forza: +2, +3 dal 9° livello da barbaro, +4 dal 16°. Resistenza ai danni contundenti, perforanti e taglienti. Niente incantesimi né concentrazione. Dura fino alla fine del tuo prossimo turno; si prolunga attaccando, imponendo un TS o con un'azione bonus, fino a 10 minuti.",
     modifiers: [adv("check:strength"), adv("save:strength"), { target: "damage", amount: 0, scale: "rage" }] },
   { emoji: "🗡️", name: "Melodia della lama", en: "Bladesong", description: "Bonus alla CA pari al modificatore di Intelligenza (minimo +1), velocità +3 m, vantaggio alle prove di Acrobazia. Aggiungi il modificatore di Intelligenza ai TS di Costituzione per mantenere la concentrazione. Finisce se sei Incapacitato, se indossi un'armatura media o pesante o uno scudo, o se attacchi con un'arma a due mani. Dura 1 minuto.",
     modifiers: [{ target: "ac", amount: 0, ability: "intelligence" }, { target: "speed", amount: 3 }, adv("skill:acrobatics")], rounds: 10 },
@@ -128,7 +128,7 @@ export const effectPreset = (name: string) => EFFECT_PRESETS.find((preset) => [p
 export const effectEmoji = (name: string) => effectPreset(name)?.emoji ?? findCondition(name)?.emoji ?? (isConcentration(name) ? "🧠" : undefined);
 export const withEmoji = (name: string) => [effectEmoji(name), name].filter(Boolean).join(" ");
 
-// Voci del menu "Effetto pronto": valore il nome italiano, etichetta "🔥 Ira/Rage".
+// Voci del menu "Effetto pronto": valore il nome italiano, etichetta "💢 Ira/Rage".
 const choice = (name: string, en: string): [string, string] => [name, `${withEmoji(name)}/${en}`];
 export const EFFECT_CHOICES: Array<[group: string, choices: Array<[value: string, label: string]>]> = [
   ["Condizioni", CONDITIONS.flatMap(({ name, en }) => name === "Indebolimento" ? EXHAUSTION_LEVELS.map((level, index) => choice(level, `${en} ${index + 1}`)) : [choice(name, en)])],
@@ -160,4 +160,13 @@ export function named(effect: CharacterEffect, name: string, fromMenu = false): 
     ...sameModifiers ? { modifiers: defaultModifiers(name).map((mod) => ({ ...mod, id: crypto.randomUUID() })) } : {},
     ...sameRounds ? { remainingRounds: effectPreset(name)?.rounds } : {},
   };
+}
+
+// Livello di Indebolimento scelto dai pallini: un solo effetto "Indebolimento N" acceso (tiene l'id se c'era già); a 0 si toglie.
+export function withExhaustion(effects: CharacterEffect[], level: number): CharacterEffect[] {
+  const current = effects.find((effect) => exhaustionLevel(effect.name));
+  const rest = effects.filter((effect) => !exhaustionLevel(effect.name));
+  if (!level) return rest;
+  const name = `Indebolimento ${level}`;
+  return [...rest, { ...current ?? { id: crypto.randomUUID(), modifiers: [] }, name, active: true, description: conditionRule(name) }];
 }

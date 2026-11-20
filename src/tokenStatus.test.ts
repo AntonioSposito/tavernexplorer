@@ -52,15 +52,15 @@ it("le icone delle condizioni sono nascoste ai giocatori se il turno è nascosto
   const { tokenConditionIcons } = await import("./tokenStatus");
   const turn: TurnEntry = { id: "turn", name: "Ada", initiative: 10, hidden: true, conditions: [{ id: "c", name: "Poisoned", remainingRounds: 2 }] };
   expect(tokenConditionIcons(turn, "PLAYER")).toEqual([]);
-  expect(tokenConditionIcons(turn, "GM")).toEqual([{ icon: "🤢", rounds: 2 }]);
+  expect(tokenConditionIcons(turn, "GM")).toEqual([{ icon: "🧪", rounds: 2 }]);
 });
 
 it("per i PG le icone sono gli effetti attivi della scheda: emoji per le condizioni, iniziali per gli altri, +N oltre quattro", async () => {
   const { tokenConditionIcons } = await import("./tokenStatus");
   const effect = (name: string, active = true) => ({ id: name, name, active, modifiers: [] });
   expect(tokenConditionIcons(undefined, "PLAYER", [effect("Poisoned"), effect("Bless", false), effect("Ring"), effect("Exhaustion 2"), effect("Concentrazione: Bless")])
-    .map(({ icon }) => icon)).toEqual(["🤢", "Ri", "😫", "🧠"]);
-  expect(tokenConditionIcons(undefined, "PLAYER", ["Prone", "Blinded", "Stunned", "Charmed", "Deafened"].map((name) => effect(name)))).toEqual(["🛌", "🙈", "😵", "+2"].map((icon) => ({ icon })));
+    .map(({ icon }) => icon)).toEqual(["🧪", "Ri", "🪫", "🧠"]);
+  expect(tokenConditionIcons(undefined, "PLAYER", ["Prone", "Blinded", "Stunned", "Charmed", "Deafened"].map((name) => effect(name)))).toEqual(["🛌", "🕶️", "🌀", "+2"].map((icon) => ({ icon })));
 });
 
 it("disegna le icone in alto a sinistra, grandi come lo scudo della CA", async () => {
@@ -72,7 +72,7 @@ it("disegna le icone in alto a sinistra, grandi come lo scudo della CA", async (
   const icons = () => scene.local.filter((item) => (item.metadata[TOKEN_STATUS_META_KEY] as { tokenId?: string } | undefined)?.tokenId === "t-gob");
   // Prone senza durata: cerchio ed emoji; Poisoned con 3 turni: anche il badge col numero.
   await vi.waitFor(() => expect(icons()).toHaveLength(6));
-  expect(icons().map((item) => item.text?.plainText).filter(Boolean)).toEqual(["🛌", "🤢", "3"]);
+  expect(icons().map((item) => item.text?.plainText).filter(Boolean)).toEqual(["🛌", "🧪", "3"]);
   // Misura fissa in caselle (DPI 150 × 0.32), come lo scudo.
   expect(icons().find((item) => item.type === "SHAPE")).toMatchObject({ width: 48, height: 48 });
 });
@@ -137,4 +137,32 @@ it("la CA sul token di un mostro comprende gli effetti accesi del token", async 
     { id: "c", name: "Prone", remainingRounds: 1 },
   ] };
   expect(tokenStats(undefined, goblin, turn)?.ac).toBe(15);
+});
+
+it("un PG a 0 PF ha per prima l'icona dei tiri contro la morte, con successi e fallimenti", async () => {
+  const { tokenConditionIcons } = await import("./tokenStatus");
+  const effect = (name: string) => ({ id: name, name, active: true, modifiers: [] });
+  expect(tokenConditionIcons(undefined, "PLAYER", ["Prone", "Blinded", "Stunned", "Charmed"].map(effect), { successes: 2, failures: 1 }))
+    .toEqual([{ icon: "💀", successes: 2, failures: 1 }, { icon: "🛌" }, { icon: "🕶️" }, { icon: "+2" }]);
+  expect(tokenConditionIcons(undefined, "PLAYER", [], undefined)).toEqual([]);
+});
+
+it("disegna sul token del PG a 0 PF il teschio con i successi in verde e i fallimenti in rosso", async () => {
+  const { setupTokenStatus } = await import("./tokenStatus");
+  const sheet = pc();
+  sheet.combat.hp = { current: 0, max: 20, temp: 0 };
+  sheet.combat.deathSaves = { successes: 2, failures: 1 };
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ sheets: [{ kind: "pc", sheet, acl: { view: [], edit: [] } }] })));
+  scene.tokens = [{ id: "t-ada", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }];
+  scene.role = "PLAYER";
+  setupTokenStatus();
+  const icons = () => scene.local.filter((item) => (item.metadata[TOKEN_STATUS_META_KEY] as { tokenId?: string } | undefined)?.tokenId === "t-ada");
+  await vi.waitFor(() => expect(icons().map((item) => item.text?.plainText).filter(Boolean)).toEqual(["💀", "2", "1"]));
+  expect(icons().filter((item) => item.type === "SHAPE").map((item) => (item as { fillColor?: string }).fillColor)).toEqual(["#334155", "#22c55e", "#ef4444"]);
+});
+
+it("l'icona dell'Indebolimento ha il livello nel badge", async () => {
+  const { tokenConditionIcons } = await import("./tokenStatus");
+  expect(tokenConditionIcons(undefined, "PLAYER", [{ id: "e", name: "Indebolimento 3", active: true, modifiers: [] }, { id: "o", name: "Exhaustion", active: true, modifiers: [] }]))
+    .toEqual([{ icon: "🪫", level: 3 }, { icon: "🪫", level: 1 }]);
 });

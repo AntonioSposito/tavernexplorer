@@ -1,6 +1,6 @@
 import OBR, { buildPath, buildShape, buildText, Command, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
-import { effectEmoji } from "./conditions";
+import { effectEmoji, exhaustionLevel } from "./conditions";
 import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
 import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
@@ -13,11 +13,16 @@ import type { CharacterEffect, CharacterSheet, CloudSheet, MonsterSheet, TurnEnt
 // rounds: i turni rimasti, mostrati in un badge sull'icona.
 const MAX_ICONS = 4;
 const effectIcon = (name: string) => effectEmoji(name) ?? name.trim().slice(0, 2);
-export interface ConditionIcon { icon: string; rounds?: number }
-export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[]): ConditionIcon[] {
+// successes/failures: tiri contro la morte di un PG a 0 PF, in due badge (verde e rosso).
+export interface ConditionIcon { icon: string; rounds?: number; successes?: number; failures?: number; level?: number }
+export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[], deathSaves?: { successes: number; failures: number }): ConditionIcon[] {
   if (role !== "GM" && turn?.hidden) return [];
-  const icons = (sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn)
-    .map((effect): ConditionIcon => ({ icon: effectIcon(effect.name), ...effect.remainingRounds ? { rounds: effect.remainingRounds } : {} }));
+  const icons = [
+    // Per primo, accanto al token: non finisce mai nel "+N".
+    ...deathSaves ? [{ icon: "💀", successes: deathSaves.successes, failures: deathSaves.failures }] : [],
+    ...(sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn)
+      .map((effect): ConditionIcon => ({ icon: effectIcon(effect.name), ...effect.remainingRounds ? { rounds: effect.remainingRounds } : {}, ...exhaustionLevel(effect.name) ? { level: exhaustionLevel(effect.name) } : {} })),
+  ];
   return icons.length > MAX_ICONS ? [...icons.slice(0, MAX_ICONS - 1), { icon: `+${icons.length - MAX_ICONS + 1}` }] : icons;
 }
 
@@ -92,8 +97,18 @@ function conditionItems(tokenId: string, bounds: BoundingBox, icons: ConditionIc
   const metadata = { [TOKEN_STATUS_META_KEY]: { tokenId, sig } };
   const z = Date.now();
   const badge = size * 0.5;
-  return icons.flatMap(({ icon, rounds }, index) => {
+  return icons.flatMap(({ icon, rounds, successes, failures, level }, index) => {
     const center = { x: bounds.center.x - edge - index * (size + gap), y: bounds.center.y - edge };
+    // Badge tondo sul bordo destro dell'icona: dy +1 in basso, -1 in alto.
+    const badgeItems = (value: number, color: string, dy: 1 | -1) => [
+      buildShape().shapeType("CIRCLE").width(badge).height(badge).position({ x: center.x + size * 0.35, y: center.y + dy * size * 0.35 })
+        .fillColor(color).fillOpacity(1).strokeColor("#0f172a").strokeWidth(Math.max(1, badge * 0.08)).zIndex(z + 2)
+        .attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+      buildText().textType("PLAIN").plainText(String(value)).width(badge).height(badge)
+        .position({ x: center.x + size * 0.35 - badge / 2, y: center.y + dy * size * 0.35 - badge / 2 })
+        .textAlign("CENTER").textAlignVertical("MIDDLE").padding(0).fontSize(badge * 0.65).fontWeight(700).fillColor("#0f172a")
+        .zIndex(z + 3).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
+    ];
     return [
       buildShape().shapeType("CIRCLE").width(size).height(size).position(center).fillColor("#334155").fillOpacity(0.95)
         .strokeColor("#0f172a").strokeWidth(Math.max(1, size * 0.06)).zIndex(z)
@@ -101,15 +116,10 @@ function conditionItems(tokenId: string, bounds: BoundingBox, icons: ConditionIc
       buildText().textType("PLAIN").plainText(icon).width(size).height(size).position({ x: center.x - size / 2, y: center.y - size / 2 })
         .textAlign("CENTER").textAlignVertical("MIDDLE").padding(0).fontSize(size * 0.5).fontWeight(700).fillColor("#ffffff")
         .zIndex(z + 1).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
-      ...rounds ? [
-        buildShape().shapeType("CIRCLE").width(badge).height(badge).position({ x: center.x + size * 0.35, y: center.y + size * 0.35 })
-          .fillColor("#f59e0b").fillOpacity(1).strokeColor("#0f172a").strokeWidth(Math.max(1, badge * 0.08)).zIndex(z + 2)
-          .attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
-        buildText().textType("PLAIN").plainText(String(rounds)).width(badge).height(badge)
-          .position({ x: center.x + size * 0.35 - badge / 2, y: center.y + size * 0.35 - badge / 2 })
-          .textAlign("CENTER").textAlignVertical("MIDDLE").padding(0).fontSize(badge * 0.65).fontWeight(700).fillColor("#0f172a")
-          .zIndex(z + 3).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build(),
-      ] : [],
+      ...rounds ? badgeItems(rounds, "#f59e0b", 1) : [],
+      ...successes !== undefined ? badgeItems(successes, "#22c55e", 1) : [],
+      ...failures !== undefined ? badgeItems(failures, "#ef4444", -1) : [],
+      ...level ? badgeItems(level, "#ef4444", -1) : [],
     ];
   });
 }
@@ -175,7 +185,7 @@ async function syncTokenStatus(): Promise<void> {
   const wanted = tokens.flatMap((token) => {
     if (role !== "GM" && !token.visible) return [];
     const sheet = roomSheets.find((entry) => entry.kind === "pc" && entry.sheet.id === linkedCharacterId(token))?.sheet as CharacterSheet | undefined;
-    const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects);
+    const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects, sheet?.combat.hp.current === 0 ? sheet.combat.deathSaves : undefined);
     return icons.length ? [{ token, icons }] : [];
   });
   const cell = await OBR.scene.grid.getDpi();

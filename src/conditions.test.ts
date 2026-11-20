@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { CONCENTRATION_RULE, CONDITIONS, EFFECT_PRESETS, conditionModifiers, EXHAUSTION_LEVELS, conditionRoll, conditionRule, effectRule, exhaustionLevel, startConcentration, type D20Roll } from "./conditions";
+import { CONCENTRATION_RULE, CONDITIONS, EFFECT_PRESETS, conditionModifiers, withExhaustion, EXHAUSTION_LEVELS, conditionRoll, conditionRule, effectRule, exhaustionLevel, startConcentration, type D20Roll } from "./conditions";
 import { combineModes } from "./dice";
 import { MODIFIER_TARGETS, ROLL_MODE_TARGETS } from "./effects";
 
@@ -83,4 +83,13 @@ it("una condizione salvata dal popup senza modificatori non ha più quelli prede
   const prone = { id: "p", name: "Prono", active: true, modifiers: [] };
   expect(conditionRoll([prone], "attack", "Ascia", "1d20").mode).toEqual(["disadvantage"]);
   expect(conditionRoll([{ ...prone, edited: true as const }], "attack", "Ascia", "1d20").mode).toEqual([]);
+});
+
+it("i pallini dell'Indebolimento tengono un solo effetto acceso col livello scelto, e a 0 lo tolgono", () => {
+  const poisoned = { id: "p", name: "Avvelenato", active: true, modifiers: [] };
+  const old = { id: "x", name: "Exhaustion 1", active: false, modifiers: [] };
+  const three = withExhaustion([poisoned, old], 3);
+  expect(three.map((effect) => [effect.id, effect.name, effect.active])).toEqual([["p", "Avvelenato", true], ["x", "Indebolimento 3", true]]);
+  expect(three[1].description).toMatch(/^Indebolimento livello 3\./);
+  expect(withExhaustion(three, 0)).toEqual([poisoned]);
 });
