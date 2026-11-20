@@ -3,17 +3,36 @@ import { itemModifierList } from "./itemModifiers";
 import type { CharacterEffect, CharacterSheet, StatModifier, TurnCondition } from "./types";
 import { metersText, speedMeters } from "./speed";
 
-export const MODIFIER_TARGETS = [
-  ["ac", "Classe armatura"],
-  // CA base dell'armatura indossata: la usa solo il calcolo automatico della CA.
-  ["armor:light", "Armatura leggera (CA base)"], ["armor:medium", "Armatura media (CA base)"], ["armor:heavy", "Armatura pesante (CA base)"], ["initiative", "Iniziativa"], ["hpMax", "PF massimi"], ["speed", "Velocità (m)"],
-  ["passivePerception", "Percezione passiva"], ["spellSaveDc", "CD incantesimi"],
-  ["spellAttack", "Attacco incantesimi"], ["attack", "Tiri per colpire"], ["damage", "Danni"],
-  ...["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"].flatMap((ability) => [
-    [`ability:${ability}`, ABILITY_LABELS[ability]], [`save:${ability}`, `TS ${ABILITY_LABELS[ability]}`],
-  ]),
-  ...["acrobatics", "animal_handling", "arcana", "athletics", "deception", "history", "insight", "intimidation", "investigation", "medicine", "nature", "perception", "performance", "persuasion", "religion", "sleight_of_hand", "stealth", "survival"].map((skill) => [`skill:${skill}`, SKILL_LABELS[skill]]),
+const ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
+const SKILL_KEYS = ["acrobatics", "animal_handling", "arcana", "athletics", "deception", "history", "insight", "intimidation", "investigation", "medicine", "nature", "perception", "performance", "persuasion", "religion", "sleight_of_hand", "stealth", "survival"];
+
+type Target = [value: string, label: string];
+// Voci del menu dei modificatori per gruppo: il popup le mostra divise, le etichette usano la lista piatta.
+export const MODIFIER_GROUPS: Array<[label: string, targets: Target[]]> = [
+  ["Difesa e movimento", [
+    ["ac", "Classe armatura"],
+    // CA base dell'armatura indossata: la usa solo il calcolo automatico della CA.
+    ["armor:light", "Armatura leggera (CA base)"], ["armor:medium", "Armatura media (CA base)"], ["armor:heavy", "Armatura pesante (CA base)"],
+    ["hpMax", "PF massimi"], ["speed", "Velocità (m)"], ["initiative", "Iniziativa"],
+  ]],
+  ["Attacchi e magia", [["attack", "Tiri per colpire"], ["damage", "Danni"], ["spellAttack", "Attacco incantesimi"], ["spellSaveDc", "CD incantesimi"]]],
+  ["Caratteristiche", ABILITY_KEYS.map((ability) => [`ability:${ability}`, ABILITY_LABELS[ability]])],
+  ["Tiri salvezza", ABILITY_KEYS.map((ability) => [`save:${ability}`, `TS ${ABILITY_LABELS[ability]}`])],
+  ["Abilità", [["passivePerception", "Percezione passiva"], ...SKILL_KEYS.map((skill): Target => [`skill:${skill}`, SKILL_LABELS[skill]])]],
 ];
+export const MODIFIER_TARGETS = MODIFIER_GROUPS.flatMap(([, targets]) => targets);
+
+// Vantaggio/svantaggio degli effetti: "adv:" o "dis:" + i tiri d20 su cui vale. Li applica conditionRoll, l'ammontare non conta.
+const ROLL_SUBJECTS: Array<[label: string, targets: Target[]]> = [
+  ["generale", [["attack", "tiri per colpire"], ["initiative", "iniziativa"], ["check", "tutte le prove"], ["save", "tutti i TS"]]],
+  ["prove", ABILITY_KEYS.map((ability) => [`check:${ability}`, `prove di ${ABILITY_LABELS[ability]}`])],
+  ["tiri salvezza", ABILITY_KEYS.map((ability) => [`save:${ability}`, `TS ${ABILITY_LABELS[ability]}`])],
+  ["abilità", SKILL_KEYS.map((skill) => [`skill:${skill}`, SKILL_LABELS[skill]])],
+];
+export const ROLL_MODE_GROUPS = [["adv", "Vantaggio"], ["dis", "Svantaggio"]].flatMap(([prefix, mode]) => ROLL_SUBJECTS.map(([group, targets]): [string, Target[]] =>
+  [`${mode} · ${group}`, targets.map(([target, subject]) => [`${prefix}:${target}`, `${mode}: ${subject}`])]));
+export const ROLL_MODE_TARGETS = ROLL_MODE_GROUPS.flatMap(([, targets]) => targets);
+export const isRollModeTarget = (target: string) => target.startsWith("adv:") || target.startsWith("dis:");
 
 export const proficiencyByLevel = (level: number) => 2 + Math.floor((Math.max(1, level) - 1) / 4);
 // Fissa la scelta "per livello / valore importato" prima che il livello cambi (import, tab Modifica):
@@ -32,8 +51,6 @@ export function effectiveProficiency(sheet: CharacterSheet): number {
   const option = sheet.options?.proficiency ?? (byLevel === imported ? "level" : imported);
   return option === "level" ? byLevel : option;
 }
-
-const ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
 
 // Opzioni della tab Modifica come gruppi di modificatori con un nome (per i tooltip).
 function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: StatModifier[] }> {
@@ -168,10 +185,11 @@ export function explainValue(sheet: CharacterSheet, view: CharacterSheet, target
   return [`${label} ${format(total)}`, `Base ${format(base)}`, ...parts.map((part) => `${part.name} ${part.amount >= 0 ? "+" : ""}${part.amount}`)].join("\n");
 }
 
-const TARGET_LABELS: Record<string, string> = Object.fromEntries(MODIFIER_TARGETS);
+const TARGET_LABELS: Record<string, string> = Object.fromEntries([...MODIFIER_TARGETS, ...ROLL_MODE_TARGETS]);
 // Etichette dei modificatori mostrate sotto il nome di oggetti e tratti. La CA base di un'armatura non è un bonus: niente segno.
 export function modifierTags(modifiers: StatModifier[]): string[] {
-  return modifiers.map((mod) => {
+  return modifiers.filter((mod) => mod.target).map((mod) => {
+    if (isRollModeTarget(mod.target)) return TARGET_LABELS[mod.target] ?? mod.target;
     const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza"].filter(Boolean);
     const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
     return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras].join(" ");

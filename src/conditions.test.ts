@@ -49,3 +49,14 @@ it("la concentrazione è una sola: la nuova sostituisce la vecchia, gli altri ef
   expect(effectRule("Poisoned")).toContain("Disadvantage");
   expect(effectRule("Bless")).toBeUndefined();
 });
+
+it("i modificatori adv:/dis: degli effetti danno vantaggio e svantaggio ai tiri scelti", () => {
+  const effects = [{ id: "a", name: "Bless", active: true, modifiers: [{ id: "m", target: "adv:skill:stealth", amount: 0 }, { id: "n", target: "dis:save", amount: 0 }] }, { id: "b", name: "Faerie Fire", active: true, modifiers: [{ id: "o", target: "adv:check:dexterity", amount: 0 }] }];
+  expect(conditionRoll(effects, "check:dexterity:stealth", "Furtività", "1d20+2").mode).toEqual(["advantage"]);
+  expect(conditionRoll(effects, "check:dexterity:stealth", "Furtività", "1d20+2").title).toBe("Furtività · vantaggio (Bless, Faerie Fire)");
+  expect(conditionRoll(effects, "check:dexterity:acrobatics", "Acrobazia", "1d20").title).toBe("Acrobazia · vantaggio (Faerie Fire)");
+  expect(conditionRoll(effects, "initiative", "Iniziativa", "1d20").mode).toEqual(["advantage"]);
+  expect(conditionRoll(effects, "save:wisdom", "TS", "1d20").mode).toEqual(["disadvantage"]);
+  expect(conditionRoll(effects, "attack", "Ascia", "1d20").mode).toEqual([]);
+  expect(conditionRoll([{ ...effects[0], active: false }], "save:wisdom", "TS", "1d20").mode).toEqual([]);
+});

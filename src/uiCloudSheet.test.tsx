@@ -1200,7 +1200,7 @@ it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {
   await click("Shield");
   expect(host.querySelector<HTMLInputElement>('input[aria-label="Nome oggetto"]')!.value).toBe("Shield");
   expect(host.querySelector<HTMLSelectElement>('select[aria-label="Caratteristica modificata"]')!.value).toBe("ac");
-  expect(host.querySelector<HTMLInputElement>('input[aria-label="Valore modificatore"]')!.value).toBe("2");
+  expect(host.querySelector<HTMLInputElement>('input[aria-label="Valore modificatore"]')!.value).toBe("+2");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
   await settle(1_700);
   expect(cloudSheet().sheet.inventory).toMatchObject([{ name: "Shield", count: 1, weight: 6, modifiers: [{ target: "ac", amount: 2 }], description: "Uno scudo." }]);

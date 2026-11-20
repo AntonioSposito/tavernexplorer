@@ -37,6 +37,15 @@ export const EXHAUSTION_LEVELS = [1, 2, 3, 4, 5, 6].map((level) => `Exhaustion $
 // che è una prova di Destrezza ma ha regole sue (Incapacitated, Invisible).
 export type D20Roll = "attack" | "initiative" | `check:${string}` | `save:${string}`;
 
+// Voci dei modificatori adv:/dis: che valgono per un tiro. Le prove di abilità sono "check:<caratteristica>:<abilità>";
+// l'iniziativa è una prova di Destrezza.
+function rollTargets(roll: D20Roll): string[] {
+  if (roll === "attack") return ["attack"];
+  if (roll === "initiative") return ["initiative", "check", "check:dexterity"];
+  const [kind, ability, skill] = roll.split(":");
+  return [kind, `${kind}:${ability}`, ...skill ? [`skill:${skill}`] : []];
+}
+
 const isCheck = (roll: D20Roll) => roll === "initiative" || roll.startsWith("check:");
 const failsStrDex = (roll: D20Roll) => roll === "save:strength" || roll === "save:dexterity";
 type Rule = { advantage?: (roll: D20Roll) => boolean; disadvantage?: (roll: D20Roll) => boolean; fail?: (roll: D20Roll) => boolean };
@@ -68,7 +77,10 @@ export const exhaustionLevel = (name: string) => { const match = /^exhaustion(?:
 export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Roll, title: string, formula: string, mode?: RollMode): { title: string; formula: string; mode: RollMode[] } {
   const active = (effects ?? []).filter(isEffectOn);
   const by = (kind: keyof Rule) => active.filter((effect) => CONDITION_RULES[effect.name.trim().toLowerCase()]?.[kind]?.(roll)).map((effect) => effect.name);
-  const [fail, advantage, disadvantage] = [by("fail"), by("advantage"), by("disadvantage")];
+  const targets = rollTargets(roll);
+  const byModifier = (prefix: string) => active.filter((effect) => effect.modifiers?.some((mod) => mod.target.startsWith(prefix) && targets.includes(mod.target.slice(prefix.length)))).map((effect) => effect.name);
+  const unique = (names: string[]) => [...new Set(names)];
+  const [fail, advantage, disadvantage] = [by("fail"), unique([...by("advantage"), ...byModifier("adv:")]), unique([...by("disadvantage"), ...byModifier("dis:")])];
   const exhaustion = active.reduce((level, effect) => level + exhaustionLevel(effect.name), 0);
   const notes = [fail.length > 0 && `fallisce (${fail.join(", ")})`, advantage.length > 0 && `vantaggio (${advantage.join(", ")})`, disadvantage.length > 0 && `svantaggio (${disadvantage.join(", ")})`, exhaustion > 0 && `Exhaustion ${exhaustion} (−${2 * exhaustion})`].filter(Boolean);
   return {

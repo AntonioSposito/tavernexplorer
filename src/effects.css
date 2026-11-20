@@ -3,3 +3,5 @@
 .modifier-bonus{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}.modifier-bonus .ui-select{flex:1 1 10rem;min-width:0;width:auto}
 
 .effects-list{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.75rem}.effects-list>.effect-card{flex-basis:100%}
+/* Vantaggio/svantaggio non ha il valore: la × resta nella sua colonna. */
+.modifier-row > .ui-button { grid-column: 3; }

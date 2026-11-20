@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectiveSheet, modifierTotal } from "./effects";
+import { effectiveSheet, modifierTags, modifierTotal } from "./effects";
 import type { CharacterSheet } from "./types";
 
 const sheet = (): CharacterSheet => ({
@@ -30,4 +30,8 @@ describe("effetti di oggetti e condizioni", () => {
     expect(modifierTotal(original, "ac")).toBe(0);
     expect(effectiveSheet(original).abilities.dexterity.mod).toBe(2);
   });
+});
+
+it("i tag di vantaggio e svantaggio non hanno valore; i modificatori senza voce non compaiono", () => {
+  expect(modifierTags([{ id: "a", target: "adv:attack", amount: 1 }, { id: "b", target: "", amount: 1 }, { id: "c", target: "speed", amount: 3 }])).toEqual(["Vantaggio: tiri per colpire", "Velocità (m) +3"]);
 });

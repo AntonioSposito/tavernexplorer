@@ -24,7 +24,8 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
   const [draft, setDraft] = useState<{ effect: CharacterEffect; isNew: boolean } | null>(null);
   const save = () => {
     if (!draft) return;
-    const effect = { ...draft.effect, name: draft.effect.name.trim() || "Effetto senza nome", ...draft.isNew && round != null ? { lastTickRound: round } : {} };
+    // Un modificatore senza voce scelta non vale niente: non si salva.
+    const effect = { ...draft.effect, name: draft.effect.name.trim() || "Effetto senza nome", modifiers: draft.effect.modifiers.filter((mod) => mod.target), ...draft.isNew && round != null ? { lastTickRound: round } : {} };
     onChange((list) => draft.isNew ? [...list, effect] : list.map((item) => item.id === effect.id ? effect : item));
     setDraft(null);
   };
@@ -45,7 +46,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
       <datalist id="effect-conditions">{CONDITIONS.flatMap(({ name }) => name === "Exhaustion" ? EXHAUSTION_LEVELS : [name]).map((name) => <option key={name} value={name}/>)}<option value={CONCENTRATION}/></datalist>
       <label><span>Descrizione</span><Textarea aria-label="Descrizione effetto" value={draft.effect.description ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, description: event.target.value || undefined } })}/></label>
       <label><span>Round rimasti (vuoto = senza scadenza)</span><Input type="number" min="0" value={draft.effect.remainingRounds ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, remainingRounds: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) } })}/></label>
-      <ModifierEditor modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
+      <ModifierEditor rollModes modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
       <div className="action-form-buttons">{!draft.isNew && <Button type="button" variant="destructive" onClick={() => remove(draft.effect.id)}>Elimina</Button>}<Button type="button" variant="secondary" onClick={() => setDraft(null)}>Annulla</Button><Button type="button" onClick={save}>Salva</Button></div>
     </div>}</Dialog>
   </>;
