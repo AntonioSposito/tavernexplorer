@@ -98,6 +98,8 @@ export interface StatModifier {
   // Si sommano ad amount: modificatore della caratteristica e bonus di competenza della scheda.
   ability?: string;
   proficient?: boolean;
+  // "rage": si somma il bonus ai danni dell'Ira, che cresce col livello da barbaro.
+  scale?: "rage";
 }
 
 // Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).

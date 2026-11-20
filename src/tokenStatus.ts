@@ -1,6 +1,6 @@
 import OBR, { buildPath, buildShape, buildText, Command, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
-import { CONCENTRATION } from "./conditions";
+import { effectEmoji } from "./conditions";
 import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
 import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
@@ -11,16 +11,8 @@ import type { CharacterEffect, CharacterSheet, CloudSheet, MonsterSheet, TurnEnt
 // Icone degli effetti attivi in alto a sinistra del token: della scheda per i PG (anche fuori dai turni), del token per gli altri.
 // Le condizioni hanno un'emoji, gli altri effetti le prime due lettere; oltre MAX_ICONS l'ultima icona è "+N".
 // rounds: i turni rimasti, mostrati in un badge sull'icona.
-const CONDITION_ICONS: Record<string, string> = {
-  blinded: "🙈", charmed: "💘", deafened: "🔇", exhaustion: "😫", frightened: "😱", grappled: "🤼", incapacitated: "💫", invisible: "👻",
-  paralyzed: "⚡", petrified: "🗿", poisoned: "🤢", prone: "🛌", restrained: "⛓️", stunned: "😵", unconscious: "💤", [CONCENTRATION.toLowerCase()]: "🧠",
-};
 const MAX_ICONS = 4;
-const effectIcon = (name: string) => {
-  const key = name.trim().toLowerCase();
-  const known = Object.keys(CONDITION_ICONS).find((condition) => key === condition || key.startsWith(`${condition} `) || key.startsWith(`${condition}:`));
-  return known ? CONDITION_ICONS[known] : name.trim().slice(0, 2);
-};
+const effectIcon = (name: string) => effectEmoji(name) ?? name.trim().slice(0, 2);
 export interface ConditionIcon { icon: string; rounds?: number }
 export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[]): ConditionIcon[] {
   if (role !== "GM" && turn?.hidden) return [];

@@ -985,10 +985,10 @@ it("scegliendo una condizione il buff prende la sua regola come descrizione", as
   await click("Modifica");
   await click("Aggiungi");
   await type('input[aria-label="Nome effetto"]', "Poisoned");
-  expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Descrizione effetto"]')?.value).toContain("Disadvantage on attack rolls and ability checks");
+  expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Descrizione effetto"]')?.value).toContain("svantaggio ai tiri per colpire e alle prove di caratteristica");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Salva")!.click());
   await settle(1_700);
-  expect(cloudSheet().sheet.effects?.[0]).toMatchObject({ name: "Poisoned", description: expect.stringContaining("Disadvantage") });
+  expect(cloudSheet().sheet.effects?.[0]).toMatchObject({ name: "Poisoned", description: expect.stringContaining("svantaggio") });
 });
 
 it("strumento con caratteristica a scelta: chiede la caratteristica e poi tira", async () => {
@@ -1021,12 +1021,12 @@ it("le condizioni cambiano attacchi e TS, con il motivo nel titolo; Exhaustion t
   const last = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1).card;
   const save = (label: string) => act(async () => [...host.querySelectorAll<HTMLButtonElement>(".saves button")].find((button) => button.textContent?.includes(label))!.click());
   await save("Destrezza");
-  expect(last()).toMatchObject({ name: "TS Destrezza · svantaggio (Restrained) · Exhaustion 1 (−2)", d20: { mode: "disadvantage" } });
+  expect(last()).toMatchObject({ name: "TS Destrezza · svantaggio (Restrained) · Indebolimento 1 (−2)", d20: { mode: "disadvantage" } });
   await save("Saggezza");
-  expect(last()).toMatchObject({ name: "TS Saggezza · Exhaustion 1 (−2)", d20: { mode: "normal", formula: "1d20-2[EXH]" } });
+  expect(last()).toMatchObject({ name: "TS Saggezza · Indebolimento 1 (−2)", d20: { mode: "normal", formula: "1d20-2[EXH]" } });
   await click("Azioni");
   await act(async () => host.querySelector<HTMLButtonElement>(".entry-use")!.click());
-  expect(last()).toMatchObject({ name: "Spada · svantaggio (Poisoned, Restrained) · Exhaustion 1 (−2)", d20: { mode: "disadvantage" } });
+  expect(last()).toMatchObject({ name: "Spada · svantaggio (Poisoned, Restrained) · Indebolimento 1 (−2)", d20: { mode: "disadvantage" } });
 });
 
 it("lanciare un incantesimo di concentrazione mette l'effetto e toglie la concentrazione precedente", async () => {

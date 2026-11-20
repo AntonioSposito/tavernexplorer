@@ -35,3 +35,10 @@ describe("effetti di oggetti e condizioni", () => {
 it("i tag di vantaggio e svantaggio non hanno valore; i modificatori senza voce non compaiono", () => {
   expect(modifierTags([{ id: "a", target: "adv:attack", amount: 1 }, { id: "b", target: "", amount: 1 }, { id: "c", target: "speed", amount: 3 }])).toEqual(["Vantaggio: tiri per colpire", "Velocità (m) +3"]);
 });
+
+it("i danni dell'Ira crescono col livello da barbaro, o col livello del personaggio senza classi", () => {
+  const raging = (level: number, classes?: CharacterSheet["classes"]) => { const hero = sheet(); hero.identity.level = level; hero.classes = classes; hero.effects = [{ id: "ira", name: "Ira", active: true, modifiers: [{ id: "d", target: "damage", amount: 0, scale: "rage" }] }]; return modifierTotal(hero, "damage"); };
+  expect([raging(1), raging(9), raging(16)]).toEqual([2, 3, 4]);
+  expect(raging(12, [{ name: "Barbarian", level: 8 }, { name: "Fighter", level: 4 }])).toBe(2);
+  expect(modifierTags([{ id: "d", target: "damage", amount: 0, scale: "rage" }])).toEqual(["Danni +Ira"]);
+});
