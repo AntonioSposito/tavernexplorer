@@ -320,13 +320,14 @@ Figlio di TE-34. Sostituisce lo shortcut di `TRAIT_MODIFIERS` in `src/buildChara
 id: TE-92
 type: feature
 priority: high
-status: todo
+status: done
 order: 52
 ---
 
 Figlio di TE-34. Punto 1 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`.
 - Condizione sul modificatore (`when?: "noArmor" | "noHeavyArmor" | "noArmorNoShield" | …`), letta dove si calcolano CA, velocità, attacco e danno.
-- Casi: Unarmored Defense (Barbaro, Monaco), Draconic Resilience, Dance Bard, Fast Movement, Unarmored Movement, Roving, stili Archery, Defense, Dueling, Thrown Weapon Fighting.
+- Casi: Unarmored Defense (Barbaro, Monaco), Draconic Resilience, Dance Bard, Fast Movement, Unarmored Movement, Roving, stile Defense.
+- Condizioni sulle armi (Archery, Dueling, Thrown Weapon Fighting): spostate in TE-114, con il Guerriero (deciso il 2026-11-21).
 
 **Verifica (utente).** Monaco con Unarmored Defense: equipaggiando un'armatura la CA passa al calcolo dell'armatura; togliendola torna 10 + DES + SAG.
 
@@ -440,6 +441,25 @@ Figlio di TE-34. Sezione "Barbaro" di `docs/classificazione-privilegi-phb2024.md
 **Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Ira 2→6 usi e danni +2/+3/+4; Danger Sense e Feral Instinct come vantaggi; Primal Champion FOR e COS +4 al 20.
 
 **Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
+
+---
+id: TE-114
+type: feature
+priority: high
+status: todo
+order: 59
+---
+
+Figlio di TE-34, da fare insieme a TE-99 (Guerriero). Seguito di TE-92, che copre solo le condizioni sull'armatura.
+- Oggi il bonus ad attacco e danno è un unico numero per tutte le azioni (`attackModifier` / `damageModifier` di `EntryList`), e l'azione non sa se l'arma è a distanza, da lancio, a una o due mani.
+- Proprietà dell'arma nell'azione (dal tipo d'arma `weapon` o dai dati 5e.tools), nuove condizioni (`ranged`, `thrown`, `meleeOneHanded`) e bonus calcolato azione per azione.
+- Archery: `attack +2` solo a distanza. Dueling: `damage +2` in mischia a una mano, senza altre armi. Thrown Weapon Fighting: `damage +2` con le armi da lancio.
+
+**Verifica (utente).** Guerriero con Archery: l'arco lungo ha +2 al tiro per colpire, la spada lunga no. Con Dueling la spada lunga ha +2 ai danni, lo spadone no.
+
+**Test.** Un caso per condizione; azioni importate senza tipo d'arma: nessun bonus condizionale.
 
 ## TE-34 · Step 4: privilegi del Guerriero
 

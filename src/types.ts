@@ -91,6 +91,8 @@ export interface InventoryEntry {
   modifiers?: StatModifier[];
 }
 
+export type ModifierCondition = "armor" | "noArmor" | "noHeavyArmor" | "noArmorNoShield";
+
 export interface StatModifier {
   id: string;
   target: string;
@@ -101,6 +103,8 @@ export interface StatModifier {
   // "rage": si somma il bonus ai danni dell'Ira, che cresce col livello da barbaro.
   // "level": amount × livello del personaggio (Tough: 2 PF per livello).
   scale?: "rage" | "level";
+  // Vale solo con questo equipaggiamento (Difesa senza armatura, Movimento veloce, stile Defense…).
+  when?: ModifierCondition;
 }
 
 // Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).

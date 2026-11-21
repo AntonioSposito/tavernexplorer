@@ -52,3 +52,22 @@ it("i modificatori scale level crescono col livello del personaggio (Tough, Dwar
   expect([at(1, "initiative", alert), at(5, "initiative", alert), at(17, "initiative", alert)]).toEqual([2, 3, 6]);
   expect(modifierTags([{ id: "m", ...tough }])).toEqual(["PF massimi +2 × livello"]);
 });
+
+it("i modificatori con condizione valgono solo con l'equipaggiamento giusto (armatura, scudo)", () => {
+  const worn = (items: Array<[name: string, target: string, amount: number]>) => {
+    const hero = sheet();
+    hero.inventory = items.map(([name, target, amount], index) => ({ id: `i${index}`, name, count: 1, equipped: true, modifiers: [{ id: `m${index}`, target, amount }] }));
+    hero.traits = [
+      { id: "barbaro", name: "Unarmored Defense", description: "", modifiers: [{ id: "con", target: "ac", amount: 3, when: "noArmor" }] },
+      { id: "monaco", name: "Unarmored Movement", description: "", modifiers: [{ id: "mov", target: "speed", amount: 3, when: "noArmorNoShield" }] },
+      { id: "fast", name: "Fast Movement", description: "", modifiers: [{ id: "fast", target: "speed", amount: 3, when: "noHeavyArmor" }] },
+      { id: "defense", name: "Defense", description: "", modifiers: [{ id: "def", target: "initiative", amount: 1, when: "armor" }] },
+    ];
+    return { unarmored: modifierTotal(hero, "ac") - items.filter(([, target]) => target === "ac").reduce((sum, [, , amount]) => sum + amount, 0), speed: modifierTotal(hero, "speed"), armor: modifierTotal(hero, "initiative") };
+  };
+  expect(worn([])).toEqual({ unarmored: 3, speed: 6, armor: 0 });
+  expect(worn([["Shield", "ac", 2]])).toEqual({ unarmored: 3, speed: 3, armor: 0 });
+  expect(worn([["Scale Mail", "armor:medium", 14]])).toEqual({ unarmored: 0, speed: 3, armor: 1 });
+  expect(worn([["Plate Armor", "armor:heavy", 18]])).toEqual({ unarmored: 0, speed: 0, armor: 1 });
+  expect(modifierTags([{ id: "c", target: "ac", amount: 0, ability: "constitution", when: "noArmor" }])).toEqual(["Classe armatura +Costituzione (senza armatura)"]);
+});

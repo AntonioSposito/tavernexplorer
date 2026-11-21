@@ -1,6 +1,6 @@
 import { ABILITY_LABELS, SKILL_LABELS } from "./constants";
 import { itemModifierList } from "./itemModifiers";
-import type { CharacterEffect, CharacterSheet, StatModifier, TurnCondition } from "./types";
+import type { CharacterEffect, CharacterSheet, ModifierCondition, StatModifier, TurnCondition } from "./types";
 import { metersText, speedMeters } from "./speed";
 
 const ABILITY_KEYS = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
@@ -68,7 +68,23 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
 // Valori numerici dei modificatori con caratteristica e competenza.
 // shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
 function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
-  return modifiers.map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
+  return modifiers.filter((modifier) => conditionMet(sheet, modifier.when)).map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
+}
+
+export const MODIFIER_CONDITIONS: Array<[value: ModifierCondition, label: string]> = [
+  ["armor", "con armatura"], ["noArmor", "senza armatura"], ["noHeavyArmor", "senza armatura pesante"], ["noArmorNoShield", "senza armatura né scudo"],
+];
+
+// Armatura e scudo indossati, per le condizioni dei modificatori.
+// shortcut: lo scudo si riconosce dal nome (Shield / Scudo), perché il form oggetto non ne salva il tipo; se serve, aggiungere il tipo all'oggetto.
+function conditionMet(sheet: CharacterSheet, when: ModifierCondition | undefined): boolean {
+  if (!when) return true;
+  const items = equippedItems(sheet);
+  const armor = items.flatMap((item) => itemModifierList(item)).filter((mod) => mod.target.startsWith("armor:")).map((mod) => mod.target.slice(6));
+  const shield = items.some((item) => /\b(shield|scudo)\b/i.test(item.name));
+  if (when === "armor") return armor.length > 0;
+  if (when === "noHeavyArmor") return !armor.includes("heavy");
+  return armor.length === 0 && (when === "noArmor" || !shield);
 }
 
 // Danni dell'Ira (2024): +2, +3 dal 9° livello da barbaro, +4 dal 16°. Senza classi salvate vale il livello del personaggio.
@@ -198,7 +214,8 @@ export function modifierTags(modifiers: StatModifier[]): string[] {
     if (isRollModeTarget(mod.target)) return TARGET_LABELS[mod.target] ?? mod.target;
     const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira", mod.scale === "level" && "× livello"].filter(Boolean);
     const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
-    return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras].join(" ");
+    const when = MODIFIER_CONDITIONS.find(([key]) => key === mod.when)?.[1];
+    return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras, ...when ? [`(${when})`] : []].join(" ");
   });
 }
 
