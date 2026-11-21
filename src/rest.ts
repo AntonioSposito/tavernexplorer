@@ -10,15 +10,15 @@ export interface RestResult { sheet: CharacterSheet; healed: number; spentDice: 
 export function restoreCounters(counters: ResourceCounter[], kind: RestKind): { counters: ResourceCounter[]; restored: string[] } {
   const restored: string[] = [];
   return { counters: counters.map((counter) => {
-    const shouldRestore = counter.recovery === "short" || kind === "long" && counter.recovery === "long";
+    const shouldRestore = counter.recovery === "short" || counter.recovery === "shortOne" || kind === "long" && counter.recovery === "long";
     if (!shouldRestore || counter.current >= counter.max) return counter;
     restored.push(counter.name);
-    return { ...counter, current: counter.max };
+    return { ...counter, current: counter.recovery === "shortOne" && kind === "short" ? counter.current + 1 : counter.max };
   }), restored };
 }
 
 export function isCounterRecovery(value: string): value is CounterRecovery {
-  return value === "none" || value === "short" || value === "long";
+  return value === "none" || value === "short" || value === "shortOne" || value === "long";
 }
 
 export function takeShortRest(sheet: CharacterSheet, diceToSpend: number, rollDie: (faces: number) => number = (faces) => roll(`1d${faces}`).total): RestResult {

@@ -123,7 +123,8 @@ export interface CharacterEffect {
   edited?: true;
 }
 
-export type CounterRecovery = "none" | "short" | "long";
+// "shortOne": 1 uso al riposo breve, tutti al lungo (Ira, Incanalare divinità, Forma selvatica…).
+export type CounterRecovery = "none" | "short" | "shortOne" | "long";
 export interface ResourceCounter {
   id: string;
   name: string;

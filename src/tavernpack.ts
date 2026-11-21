@@ -1,4 +1,5 @@
 import { DEFAULT_RULESET } from "./rulesets";
+import { isCounterRecovery } from "./rest";
 import type { CharacterSheet, ChatMessage, MonsterSheet, SharedInventoryItem, TavernPack, TurnState } from "./types";
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -14,7 +15,7 @@ function validateCounter(value: unknown): boolean {
   return !!counter && typeof counter.id === "string" && typeof counter.name === "string"
     && typeof counter.current === "number" && Number.isInteger(counter.current) && counter.current >= 0
     && typeof counter.max === "number" && Number.isInteger(counter.max) && counter.max >= 1 && counter.current <= counter.max
-    && (counter.recovery === "none" || counter.recovery === "short" || counter.recovery === "long")
+    && typeof counter.recovery === "string" && isCounterRecovery(counter.recovery)
     && (counter.itemId === undefined || typeof counter.itemId === "string") && (counter.traitId === undefined || typeof counter.traitId === "string");
 }
 

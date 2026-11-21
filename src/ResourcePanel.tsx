@@ -6,7 +6,7 @@ import { isCounterRecovery, takeLongRest, takeShortRest, type RestKind } from ".
 import type { CharacterSheet, CounterRecovery, ResourceCounter } from "./types";
 import { Button, Card, Dialog, Input, Select } from "./ui";
 
-const RECOVERY_LABELS: Record<CounterRecovery, string> = { none: "Nessun recupero", short: "Riposo breve", long: "Riposo lungo" };
+const RECOVERY_LABELS: Record<CounterRecovery, string> = { none: "Nessun recupero", short: "Riposo breve", shortOne: "1 al riposo breve, tutti al lungo", long: "Riposo lungo" };
 
 type Update = (update: (sheet: CharacterSheet) => CharacterSheet) => void;
 
@@ -42,7 +42,7 @@ function ResourceForm({ sheet, counter, isNew, onUpdate, onClose, onDelete }: { 
   };
   return <form className="action-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
     <label><span>Nome</span><Input aria-label="Nome risorsa" value={name} autoFocus onChange={(event) => setName(event.target.value)} placeholder="Ki, Ira, Ispirazione bardica…"/></label>
-    <div className="action-form-row"><label><span>Massimo</span><Input aria-label="Massimo risorsa" type="number" min="1" value={maximum} onChange={(event) => setMaximum(Number(event.target.value))}/></label><label><span>Recupero</span><Select aria-label="Recupero risorsa" value={recovery} onChange={(event) => { if (isCounterRecovery(event.target.value)) setRecovery(event.target.value); }}><option value="none">Nessuno</option><option value="short">Riposo breve</option><option value="long">Riposo lungo</option></Select></label></div>
+    <div className="action-form-row"><label><span>Massimo</span><Input aria-label="Massimo risorsa" type="number" min="1" value={maximum} onChange={(event) => setMaximum(Number(event.target.value))}/></label><label><span>Recupero</span><Select aria-label="Recupero risorsa" value={recovery} onChange={(event) => { if (isCounterRecovery(event.target.value)) setRecovery(event.target.value); }}><option value="none">Nessuno</option><option value="short">Riposo breve</option><option value="shortOne">1 al riposo breve, tutti al lungo</option><option value="long">Riposo lungo</option></Select></label></div>
     {item && <p className="entry-meta">Collegata allo zaino: il valore attuale è la quantità di {item.name}.</p>}
     {sheet.actions.length > 0 && <fieldset><legend>Azioni che la consumano (1 per uso)</legend>{sheet.actions.map((action) => { const other = action.resourceId && action.resourceId !== counter.id ? sheet.counters?.find((entry) => entry.id === action.resourceId) : undefined; return <label key={action.id} className="action-form-check"><input type="checkbox" checked={actionIds.includes(action.id)} onChange={(event) => setActionIds(event.target.checked ? [...actionIds, action.id] : actionIds.filter((id) => id !== action.id))}/> {action.name}{other && <small> (ora consuma {other.name})</small>}</label>; })}</fieldset>}
     <div className="action-form-buttons">{onDelete && <Button type="button" variant="destructive" onClick={onDelete}>Elimina</Button>}<Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="submit" disabled={!name.trim()}>{isNew ? "Aggiungi" : "Salva"}</Button></div>

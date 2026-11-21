@@ -13,6 +13,7 @@ const hero = () => {
     { id: "short", name: "Ki", current: 0, max: 3, recovery: "short" },
     { id: "long", name: "Ispirazione", current: 0, max: 1, recovery: "long" },
     { id: "none", name: "Ferite", current: 1, max: 3, recovery: "none" },
+    { id: "rage", name: "Ira", current: 0, max: 3, recovery: "shortOne" },
   ];
   return sheet;
 };
@@ -23,7 +24,7 @@ describe("riposi e risorse", () => {
     const result = takeShortRest(original, 1, () => 5);
     expect(result.sheet.combat.hp.current).toBe(12);
     expect(result.sheet.combat.hitDice.current).toBe(1);
-    expect(result.sheet.counters?.map((counter) => counter.current)).toEqual([3, 0, 1]);
+    expect(result.sheet.counters?.map((counter) => counter.current)).toEqual([3, 0, 1, 1]);
     expect(original.combat.hp.current).toBe(5);
   });
 
@@ -32,7 +33,17 @@ describe("riposi e risorse", () => {
     expect(result.sheet.combat.hp).toMatchObject({ current: 20, temp: 0 });
     expect(result.sheet.combat.hitDice.current).toBe(4);
     expect(result.sheet.spellcasting.slots.level_1.used).toBe(0);
-    expect(result.sheet.counters?.map((counter) => counter.current)).toEqual([3, 1, 1]);
+    expect(result.sheet.counters?.map((counter) => counter.current)).toEqual([3, 1, 1, 3]);
+  });
+
+  it("1 al riposo breve, tutti al lungo: un uso per ogni riposo breve, senza superare il massimo", () => {
+    const rage = (sheet: ReturnType<typeof hero>) => sheet.counters?.find((counter) => counter.id === "rage")?.current;
+    let sheet = takeShortRest(hero(), 0).sheet;
+    sheet = takeShortRest(sheet, 0).sheet;
+    expect(rage(sheet)).toBe(2);
+    sheet = takeShortRest(takeShortRest(sheet, 0).sheet, 0).sheet;
+    expect(rage(sheet)).toBe(3);
+    expect(takeShortRest(hero(), 0).restoredCounters).toContain("Ira");
   });
 
   it("recupera gli slot sul riposo breve solo se la scheda lo prevede", () => {
