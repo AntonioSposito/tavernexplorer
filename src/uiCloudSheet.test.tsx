@@ -955,6 +955,41 @@ it("crea, modifica ed elimina competenze e strumenti dalla tab Base", async () =
   expect(saved.tools).toHaveLength(1);
 });
 
+it("crea, modifica ed elimina resistenze e sensi dalla tab Base, con la distanza solo per sensi e velocità", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const select = async (label: string, value: string) => {
+    const element = host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+    await act(async () => { element.value = value; element.dispatchEvent(new Event("change", { bubbles: true })); });
+  };
+  expect(host.textContent).toContain("Nessuna resistenza, immunità o senso speciale.");
+
+  await click("+ Nuova difesa o senso");
+  await type('input[aria-label="Nome difesa"]', "Veleno");
+  expect(host.querySelector('input[aria-label="Distanza difesa"]')).toBeNull();
+  await click("Salva");
+  await click("+ Nuova difesa o senso");
+  await type('input[aria-label="Nome difesa"]', "Scurovisione");
+  await select("Tipo difesa", "SENSE");
+  await type('input[aria-label="Distanza difesa"]', "18");
+  await click("Salva");
+  await settle(1_700);
+
+  let saved = cloudSheet().sheet;
+  expect(saved.defenses).toMatchObject([{ name: "Veleno", type: "RESISTANCE" }, { name: "Scurovisione", type: "SENSE", meters: 18 }]);
+  expect(saved.defenses[0].meters).toBeUndefined();
+  expect(host.textContent).toContain("Scurovisione 18 m");
+  expect(host.querySelector('[aria-label="Mostra in chat Veleno"]')).not.toBeNull();
+
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Veleno"]')!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Elimina")!.click());
+  await settle(1_700);
+  saved = cloudSheet().sheet;
+  expect(saved.defenses.map((entry: { name: string }) => entry.name)).toEqual(["Scurovisione"]);
+});
+
 it("crea e modifica un buff nel popup, senza salvare se si annulla", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });

@@ -14,6 +14,7 @@ it("riconosce lo stesso personaggio Roll20 e conserva lo stato di gioco", () => 
   existing.combat.acBase = 13;
   existing.spellcasting.slots = { level_1: { total: 4, used: 3 } };
   existing.counters = [{ id: "c", name: "Ki", current: 1, max: 3, recovery: "short" }];
+  existing.defenses = [{ id: "d", name: "Scurovisione", type: "SENSE", meters: 18 }];
   const imported = roll20(22);
   imported.spellcasting.slots = { level_1: { total: 2, used: 0 }, level_2: { total: 2, used: 0 } };
 
@@ -29,4 +30,5 @@ it("riconosce lo stesso personaggio Roll20 e conserva lo stato di gioco", () => 
   expect(merged.combat).toMatchObject({ acMode: "manual", acBase: 13 });
   expect(merged.spellcasting.slots).toEqual({ level_1: { total: 2, used: 2 }, level_2: { total: 2, used: 0 } });
   expect(merged.counters).toEqual(existing.counters);
+  expect(merged.defenses).toEqual(existing.defenses);
 });

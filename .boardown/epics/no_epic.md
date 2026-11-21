@@ -339,7 +339,7 @@ Figlio di TE-34. Punto 1 di "Cosa manca nel modello" in `docs/classificazione-pr
 id: TE-93
 type: feature
 priority: high
-status: todo
+status: done
 order: 53
 ---
 
@@ -419,6 +419,7 @@ Figlio di TE-34. Sezione "Comuni a tutte le classi" di `docs/classificazione-pri
 - Funzione pura `applyLevel(sheet, classe, livello, scelte)`: ogni voce creata porta l'id del privilegio d'origine, così il livello dopo la aggiorna invece di duplicarla e non tocca ciò che l'utente ha modificato.
 - Popup "Sali di livello" (solo chi può modificare la scheda): classe (anche nuova, con i requisiti di TE-84), PF (media o tiro + COS), dado vita, PB, slot, sottoclasse al 3, ASI o talento, riepilogo, conferma. Messaggio in chat "X sale al livello N".
 - Sostituisce TE-72, TE-77, TE-83 (popup vecchio, tolto con il revert).
+- `DefenseEntry.traitId`, come le risorse: le difese create da un privilegio si aggiornano senza duplicarsi e spariscono col tratto; quelle scritte a mano non si toccano (deciso il 2026-11-21, da TE-93).
 
 **Verifica (utente).** Guerriero 1 → 4: PF, dadi vita, PB, sottoclasse al 3 e ASI al 4 corretti; il riepilogo mostra cosa cambia prima di confermare.
 
@@ -434,7 +435,7 @@ status: todo
 order: 58
 ---
 
-Figlio di TE-34. Sezione "Barbaro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Path of the Berserker, Wild Heart, World Tree, Zealot: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless Rage): compaiono in "Difese e sensi" solo con l'effetto acceso (da TE-93). Sezione "Barbaro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Path of the Berserker, Wild Heart, World Tree, Zealot: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Barbaro in `src/devSheets.ts` (vedi TE-82).
 - Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
 

@@ -202,6 +202,7 @@ export interface CharacterSheet {
   // Assenti nelle schede importate prima di questo campo.
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
+  defenses?: DefenseEntry[];
   classes?: CharacterClass[];
   // Opzioni della tab Modifica, come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
   options?: SheetOptions;
@@ -210,6 +211,15 @@ export interface CharacterSheet {
   currency: Record<string, number>;
   biography: string;
   importWarnings: string[];
+}
+
+// Resistenze, immunità, sensi e velocità speciali del PG. meters solo per sensi e velocità.
+export type DefenseType = "RESISTANCE" | "IMMUNITY" | "VULNERABILITY" | "CONDITION" | "SENSE" | "SPEED";
+export interface DefenseEntry {
+  id: string;
+  name: string;
+  type: DefenseType;
+  meters?: number;
 }
 
 export interface ProficiencyEntry {
