@@ -94,8 +94,9 @@ export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Rol
   const fail = roll === "save:strength" || roll === "save:dexterity" ? active.filter((effect) => FAILS_STR_DEX.includes(conditionKey(effect.name) ?? "")).map((effect) => effect.name) : [];
   const [advantage, disadvantage] = [by("adv:"), by("dis:")];
   const exhaustion = active.reduce((level, effect) => level + exhaustionLevel(effect.name), 0);
-  // Vantaggio contro una condizione (Dwarf, Elf, Halfling…): il tiro non sa contro cosa è, quindi è solo un promemoria nel titolo.
-  const against = (prefix: string) => roll.startsWith("save:") ? active.flatMap((effect) => modifiersOf(effect).filter((mod) => mod.target.startsWith(`${prefix}against:`)).map((mod) => `${findCondition(mod.target.slice(prefix.length + 8))?.name ?? mod.target.slice(prefix.length + 8)} (${effect.name})`)) : [];
+  // Vantaggio contro una condizione (Dwarf, Elf, Halfling…): il tiro non sa contro cosa è, quindi è solo un promemoria nel titolo,
+  // e solo sui TS di caratteristica: TS contro la morte e concentrazione non sono contro una condizione.
+  const against = (prefix: string) => roll.startsWith("save:") && roll !== "save:death" && roll !== "save:concentration" ? active.flatMap((effect) => modifiersOf(effect).filter((mod) => mod.target.startsWith(`${prefix}against:`)).map((mod) => `${findCondition(mod.target.slice(prefix.length + 8))?.name ?? mod.target.slice(prefix.length + 8)} (${effect.name})`)) : [];
   const [advantageIf, disadvantageIf] = [against("adv:"), against("dis:")];
   const notes = [fail.length > 0 && `fallisce (${fail.join(", ")})`, advantage.length > 0 && `vantaggio (${advantage.join(", ")})`, disadvantage.length > 0 && `svantaggio (${disadvantage.join(", ")})`,
     advantageIf.length > 0 && `vantaggio se contro ${advantageIf.join(", ")}`, disadvantageIf.length > 0 && `svantaggio se contro ${disadvantageIf.join(", ")}`, exhaustion > 0 && `Indebolimento ${exhaustion} (−${2 * exhaustion})`].filter(Boolean);

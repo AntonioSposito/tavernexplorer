@@ -114,6 +114,8 @@ it("il vantaggio contro una condizione è solo un promemoria nel titolo dei TS",
   const dwarf = rollSources({ traits: [{ id: "dw", name: "Dwarven Resilience", modifiers: [{ id: "p", target: "adv:against:poisoned", amount: 0 }] }] });
   expect(conditionRoll(dwarf, "save:constitution", "TS Costituzione", "1d20+2")).toEqual({ title: "TS Costituzione · vantaggio se contro Avvelenato (Dwarven Resilience)", formula: "1d20+2", mode: [] });
   expect(conditionRoll(dwarf, "check:strength", "Prova", "1d20").title).toBe("Prova");
+  expect(conditionRoll(dwarf, "save:death", "TS contro la morte", "1d20").title).toBe("TS contro la morte");
+  expect(conditionRoll(dwarf, "save:concentration", "TS concentrazione", "1d20").title).toBe("TS concentrazione");
   expect(ROLL_MODE_TARGETS.map(([target]) => target)).toEqual(expect.arrayContaining(["adv:save:death", "adv:save:concentration", "adv:against:poisoned", "dis:against:charmed"]));
   expect(ROLL_MODE_TARGETS.some(([target]) => target === "adv:against:exhaustion")).toBe(false);
 });
