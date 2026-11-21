@@ -1,5 +1,7 @@
-import { isEffectOn } from "./effects";
 import type { CharacterEffect, RollMode, StatModifier, TurnCondition } from "./types";
+
+// Conta solo se acceso e non scaduto, come nel calcolo dei modificatori.
+export const isEffectOn = (effect: TurnCondition) => effect.active !== false && (effect.remainingRounds === undefined || effect.remainingRounds > 0);
 
 // Condizioni (regole 2024): nome italiano (quello che si salva), nome inglese, emoji e regola tradotta dall'SRD 5.2.1 (CC BY 4.0).
 // Si riconoscono da entrambi i nomi: gli effetti salvati prima in inglese continuano a valere.
@@ -49,6 +51,8 @@ export type D20Roll = "attack" | "initiative" | `check:${string}` | `save:${stri
 function rollTargets(roll: D20Roll): string[] {
   if (roll === "attack") return ["attack"];
   if (roll === "initiative") return ["initiative", "check", "check:dexterity"];
+  // La concentrazione è un TS di Costituzione con regole sue (War Caster); il TS contro la morte non ha caratteristica.
+  if (roll === "save:concentration") return ["save", "save:constitution", "save:concentration"];
   const [kind, ability, skill] = roll.split(":");
   return [kind, `${kind}:${ability}`, ...skill ? [`skill:${skill}`] : []];
 }
@@ -90,7 +94,11 @@ export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Rol
   const fail = roll === "save:strength" || roll === "save:dexterity" ? active.filter((effect) => FAILS_STR_DEX.includes(conditionKey(effect.name) ?? "")).map((effect) => effect.name) : [];
   const [advantage, disadvantage] = [by("adv:"), by("dis:")];
   const exhaustion = active.reduce((level, effect) => level + exhaustionLevel(effect.name), 0);
-  const notes = [fail.length > 0 && `fallisce (${fail.join(", ")})`, advantage.length > 0 && `vantaggio (${advantage.join(", ")})`, disadvantage.length > 0 && `svantaggio (${disadvantage.join(", ")})`, exhaustion > 0 && `Indebolimento ${exhaustion} (−${2 * exhaustion})`].filter(Boolean);
+  // Vantaggio contro una condizione (Dwarf, Elf, Halfling…): il tiro non sa contro cosa è, quindi è solo un promemoria nel titolo.
+  const against = (prefix: string) => roll.startsWith("save:") ? active.flatMap((effect) => modifiersOf(effect).filter((mod) => mod.target.startsWith(`${prefix}against:`)).map((mod) => `${findCondition(mod.target.slice(prefix.length + 8))?.name ?? mod.target.slice(prefix.length + 8)} (${effect.name})`)) : [];
+  const [advantageIf, disadvantageIf] = [against("adv:"), against("dis:")];
+  const notes = [fail.length > 0 && `fallisce (${fail.join(", ")})`, advantage.length > 0 && `vantaggio (${advantage.join(", ")})`, disadvantage.length > 0 && `svantaggio (${disadvantage.join(", ")})`,
+    advantageIf.length > 0 && `vantaggio se contro ${advantageIf.join(", ")}`, disadvantageIf.length > 0 && `svantaggio se contro ${disadvantageIf.join(", ")}`, exhaustion > 0 && `Indebolimento ${exhaustion} (−${2 * exhaustion})`].filter(Boolean);
   return {
     title: [title, ...notes].join(" · "),
     formula: exhaustion > 0 ? `${formula}-${2 * exhaustion}[EXH]` : formula,
@@ -98,10 +106,16 @@ export function conditionRoll(effects: TurnCondition[] | undefined, roll: D20Rol
   };
 }
 
+// Fonti di vantaggio e svantaggio di un PG: gli effetti accesi e i tratti, che sono sempre attivi (Gnomish Cunning, Durable…).
+export function rollSources(sheet: { effects?: CharacterEffect[]; traits?: Array<{ id: string; name: string; modifiers?: StatModifier[] }> } | undefined): TurnCondition[] {
+  const traits = (sheet?.traits ?? []).filter((trait) => trait.modifiers?.some((mod) => mod.target.startsWith("adv:") || mod.target.startsWith("dis:")));
+  return [...sheet?.effects ?? [], ...traits.map((trait): CharacterEffect => ({ id: trait.id, name: trait.name, active: true, edited: true, modifiers: trait.modifiers ?? [] }))];
+}
+
 // Concentrazione: un effetto come gli altri, col nome dell'incantesimo ("Concentrazione: Bless"); se ne ha una sola alla volta.
 export const CONCENTRATION = "Concentrazione";
 export const CONCENTRATION_RULE = "Un'altra concentrazione. Perdi la concentrazione appena lanci un altro incantesimo o attivi un altro effetto che la richiede.\nIncapacitato o morto. La concentrazione finisce se hai la condizione Incapacitato o muori.\nDanni. Se subisci danni devi superare un TS di Costituzione per mantenere la concentrazione. La CD è 10 o metà dei danni subiti (per difetto), se più alta, fino a un massimo di 30.";
-const isConcentration = (name: string) => /^(concentrazione|concentration)/i.test(name.trim());
+export const isConcentration = (name: string) => /^(concentrazione|concentration)/i.test(name.trim());
 
 // Effetti pronti (privilegi e incantesimi comuni): scelti dal nome, riempiono descrizione, modificatori e round.
 // Descrizioni riassunte a parole nostre. I dadi bonus (1d4, 1d6) non sono modificatori: restano nella descrizione.

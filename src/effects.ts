@@ -1,3 +1,4 @@
+import { CONDITIONS, isEffectOn } from "./conditions";
 import { ABILITY_LABELS, SKILL_LABELS } from "./constants";
 import { itemModifierList } from "./itemModifiers";
 import type { CharacterEffect, CharacterSheet, ModifierCondition, StatModifier, TurnCondition } from "./types";
@@ -26,7 +27,9 @@ export const MODIFIER_TARGETS = MODIFIER_GROUPS.flatMap(([, targets]) => targets
 const ROLL_SUBJECTS: Array<[label: string, targets: Target[]]> = [
   ["generale", [["attack", "tiri per colpire"], ["initiative", "iniziativa"], ["check", "tutte le prove"], ["save", "tutti i TS"]]],
   ["prove", ABILITY_KEYS.map((ability) => [`check:${ability}`, `prove di ${ABILITY_LABELS[ability]}`])],
-  ["tiri salvezza", ABILITY_KEYS.map((ability) => [`save:${ability}`, `TS ${ABILITY_LABELS[ability]}`])],
+  ["tiri salvezza", [...ABILITY_KEYS.map((ability): Target => [`save:${ability}`, `TS ${ABILITY_LABELS[ability]}`]), ["save:death", "TS contro la morte"], ["save:concentration", "TS di concentrazione"]]],
+  // Solo un promemoria nel titolo dei TS: il tiro non sa contro quale condizione è.
+  ["TS contro una condizione", CONDITIONS.filter((condition) => condition.en !== "Exhaustion").map((condition): Target => [`against:${condition.en.toLowerCase()}`, `TS contro ${condition.name}`])],
   ["abilità", SKILL_KEYS.map((skill) => [`skill:${skill}`, SKILL_LABELS[skill]])],
 ];
 export const ROLL_MODE_GROUPS = [["adv", "Vantaggio"], ["dis", "Svantaggio"]].flatMap(([prefix, mode]) => ROLL_SUBJECTS.map(([group, targets]): [string, Target[]] =>
@@ -262,8 +265,8 @@ export function effectiveSheet(sheet: CharacterSheet): CharacterSheet {
 
 // Condizione salvata prima dell'effetto unico (solo nome e durata): attiva e senza modificatori.
 export const asEffect = (condition: TurnCondition): CharacterEffect => ({ active: true, modifiers: [], ...condition });
-// Conta solo se acceso e non scaduto, come nel calcolo dei modificatori.
-export const isEffectOn = (effect: TurnCondition) => effect.active !== false && (effect.remainingRounds === undefined || effect.remainingRounds > 0);
+// In conditions.ts, che effects importa (elenco delle condizioni): così non c'è un import circolare.
+export { isEffectOn } from "./conditions";
 export const effectLabel = (effect: TurnCondition) => effect.remainingRounds != null ? `${effect.name} (${effect.remainingRounds})` : effect.name;
 // Somma dei modificatori degli effetti accesi di un token di mostro o NPC, che non ha una scheda PG (es. la CA).
 export const effectsTotal = (effects: TurnCondition[] | undefined, target: string) => (effects ?? []).filter(isEffectOn).flatMap((effect) => effect.modifiers ?? []).filter((modifier) => modifier.target === target).reduce((sum, modifier) => sum + modifier.amount, 0);

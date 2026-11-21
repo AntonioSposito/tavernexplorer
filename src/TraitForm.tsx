@@ -30,7 +30,7 @@ export function TraitForm({ trait, onSave, onCancel, onDelete }: { trait: TraitE
       <label><span>Source</span><Select aria-label="Source tratto" value={draft.sourceKind ?? ""} onChange={(event) => setDraft({ ...draft, sourceKind: (event.target.value || undefined) as TraitSource | undefined })}><option value="">Choose...</option>{SOURCES.map((source) => <option key={source} value={source}>{source}</option>)}</Select></label>
       <label><span>Source type</span><Input aria-label="Source type tratto" value={draft.sourceType ?? ""} placeholder="background, Wizard 2…" onChange={(event) => setDraft({ ...draft, sourceType: event.target.value })}/></label>
     </div>
-    <div className="item-modifiers"><span>Modificatori (sempre attivi)</span><ModifierEditor modifiers={draft.modifiers ?? []} onChange={(modifiers) => setDraft({ ...draft, modifiers })}/></div>
+    <div className="item-modifiers"><span>Modificatori (sempre attivi)</span><ModifierEditor rollModes modifiers={draft.modifiers ?? []} onChange={(modifiers) => setDraft({ ...draft, modifiers })}/></div>
     <label><span>Descrizione</span><Textarea aria-label="Descrizione tratto" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })}/></label>
     <div className="action-form-buttons">{onDelete && <Button type="button" variant="destructive" onClick={onDelete}>Elimina</Button>}<Button type="button" variant="secondary" onClick={onCancel}>Annulla</Button><Button type="submit" disabled={!draft.name.trim()}>Salva</Button></div>
   </form>;

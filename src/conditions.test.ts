@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { CONCENTRATION_RULE, CONDITIONS, EFFECT_PRESETS, conditionModifiers, withExhaustion, EXHAUSTION_LEVELS, conditionRoll, conditionRule, effectRule, exhaustionLevel, startConcentration, type D20Roll } from "./conditions";
+import { CONCENTRATION_RULE, CONDITIONS, EFFECT_PRESETS, conditionModifiers, withExhaustion, EXHAUSTION_LEVELS, conditionRoll, conditionRule, effectRule, rollSources, exhaustionLevel, startConcentration, type D20Roll } from "./conditions";
 import { combineModes } from "./dice";
 import { MODIFIER_TARGETS, ROLL_MODE_TARGETS } from "./effects";
 
@@ -92,4 +92,28 @@ it("i pallini dell'Indebolimento tengono un solo effetto acceso col livello scel
   expect(three.map((effect) => [effect.id, effect.name, effect.active])).toEqual([["p", "Avvelenato", true], ["x", "Indebolimento 3", true]]);
   expect(three[1].description).toMatch(/^Indebolimento livello 3\./);
   expect(withExhaustion(three, 0)).toEqual([poisoned]);
+});
+
+it("i tratti danno vantaggio ai tiri come gli effetti: TS contro la morte, concentrazione, TS di caratteristica", () => {
+  const sheet = { effects: [], traits: [
+    { id: "durable", name: "Durable", modifiers: [{ id: "a", target: "adv:save:death", amount: 0 }] },
+    { id: "war", name: "War Caster", modifiers: [{ id: "b", target: "adv:save:concentration", amount: 0 }] },
+    { id: "gnome", name: "Gnomish Cunning", modifiers: [{ id: "c", target: "adv:save:wisdom", amount: 0 }] },
+    { id: "tough", name: "Tough", modifiers: [{ id: "d", target: "hpMax", amount: 2 }] },
+  ] };
+  expect(rollSources(sheet).map((source) => source.name)).toEqual(["Durable", "War Caster", "Gnomish Cunning"]);
+  expect(conditionRoll(rollSources(sheet), "save:death", "TS contro la morte", "1d20")).toMatchObject({ title: "TS contro la morte · vantaggio (Durable)", mode: ["advantage"] });
+  expect(conditionRoll(rollSources(sheet), "save:concentration", "TS concentrazione", "1d20").mode).toEqual(["advantage"]);
+  expect(conditionRoll(rollSources(sheet), "save:constitution", "TS Costituzione", "1d20").mode).toEqual([]);
+  expect(conditionRoll(rollSources(sheet), "save:wisdom", "TS Saggezza", "1d20").mode).toEqual(["advantage"]);
+  // Un vantaggio a tutti i TS di Costituzione vale anche per la concentrazione.
+  expect(conditionRoll([{ id: "e", name: "Bear", modifiers: [{ id: "f", target: "adv:save:constitution", amount: 0 }] }], "save:concentration", "T", "1d20").mode).toEqual(["advantage"]);
+});
+
+it("il vantaggio contro una condizione è solo un promemoria nel titolo dei TS", () => {
+  const dwarf = rollSources({ traits: [{ id: "dw", name: "Dwarven Resilience", modifiers: [{ id: "p", target: "adv:against:poisoned", amount: 0 }] }] });
+  expect(conditionRoll(dwarf, "save:constitution", "TS Costituzione", "1d20+2")).toEqual({ title: "TS Costituzione · vantaggio se contro Avvelenato (Dwarven Resilience)", formula: "1d20+2", mode: [] });
+  expect(conditionRoll(dwarf, "check:strength", "Prova", "1d20").title).toBe("Prova");
+  expect(ROLL_MODE_TARGETS.map(([target]) => target)).toEqual(expect.arrayContaining(["adv:save:death", "adv:save:concentration", "adv:against:poisoned", "dis:against:charmed"]));
+  expect(ROLL_MODE_TARGETS.some(([target]) => target === "adv:against:exhaustion")).toBe(false);
 });

@@ -801,6 +801,29 @@ it("TS contro la morte solo a 0 PF: un 1 naturale colora due fallimenti", async 
   expect([...host.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent === "TS morte")?.disabled).toBe(true);
 });
 
+it("i tratti danno vantaggio al TS contro la morte e al TS di concentrazione, mostrato mentre ci si concentra", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 0, max: 10 } } } });
+  sheet.abilities.constitution = { score: 14, mod: 2, save: 2, saveProficient: false };
+  sheet.traits = [
+    { id: "durable", name: "Durable", description: "", modifiers: [{ id: "a", target: "adv:save:death", amount: 0 }] },
+    { id: "war", name: "War Caster", description: "", modifiers: [{ id: "b", target: "adv:save:concentration", amount: 0 }] },
+  ];
+  sheet.effects = [{ id: "c", name: "Concentrazione: Bless", active: true, modifiers: [] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  // Ultimo tiro: dopo il TS contro la morte arriva anche il resoconto dei pallini, senza d20.
+  const last = () => JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").filter((message: { card?: { d20?: unknown } }) => message.card?.d20).at(-1).card;
+  const concentration = () => [...host.querySelectorAll<HTMLButtonElement>(".saves button")].find((button) => button.textContent?.includes("Concentrazione"));
+  await click("TS morte");
+  await settle();
+  expect(last()).toMatchObject({ name: "TS contro la morte · vantaggio (Durable)", d20: { mode: "advantage" } });
+
+  await act(async () => concentration()!.click());
+  await settle();
+  expect(last()).toMatchObject({ name: "TS concentrazione · vantaggio (War Caster)", d20: { mode: "advantage", formula: "1d20+2[CON]" } });
+});
+
 it("i pallini dei TS contro la morte si cambiano a mano e 3 successi scrivono in chat che è stabile", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { hp: { current: 0, max: 10 } } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });

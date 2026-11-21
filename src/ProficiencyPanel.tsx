@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ABILITY_LABELS, ABILITY_SHORT, ABILITY_TAGS } from "./constants";
-import { conditionRoll } from "./conditions";
+import { conditionRoll, rollSources } from "./conditions";
 import { ChatIcon, EditIcon } from "./icons";
 import { labeledBonus } from "./rollCards";
 import type { ActionEntry, CharacterSheet, ProficiencyEntry, RollCard, RollMode, ToolEntry, ToolProficiency } from "./types";
@@ -37,7 +37,7 @@ export function ProficiencyPanel({ sheet, onUpdate, onRoll, onShare, editable }:
   const proficiencies = sheet.proficiencies ?? [];
   const tools = (sheet.tools ?? []).map((tool) => normalizeTool(sheet, tool));
 
-  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); const check = conditionRoll(sheet.effects, `check:${ability}`, tool.name, `${sheet.options?.reliableTalent ? "1d20min10" : "1d20"}${labeledBonus(parts, sum(parts))}`); onRoll(check.title, check.formula, undefined, check.mode); };
+  const roll = (tool: ToolEntry, ability: string) => { const parts = toolParts(sheet, tool, ability); const check = conditionRoll(rollSources(sheet), `check:${ability}`, tool.name, `${sheet.options?.reliableTalent ? "1d20min10" : "1d20"}${labeledBonus(parts, sum(parts))}`); onRoll(check.title, check.formula, undefined, check.mode); };
   const share = (name: string, kind: Kind, tool?: ToolEntry) => {
     const stats = tool && [{ label: "Caratteristica", value: tool.ability ? ABILITY_LABELS[tool.ability] : "A scelta" }, { label: "Bonus", value: signed(sum(toolParts(sheet, tool, tool.ability))) }];
     onShare({ id: tool?.id ?? name, name, description: KIND_LABELS[kind] }, { name, subtitle: KIND_LABELS[kind], rolls: [], stats });

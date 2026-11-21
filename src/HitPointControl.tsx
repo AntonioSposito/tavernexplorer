@@ -1,11 +1,11 @@
-import { exhaustionLevel, withExhaustion } from "./conditions";
+import { conditionRoll, exhaustionLevel, rollSources, withExhaustion } from "./conditions";
 import { isEffectOn, modifierTotal } from "./effects";
 import { useState } from "react";
 import { adjustHitPoints, applyDeathSave, deathSaveNotice, type HitPointField } from "./hitPoints";
 import type { RollResult } from "./dice";
 import { labeledBonus, type AttackRoll } from "./rollCards";
 import { getRuleset } from "./rulesets";
-import type { CharacterSheet } from "./types";
+import type { CharacterSheet, RollMode } from "./types";
 import { Input } from "./ui";
 
 interface HitPointControlProps {
@@ -49,7 +49,7 @@ export function HitPointControl({ sheet, editable, onUpdate, maxTitle }: HitPoin
 
 // Dadi vita: il pulsante tira 1 dado + COS, ne scala uno dagli attuali e cura i PF del risultato (almeno il minimo
 // del ruleset, come nel riposo breve, senza superare il massimo); il totale e il dado si cambiano nella tab Modifica.
-export function HitDiceControl({ sheet, editable, onUpdate, onRollValue }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null> }) {
+export function HitDiceControl({ sheet, editable, onUpdate, onRollValue }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll, mode?: RollMode[]) => Promise<RollResult | null> }) {
   const { current, max, die } = sheet.combat.hitDice;
   const faces = Number(/^d?(\d+)$/i.exec(die.trim())?.[1]) || 0;
   const con = sheet.abilities.constitution?.mod ?? 0;
@@ -87,7 +87,7 @@ export function HitDiceControl({ sheet, editable, onUpdate, onRollValue }: HitPo
 
 // TS contro la morte: si tira solo a 0 PF finché non si è stabili (3 successi) o morti (3 fallimenti).
 // I pallini si cambiano anche a mano; dopo ogni tiro e ogni clic sui pallini parte il resoconto in chat.
-export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue, onNotice }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll) => Promise<RollResult | null>; onNotice: (title: string, alert: string) => void }) {
+export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue, onNotice }: HitPointControlProps & { onRollValue: (name: string, formula: string, extras?: AttackRoll, mode?: RollMode[]) => Promise<RollResult | null>; onNotice: (title: string, alert: string) => void }) {
   const { successes, failures } = sheet.combat.deathSaves;
   const notify = (combat: CharacterSheet["combat"], revived = false) => { const { title, body } = deathSaveNotice(sheet.name, combat.deathSaves, revived); onNotice(title, body); };
   const [busy, setBusy] = useState(false);
@@ -95,7 +95,9 @@ export function DeathSaveControl({ sheet, editable, onUpdate, onRollValue, onNot
   const rollSave = async () => {
     setBusy(true);
     const bonus = modifierTotal(sheet, "deathSave");
-    const result = await onRollValue("TS contro la morte", `1d20${bonus ? `${bonus > 0 ? "+" : ""}${bonus}` : ""}`);
+    // Vantaggio da tratti ed effetti (Durable, Diamond Soul…) e note delle condizioni, come gli altri TS.
+    const check = conditionRoll(rollSources(sheet), "save:death", "TS contro la morte", `1d20${bonus ? `${bonus > 0 ? "+" : ""}${bonus}` : ""}`);
+    const result = await onRollValue(check.title, check.formula, undefined, check.mode);
     setBusy(false);
     if (result?.natural == null) return;
     const natural = result.natural;

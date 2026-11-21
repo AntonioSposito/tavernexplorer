@@ -375,7 +375,7 @@ Figlio di TE-34. Punto 4 di "Cosa manca nel modello" in `docs/classificazione-pr
 id: TE-95
 type: feature
 priority: medium
-status: todo
+status: done
 order: 55
 ---
 
