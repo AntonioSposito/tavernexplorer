@@ -71,7 +71,27 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
 // Valori numerici dei modificatori con caratteristica e competenza.
 // shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
 function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
-  return modifiers.filter((modifier) => conditionMet(sheet, modifier.when)).map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
+  return modifiers.filter((modifier) => conditionMet(sheet, modifier.when)).map(({ id, target, amount, ability, proficient, scale, min, max }) => {
+    const value = amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0);
+    return { id, target, amount: min != null ? Math.max(min, value) : value, ...max != null ? { max } : {} };
+  });
+}
+
+// Tetto dei punteggi: un bonus con max porta il punteggio al massimo fino a max, senza abbassarlo. Prima i malus
+// (correzione dell'import Roll20), poi i tetti più bassi (ASI 20 prima di Primal Champion 25), infine i bonus senza tetto.
+function capScores(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
+  const scores: Record<string, number> = Object.fromEntries(Object.entries(sheet.abilities).map(([key, stat]) => [key, stat.score]));
+  const rank = (mod: StatModifier) => mod.amount < 0 ? -1 : mod.max ?? Infinity;
+  const result = [...modifiers];
+  const order = modifiers.map((mod, index) => ({ mod, index })).filter(({ mod }) => mod.target.startsWith("ability:")).sort((a, b) => rank(a.mod) - rank(b.mod));
+  for (const { mod, index } of order) {
+    const key = mod.target.slice(8);
+    const before = scores[key] ?? 10;
+    const after = mod.max != null && mod.amount > 0 ? Math.max(before, Math.min(before + mod.amount, mod.max)) : before + mod.amount;
+    scores[key] = after;
+    result[index] = { ...mod, amount: after - before };
+  }
+  return result;
 }
 
 export const MODIFIER_CONDITIONS: Array<[value: ModifierCondition, label: string]> = [
@@ -97,14 +117,14 @@ export function rageDamage(sheet: CharacterSheet): number {
 }
 
 export function activeModifiers(sheet: CharacterSheet): StatModifier[] {
-  return resolveModifiers(sheet, [
+  return capScores(sheet, resolveModifiers(sheet, [
     ...optionSources(sheet).flatMap((source) => source.modifiers),
     ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).flatMap((effect) => effect.modifiers),
     ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item)),
     ...sheet.traits.flatMap((trait) => trait.modifiers ?? []),
     // Già inclusi nei valori importati da Roll20: si tolgono, così conta solo lo stato attuale degli oggetti.
     ...(sheet.importedItemModifiers ?? []).map((modifier) => ({ ...modifier, amount: -modifier.amount })),
-  ]).filter((modifier) => Number.isFinite(modifier.amount));
+  ]).filter((modifier) => Number.isFinite(modifier.amount)));
 }
 
 // Da dove arriva un modificatore: effetti attivi e oggetti equipaggiati, per nome (senza la correzione dell'import Roll20).
@@ -215,7 +235,7 @@ const TARGET_LABELS: Record<string, string> = Object.fromEntries([...MODIFIER_TA
 export function modifierTags(modifiers: StatModifier[]): string[] {
   return modifiers.filter((mod) => mod.target).map((mod) => {
     if (isRollModeTarget(mod.target)) return TARGET_LABELS[mod.target] ?? mod.target;
-    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira", mod.scale === "level" && "× livello"].filter(Boolean);
+    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira", mod.scale === "level" && "× livello", mod.min != null && `(minimo ${mod.min >= 0 ? "+" : ""}${mod.min})`, mod.max != null && `(fino a ${mod.max})`].filter(Boolean);
     const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
     const when = MODIFIER_CONDITIONS.find(([key]) => key === mod.when)?.[1];
     return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras, ...when ? [`(${when})`] : []].join(" ");

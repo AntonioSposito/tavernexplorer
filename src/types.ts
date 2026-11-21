@@ -105,6 +105,10 @@ export interface StatModifier {
   scale?: "rage" | "level";
   // Vale solo con questo equipaggiamento (Difesa senza armatura, Movimento veloce, stile Defense…).
   when?: ModifierCondition;
+  // Valore minimo dopo caratteristica e competenza (Aura of Protection: mod. Carisma, minimo +1).
+  min?: number;
+  // Solo "ability:": il punteggio non supera max per questo bonus (ASI 20, Primal Champion 25, Doni epici 30).
+  max?: number;
 }
 
 // Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).

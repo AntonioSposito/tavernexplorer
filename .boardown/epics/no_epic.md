@@ -393,7 +393,7 @@ Figlio di TE-34. Punti 5 e 11 di "Cosa manca nel modello" in `docs/classificazio
 id: TE-96
 type: feature
 priority: medium
-status: todo
+status: done
 order: 56
 ---
 

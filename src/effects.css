@@ -5,3 +5,5 @@
 .effects-list{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.75rem}.effects-list>.effect-card{flex-basis:100%}
 /* Vantaggio/svantaggio non ha il valore: la × resta nella sua colonna. */
 .modifier-row > .ui-button { grid-column: 3; }
+/* "Punteggio fino a" sulla stessa riga del campo, anche dentro .action-form (label in colonna). */
+.modifier-bonus .modifier-max,.action-form .modifier-bonus .modifier-max{display:inline-flex;align-items:center;gap:.4rem}.modifier-max .ui-input{width:4.5rem}

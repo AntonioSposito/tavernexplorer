@@ -71,3 +71,29 @@ it("i modificatori con condizione valgono solo con l'equipaggiamento giusto (arm
   expect(worn([["Plate Armor", "armor:heavy", 18]])).toEqual({ unarmored: 0, speed: 0, armor: 1 });
   expect(modifierTags([{ id: "c", target: "ac", amount: 0, ability: "constitution", when: "noArmor" }])).toEqual(["Classe armatura +Costituzione (senza armatura)"]);
 });
+
+it("minimo +1: il bonus da caratteristica non scende sotto 1 (Aura of Protection)", () => {
+  const aura = (charisma: number) => { const hero = sheet(); hero.abilities.charisma = { score: 10 + 2 * charisma, mod: charisma, save: charisma, saveProficient: false }; hero.traits = [{ id: "a", name: "Aura of Protection", description: "", modifiers: [{ id: "m", target: "save:dexterity", amount: 0, ability: "charisma", min: 1 }] }]; return modifierTotal(hero, "save:dexterity"); };
+  expect([aura(-1), aura(0), aura(3)]).toEqual([1, 1, 3]);
+  expect(modifierTags([{ id: "m", target: "save:dexterity", amount: 0, ability: "charisma", min: 1 }])).toEqual(["TS Destrezza +Carisma (minimo +1)"]);
+});
+
+it("tetto dei punteggi: ogni bonus si ferma al suo massimo, i tetti più bassi prima, senza abbassare il punteggio", () => {
+  const strength = (score: number, modifiers: Array<Omit<StatModifier, "id">>) => {
+    const hero = sheet();
+    hero.abilities.strength = { score, mod: Math.floor((score - 10) / 2), save: 0, saveProficient: false };
+    hero.traits = modifiers.map((modifier, index) => ({ id: `t${index}`, name: `T${index}`, description: "", modifiers: [{ id: `m${index}`, ...modifier }] }));
+    return effectiveSheet(hero).abilities.strength.score;
+  };
+  const asi = { target: "ability:strength", amount: 2, max: 20 };
+  const champion = { target: "ability:strength", amount: 4, max: 25 };
+  const boon = { target: "ability:strength", amount: 1, max: 30 };
+  expect([strength(17, [asi]), strength(19, [asi]), strength(20, [asi]), strength(22, [asi])]).toEqual([19, 20, 20, 22]);
+  // Primal Champion dopo l'ASI anche se scritto prima.
+  expect(strength(19, [champion, asi])).toBe(24);
+  expect(strength(23, [champion])).toBe(25);
+  expect([strength(29, [boon]), strength(30, [boon])]).toEqual([30, 30]);
+  // Un oggetto senza tetto si somma dopo.
+  expect(strength(19, [{ target: "ability:strength", amount: 2 }, asi])).toBe(22);
+  expect(modifierTags([{ id: "m", ...asi }])).toEqual(["Forza +2 (fino a 20)"]);
+});

@@ -1241,6 +1241,8 @@ it("nel popup dell'oggetto un modificatore somma caratteristica e competenza", a
   });
   await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Aggiungi bonus di competenza"]')!.click());
   await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Moltiplica per il livello del personaggio"]')!.click());
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Valore minimo 1"]')!.click());
+  expect(host.querySelector('input[aria-label="Punteggio massimo"]')).toBeNull();
   const when = host.querySelector<HTMLSelectElement>('select[aria-label="Condizione del modificatore"]')!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(when, "noArmor");
@@ -1248,8 +1250,8 @@ it("nel popup dell'oggetto un modificatore somma caratteristica e competenza", a
   });
   await click("Salva");
   await settle(1_700);
-  expect(cloudSheet().sheet.inventory[0].modifiers[0]).toMatchObject({ target: "ac", amount: 1, ability: "wisdom", proficient: true, scale: "level", when: "noArmor" });
-  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Classe armatura +1 +Saggezza +Competenza × livello (senza armatura)");
+  expect(cloudSheet().sheet.inventory[0].modifiers[0]).toMatchObject({ target: "ac", amount: 1, ability: "wisdom", proficient: true, scale: "level", when: "noArmor", min: 1 });
+  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Classe armatura +1 +Saggezza +Competenza × livello (minimo +1) (senza armatura)");
 });
 
 it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {
