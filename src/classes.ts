@@ -96,12 +96,12 @@ function casterOf(entry: CharacterClass, arcane: { fighter?: boolean; rogue?: bo
   return third ? "third" : "none";
 }
 
-// Livello da incantatore del multiclasse 2024: pieni per intero, mezzi arrotondati per eccesso, terzi per difetto.
+// Livello da incantatore del multiclasse 2024: pieni per intero, mezzi e terzi arrotondati per eccesso (PHB 2024; nel 2014 i terzi per difetto).
 // Il Warlock (patto) resta separato.
 export function casterLevel(classes: CharacterClass[], arcane: { fighter?: boolean; rogue?: boolean } = {}): number {
   return classes.reduce((total, entry) => {
     const caster = casterOf(entry, arcane);
-    return total + (caster === "full" ? entry.level : caster === "half" ? Math.ceil(entry.level / 2) : caster === "third" ? Math.floor(entry.level / 3) : 0);
+    return total + (caster === "full" ? entry.level : caster === "half" ? Math.ceil(entry.level / 2) : caster === "third" ? Math.ceil(entry.level / 3) : 0);
   }, 0);
 }
 

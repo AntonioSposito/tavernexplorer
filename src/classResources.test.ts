@@ -92,3 +92,59 @@ it("una risorsa già creata a mano si adotta col suo nome invece di crearne un'a
   syncClassResources(barbarian);
   expect(barbarian.counters![0]).toMatchObject({ name: "Ira (scala)", current: 2, max: 4 });
 });
+
+it("risorse PHB 2024 delle altre classi: nome, usi, recupero e adozione di un contatore scritto a mano (TE-85)", () => {
+  const sync = (name: string, level: number, subclass?: string) => { const sheet = withClass(name, level); if (subclass) sheet.classes![0].subclass = subclass; syncClassResources(sheet); return sheet.counters ?? []; };
+  expect(sync("Cleric", 6)).toMatchObject([{ name: "Incanalare Divinità", max: 3, recovery: "long", shortRestGain: 1, classResource: "channel" }]);
+  expect(sync("Cleric", 1)).toEqual([]);
+  expect(sync("Druid", 2)).toMatchObject([{ name: "Forma selvatica", max: 2, shortRestGain: 1 }]);
+  expect(sync("Fighter", 4)).toMatchObject([{ name: "Recuperare energie", max: 3 }]);
+  expect(sync("Monk", 5).find((counter) => counter.classResource === "focus")).toMatchObject({ name: "Punti focus", max: 5, recovery: "short" });
+  expect(sync("Sorcerer", 2)).toMatchObject([{ name: "Punti stregoneria", max: 2, recovery: "long" }]);
+  expect(sync("Ranger", 5)).toMatchObject([{ name: "Nemico prescelto (Marchio del cacciatore)", max: 3 }]);
+  expect(sync("Rogue", 5, "Soulknife")).toMatchObject([{ name: "Energia psionica (d8)", max: 6, shortRestGain: 1 }]);
+  expect(sync("Rogue", 5)).toEqual([]);
+  // Un contatore "Channel Divinity" creato a mano si adotta: niente doppione, nome tenuto.
+  const cleric = withClass("Cleric", 2);
+  cleric.counters = [{ id: "cd", name: "Channel Divinity", current: 1, max: 1, recovery: "long" }];
+  syncClassResources(cleric);
+  expect(cleric.counters).toMatchObject([{ id: "cd", name: "Channel Divinity", current: 2, max: 2, classResource: "channel" }]);
+  // Riposo breve: un uso; lungo: tutti. Punti focus tutti anche col breve.
+  const used = cleric.counters!.map((counter) => ({ ...counter, current: 0 }));
+  expect(restoreCounters(used, "short").counters[0].current).toBe(1);
+  expect(restoreCounters(used, "long").counters[0].current).toBe(2);
+  const monk = withClass("Monk", 3); syncClassResources(monk);
+  const focus = monk.counters!.filter((counter) => counter.classResource === "focus").map((counter) => ({ ...counter, current: 0 }));
+  expect(restoreCounters(focus, "short").counters[0].current).toBe(3);
+});
+
+it("privilegi con usi contati: il contatore nasce col tratto e segue livello, caratteristica e dado (TE-85 fase 2)", () => {
+  const withTraits = (name: string, level: number, traits: string[], subclass?: string) => {
+    const sheet = withClass(name, level);
+    if (subclass) sheet.classes![0].subclass = subclass;
+    sheet.abilities.wisdom.mod = 3;
+    sheet.traits = traits.map((trait) => ({ id: trait, name: trait, description: "" }));
+    syncClassResources(sheet);
+    return sheet;
+  };
+  const use = (sheet: ReturnType<typeof withClass>, feature: string) => sheet.counters?.find((counter) => counter.featureUse === feature);
+  const fighter = withTraits("Fighter", 17, ["Action Surge", "Indomitable", "Combat Superiority"]);
+  expect(use(fighter, "Action Surge")).toMatchObject({ name: "Action Surge", max: 2, recovery: "short" });
+  expect(use(fighter, "Indomitable")).toMatchObject({ max: 3, recovery: "long" });
+  expect(use(fighter, "Combat Superiority")).toMatchObject({ name: "Combat Superiority (d10)", max: 6, recovery: "short" });
+  // Sale di livello: dado e usi crescono, il contatore resta uno.
+  fighter.classes = [{ name: "Fighter", level: 18 }];
+  syncClassResources(fighter);
+  expect(fighter.counters!.filter((counter) => counter.featureUse === "Combat Superiority")).toMatchObject([{ name: "Combat Superiority (d12)" }]);
+  expect(use(withTraits("Paladin", 3, ["Lay on Hands"]), "Lay on Hands")).toMatchObject({ max: 15, recovery: "long" });
+  // Warding Flare: modificatore di Saggezza, col riposo breve da Improved Warding Flare.
+  expect(use(withTraits("Cleric", 3, ["Warding Flare"]), "Warding Flare")).toMatchObject({ max: 3, recovery: "long" });
+  expect(use(withTraits("Cleric", 6, ["Warding Flare", "Improved Warding Flare"]), "Warding Flare")).toMatchObject({ recovery: "short" });
+  // Senza il tratto niente contatore; uno creato a mano dal tratto si adotta.
+  expect(withTraits("Fighter", 2, []).counters?.some((counter) => counter.featureUse)).toBe(false);
+  const wizard = withClass("Wizard", 1);
+  wizard.traits = [{ id: "ar", name: "Arcane Recovery", description: "" }];
+  wizard.counters = [{ id: "mine", name: "Recupero arcano", current: 0, max: 1, recovery: "long", traitId: "ar" }];
+  syncClassResources(wizard);
+  expect(wizard.counters).toMatchObject([{ id: "mine", name: "Recupero arcano", current: 0, featureUse: "Arcane Recovery" }]);
+});

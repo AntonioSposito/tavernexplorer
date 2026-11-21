@@ -9,3 +9,4 @@ dist/
 package-lock.json
 .vercel
 .env*
+test-data/

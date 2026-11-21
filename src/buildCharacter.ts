@@ -1,6 +1,7 @@
 import { createBlankSheet } from "./blankSheet";
 import { syncClassResources } from "./classResources";
 import { applyClassChanges } from "./classSync";
+import { SKILL_LABELS } from "./constants";
 import { setAbilityScore } from "./effects";
 import type { CharacterOptions, EquipmentOption, Feature } from "./fivetoolsCharacter";
 import type { FiveToolsItem } from "./import5etools";
@@ -32,6 +33,12 @@ export interface CharacterChoices {
 }
 
 const uid = () => crypto.randomUUID();
+const withChoice = (feature: Feature, choice?: string): Feature => choice ? { ...feature, description: `Scelta: ${choice}\n\n${feature.description}`.trim() } : feature;
+// Tratti della specie in cui si sceglie qualcosa nella creazione guidata (PHB 2024: Umano ed Elfo).
+function speciesChoice(name: string, choices: CharacterChoices): string | undefined {
+  if ((name === "Skillful" || name === "Keen Senses") && choices.speciesSkills.length) return choices.speciesSkills.map((key) => SKILL_LABELS[key] ?? key).join(", ");
+  if (name === "Versatile" && choices.speciesFeat) return `talento ${choices.speciesFeat}`;
+}
 const feetToMeters = (feet: number) => `${Math.round(feet * 0.3 * 10) / 10} m`;
 const modOf = (score: number) => Math.floor((score - 10) / 2);
 
@@ -48,8 +55,11 @@ const TRAIT_MODIFIERS: Record<string, Array<Omit<StatModifier, "id">>> = {
 };
 // Difesa senza armatura: 10 + DES (già nella CA senza armatura) + COS per il Barbaro, + SAG per il Monaco.
 const UNARMORED_DEFENSE: Record<string, string> = { Barbarian: "constitution", Monk: "wisdom" };
-const traitModifiers = (name: string, sourceType: string): Array<Omit<StatModifier, "id">> | undefined =>
-  name === "Unarmored Defense" && UNARMORED_DEFENSE[sourceType] ? [{ target: "ac", amount: 0, ability: UNARMORED_DEFENSE[sourceType], unarmored: true }] : TRAIT_MODIFIERS[name];
+// sourceType "Barbarian 1": la classe è senza il livello.
+const traitModifiers = (name: string, sourceType: string): Array<Omit<StatModifier, "id">> | undefined => {
+  const ability = UNARMORED_DEFENSE[sourceType.replace(/ \d+$/, "")];
+  return name === "Unarmored Defense" && ability ? [{ target: "ac", amount: 0, ability, unarmored: true }] : TRAIT_MODIFIERS[name];
+};
 
 export function trait(feature: Feature, sourceKind: TraitSource, sourceType: string): TraitEntry {
   const modifiers = traitModifiers(feature.name, sourceType)?.map((modifier) => ({ ...modifier, id: uid() }));
@@ -119,8 +129,9 @@ export function buildCharacter(choices: CharacterChoices, options: CharacterOpti
   ];
 
   sheet.traits = [
-    ...cls.features.map((feature) => trait(feature, "Class", cls.name)),
-    ...species.traits.map((feature) => trait(feature, "Racial", species.name)),
+    // Come nel level up (levelUp.ts): livello nel source type e la scelta in cima alla descrizione.
+    ...cls.features.map((feature) => trait(feature, "Class", `${cls.name} 1`)),
+    ...species.traits.map((feature) => trait(withChoice(feature, speciesChoice(feature.name, choices)), "Racial", species.name)),
     featTrait(background.feat, options.feats, background.name),
     ...choices.speciesFeat ? [featTrait(choices.speciesFeat, options.feats, species.name)] : [],
   ];

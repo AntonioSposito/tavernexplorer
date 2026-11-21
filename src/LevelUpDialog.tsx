@@ -5,7 +5,7 @@ import { ABILITY_LABELS, SKILL_LABELS } from "./constants";
 import { roll } from "./dice";
 import { loadClassFile, loadLevelFeats, loadSpells } from "./fivetoolsApi";
 import { parseLevelOptions, type Feature, type LevelOptions, type SpellOption } from "./fivetoolsCharacter";
-import { EXPERTISE_FEATURES, applyLevelUp, hitDieOf, hitPointGain, sheetClasses, type LevelUpPlan } from "./levelUp";
+import { ABILITY_FEATURES, EXPERTISE_FEATURES, applyLevelUp, hitDieOf, hitPointGain, sheetClasses, type LevelUpPlan } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Alert, Button, Dialog, Input, Select } from "./ui";
 
@@ -52,75 +52,88 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   useEffect(() => { if ((options?.cantrips || options?.spells) && !catalog.length) void loadSpells().then(setCatalog).catch(() => undefined); }, [options?.cantrips, options?.spells, catalog.length]);
 
   const features = (options?.features ?? []).filter((feature) => !skipped.includes(feature.name));
-  const feat = increase === "feat" ? feats.find((item) => item.name === featName) : undefined;
-  const abilityIncrease = options?.abilityIncrease && increase !== "feat" ? (increase === "two" ? [abilities[0], abilities[0]] : abilities) : undefined;
+  // Aumento caratteristiche solo se il suo privilegio resta spuntato.
+  const asiChosen = features.some((feature) => ABILITY_FEATURES.includes(feature.name));
+  const feat = asiChosen && increase === "feat" ? feats.find((item) => item.name === featName) : undefined;
+  const abilityIncrease = asiChosen && increase !== "feat" ? (increase === "two" ? [abilities[0], abilities[0]] : abilities) : undefined;
   // Incantesimi della classe fino al livello di slot più alto dopo la salita.
   // shortcut: con più classi il limite è quello di tutti gli slot, non solo della classe che sale.
   const base: LevelUpPlan = { className, subclass: chosenSubclass, hitPoints, features: [], spells: [] };
   const maxSpellLevel = Math.max(0, ...Object.keys(derivedSlots(applyLevelUp(sheet, base))).map((key) => Number(key.replace("level_", "")) || 0));
   const known = new Set(sheet.spells.map((spell) => spell.name.toLowerCase()));
-  const available = catalog.filter((spell) => spell.classes.includes(className) && spell.level <= maxSpellLevel && !known.has(spell.name.toLowerCase()));
+  // Solo PHB 2024, come la creazione guidata (il catalogo comprende anche i supplementi per la tab Magia).
+  const available = catalog.filter((spell) => spell.source === "XPHB" && spell.classes.includes(className) && spell.level <= maxSpellLevel && !known.has(spell.name.toLowerCase()));
   const chosenSpells = available.filter((spell) => picked.includes(spell.name));
   const cantripsLeft = (options?.cantrips ?? 0) - chosenSpells.filter((spell) => spell.level === 0).length;
   const spellsLeft = (options?.spells ?? 0) - chosenSpells.filter((spell) => spell.level > 0).length;
+  // Da scegliere per confermare: tutti, o tutti quelli rimasti se la lista ne ha meno.
+  const unpicked = (cantrip: boolean) => available.filter((spell) => (spell.level === 0) === cantrip && !picked.includes(spell.name)).length;
+  const spellsMissing = Math.min(cantripsLeft, unpicked(true)) > 0 || Math.min(spellsLeft, unpicked(false)) > 0;
   const listed = available.filter((spell) => (spell.level === 0 ? options?.cantrips : options?.spells) && spell.name.toLowerCase().includes(search.trim().toLowerCase()));
   // Maestria: abilità con competenza e senza Maestria, quante ne dà il privilegio scelto.
   const expertiseCount = features.reduce((sum, feature) => sum + (EXPERTISE_FEATURES[feature.name] ?? 0), 0);
   const eligible = Object.entries(sheet.skills).filter(([key, skill]) => skill.proficient && !sheet.options?.expertise?.includes(key)).map(([key]) => key);
   const expertiseNeeded = Math.min(expertiseCount, eligible.length);
   const chosenExpertise = expertise.filter((key) => eligible.includes(key)).slice(0, expertiseNeeded);
-  const plan: LevelUpPlan = { ...base, features, abilityIncrease, feat, spells: chosenSpells.map((spell) => spell.spell), expertise: chosenExpertise };
+  const plan: LevelUpPlan = { ...base, subclassFeature: options?.subclassFeature, features, abilityIncrease, feat, spells: chosenSpells.map((spell) => spell.spell), expertise: chosenExpertise };
   const needsSubclass = !!options?.subclasses.length && !chosenSubclass;
 
   const abilitySelect = (index: number, label: string) => <Select aria-label={label} value={abilities[index]} onChange={(event) => setAbilities(abilities.map((value, position) => position === index ? event.target.value : value))}>
     {Object.entries(ABILITY_LABELS).map(([key, name]) => <option key={key} value={key}>{name} ({sheet.abilities[key]?.score ?? 10})</option>)}
   </Select>;
 
+  const firstExpertise = features.find((feature) => EXPERTISE_FEATURES[feature.name])?.name;
+  const subclassInFeature = !!options?.features.some((feature) => feature.name === options.subclassFeature);
+  const subclassSelect = options?.subclasses.length ? <label><span>Sottoclasse</span><Select aria-label="Sottoclasse" value={subclass} onChange={(event) => { setSubclass(event.target.value); setSkipped([]); }}>
+    <option value="">Scegli…</option>{options.subclasses.map((name) => <option key={name} value={name}>{name}</option>)}
+  </Select></label> : null;
+  const expertiseChoice = <div className="form-field"><span>Maestria: scegli {expertiseNeeded} abilità con competenza ({expertiseNeeded - chosenExpertise.length} rimaste)</span>
+    {eligible.length === 0 && <small>Nessuna abilità con competenza senza Maestria.</small>}
+    <div className="level-up-skills">{eligible.map((key) => {
+      const checked = chosenExpertise.includes(key);
+      return <label className="action-form-check" key={key}><input type="checkbox" aria-label={`Maestria in ${SKILL_LABELS[key] ?? key}`} checked={checked} disabled={!checked && chosenExpertise.length >= expertiseNeeded} onChange={(event) => setExpertise(event.target.checked ? [...chosenExpertise, key] : chosenExpertise.filter((item) => item !== key))}/> {SKILL_LABELS[key] ?? key}</label>;
+    })}</div>
+  </div>;
+  const abilityChoice = <div className="form-field"><span>Aumento caratteristiche (massimo 20)</span>
+    <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "two"} onChange={() => setIncrease("two")}/> +2 a una caratteristica</label>
+    {increase === "two" && abilitySelect(0, "Caratteristica +2")}
+    <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "split"} onChange={() => setIncrease("split")}/> +1 a due caratteristiche</label>
+    {increase === "split" && <div className="level-up-pair">{abilitySelect(0, "Prima caratteristica +1")}{abilitySelect(1, "Seconda caratteristica +1")}</div>}
+    <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "feat"} onChange={() => setIncrease("feat")}/> Talento</label>
+    {increase === "feat" && <><Select aria-label="Talento" value={featName} onChange={(event) => setFeatName(event.target.value)}><option value="">Scegli…</option>{feats.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</Select>{feat && <small>{feat.description}</small>}</>}
+  </div>;
+
+  // Ogni parte è un box; le scelte di un privilegio (sottoclasse, caratteristiche, Maestria) stanno nel suo box.
   return <Dialog open title={`Sali al livello ${newLevel}`} description={sheet.name} onClose={onClose}>
     <div className="action-form level-up">
-      <label><span>Classe</span><Select aria-label="Classe che sale di livello" value={className} onChange={(event) => { setClassName(event.target.value); setRolled(null); setSubclass(""); setSkipped([]); setPicked([]); }}>
+      <div className="level-up-box"><label><span>Classe</span><Select aria-label="Classe che sale di livello" value={className} onChange={(event) => { setClassName(event.target.value); setRolled(null); setSubclass(""); setSkipped([]); setPicked([]); }}>
         <optgroup label="Le tue classi">{classes.map((entry) => <option key={entry.name} value={entry.name}>{entry.name} {entry.level} → {entry.level + 1}</option>)}</optgroup>
         <optgroup label="Nuova multiclasse">{Object.keys(CLASSES).filter((name) => !classes.some((entry) => entry.name === name)).map((name) => <option key={name} value={name}>{name} 1</option>)}</optgroup>
-      </Select></label>
+      </Select></label></div>
 
-      <div className="form-field"><span>Punti ferita (d{die} {signed(conMod)} COS)</span>
+      <div className="level-up-box form-field"><span>Punti ferita (d{die} {signed(conMod)} COS)</span>
         <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled === null} onChange={() => setRolled(null)}/> Media: {die / 2 + 1} {signed(conMod)}</label>
         <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled !== null} onChange={() => setRolled(roll(`1d${die}`).total)}/> Tira d{die}{rolled !== null && `: ${rolled} ${signed(conMod)}`}</label>
       </div>
 
       {error && <Alert>{error}</Alert>}
       {!options && !error && <small>Carico i privilegi del livello da 5e.tools…</small>}
-      {options?.subclasses.length ? <label><span>Sottoclasse</span><Select aria-label="Sottoclasse" value={subclass} onChange={(event) => { setSubclass(event.target.value); setSkipped([]); }}>
-        <option value="">Scegli…</option>{options.subclasses.map((name) => <option key={name} value={name}>{name}</option>)}
-      </Select></label> : null}
-      {options && options.features.length > 0 && <div className="form-field"><span>Privilegi (diventano tratti)</span>
-        {options.features.map((feature) => <div key={feature.name} className="level-up-feature">
+      {subclassSelect && !subclassInFeature && <div className="level-up-box">{subclassSelect}</div>}
+      {options?.features.map((feature) => {
+        const added = !skipped.includes(feature.name);
+        return <div key={feature.name} className="level-up-feature">
           <div className="level-up-feature-row">
-            <label className="action-form-check"><input type="checkbox" aria-label={`Aggiungi ${feature.name}`} checked={!skipped.includes(feature.name)} onChange={(event) => setSkipped(event.target.checked ? skipped.filter((name) => name !== feature.name) : [...skipped, feature.name])}/> {feature.name}</label>
+            <label className="action-form-check"><input type="checkbox" aria-label={`Aggiungi ${feature.name}`} checked={added} onChange={(event) => setSkipped(event.target.checked ? skipped.filter((name) => name !== feature.name) : [...skipped, feature.name])}/> {feature.name} <small>(diventa un tratto)</small></label>
             <Button type="button" variant="ghost" aria-expanded={reading === feature.name} onClick={() => setReading(reading === feature.name ? null : feature.name)}>{reading === feature.name ? "Nascondi ▴" : "Leggi ▾"}</Button>
           </div>
           {reading === feature.name && <p>{feature.description}</p>}
-        </div>)}
-      </div>}
+          {feature.name === options.subclassFeature && subclassSelect}
+          {added && ABILITY_FEATURES.includes(feature.name) && abilityChoice}
+          {added && feature.name === firstExpertise && expertiseChoice}
+        </div>;
+      })}
 
-      {expertiseCount > 0 && <div className="form-field"><span>Maestria: scegli {expertiseNeeded} abilità con competenza ({expertiseNeeded - chosenExpertise.length} rimaste)</span>
-        {eligible.length === 0 && <small>Nessuna abilità con competenza senza Maestria.</small>}
-        <div className="level-up-skills">{eligible.map((key) => {
-          const checked = chosenExpertise.includes(key);
-          return <label className="action-form-check" key={key}><input type="checkbox" aria-label={`Maestria in ${SKILL_LABELS[key] ?? key}`} checked={checked} disabled={!checked && chosenExpertise.length >= expertiseNeeded} onChange={(event) => setExpertise(event.target.checked ? [...chosenExpertise, key] : chosenExpertise.filter((item) => item !== key))}/> {SKILL_LABELS[key] ?? key}</label>;
-        })}</div>
-      </div>}
-
-      {options?.abilityIncrease && <div className="form-field"><span>Aumento caratteristiche (massimo 20)</span>
-        <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "two"} onChange={() => setIncrease("two")}/> +2 a una caratteristica</label>
-        {increase === "two" && abilitySelect(0, "Caratteristica +2")}
-        <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "split"} onChange={() => setIncrease("split")}/> +1 a due caratteristiche</label>
-        {increase === "split" && <div className="level-up-pair">{abilitySelect(0, "Prima caratteristica +1")}{abilitySelect(1, "Seconda caratteristica +1")}</div>}
-        <label className="action-form-check"><input type="radio" name="level-up-asi" checked={increase === "feat"} onChange={() => setIncrease("feat")}/> Talento</label>
-        {increase === "feat" && <><Select aria-label="Talento" value={featName} onChange={(event) => setFeatName(event.target.value)}><option value="">Scegli…</option>{feats.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</Select>{feat && <small>{feat.description}</small>}</>}
-      </div>}
-
-      {options && (options.cantrips > 0 || options.spells > 0) && <div className="form-field"><span>Nuovi incantesimi: {options.cantrips ? `${cantripsLeft} trucchetti` : ""}{options.cantrips && options.spells ? " · " : ""}{options.spells ? `${spellsLeft} incantesimi fino al ${maxSpellLevel}°` : ""} da scegliere</span>
+      {options && (options.cantrips > 0 || options.spells > 0) && <div className="level-up-box form-field"><span>Nuovi incantesimi: {options.cantrips ? `${cantripsLeft} trucchetti` : ""}{options.cantrips && options.spells ? " · " : ""}{options.spells ? `${spellsLeft} incantesimi fino al ${maxSpellLevel}°` : ""} da scegliere</span>
         <Input aria-label="Cerca incantesimo" placeholder="Cerca…" value={search} onChange={(event) => setSearch(event.target.value)}/>
         <div className="catalog-list level-up-spells">{listed.map((spell) => {
           const checked = picked.includes(spell.name);
@@ -143,9 +156,11 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
           {chosenSpells.length > 0 && <li>Incantesimi: {chosenSpells.map((spell) => spell.name).join(", ")}</li>}
         </ul>
       </section>
-      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={needsSubclass || chosenExpertise.length < expertiseNeeded || (increase === "feat" && !!options?.abilityIncrease && !feat)} onClick={() => onConfirm(plan)}>Conferma</Button></div>
+      {/* Avvisi sopra i pulsanti: con liste lunghe sotto non si vedrebbero senza scorrere. */}
       {needsSubclass && <small>Scegli la sottoclasse per confermare.</small>}
       {chosenExpertise.length < expertiseNeeded && <small>Scegli le abilità della Maestria per confermare.</small>}
+      {spellsMissing && <small>Scegli i nuovi incantesimi per confermare.</small>}
+      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={needsSubclass || chosenExpertise.length < expertiseNeeded || (increase === "feat" && asiChosen && !feat) || spellsMissing} onClick={() => onConfirm(plan)}>Conferma</Button></div>
     </div>
   </Dialog>;
 }

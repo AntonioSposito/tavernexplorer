@@ -711,3 +711,376 @@ order: 5700
 
 Caricando i token il nome inizia con "Beast": capire perché e toglierlo.
 
+
+## [ponytail] Extra Attack: frecce rimaste sbagliate nella card
+
+---
+id: TE-67
+type: bug
+priority: high
+status: todo
+order: 5800
+---
+
+Da audit ponytail (2026-11-20), punto 1. Il tasto ×2/×N (`attackAll` in `EntryList`, `src/App.tsx`) chiama `run` più volte, ma `left` (risorsa collegata, es. frecce) è letto una volta prima dei tiri: con 40 frecce entrambe le card dicono "Frecce −1 (39/40)" mentre il contatore scende a 38; con 1 freccia il secondo attacco non mostra "esaurite".
+
+**Fix.** Passare a `run` quante unità hanno già usato gli attacchi precedenti e usare `left - già usate` per sottotitolo, spesa e avviso.
+
+**Accettazione.** Shortbow ×2 con 40 frecce: card "39/40" e "38/40"; con 1 freccia la seconda card ha l'avviso "esaurite" e il contatore resta a 0.
+
+## [ponytail] L'Ira accesa dai Turni non consuma l'uso
+
+---
+id: TE-68
+type: bug
+priority: high
+status: todo
+order: 5900
+---
+
+Da audit ponytail (2026-11-20), punto 2. L'uso dell'Ira si scala solo in `EffectsEditor` (`change`, `src/EffectsEditor.tsx`); accendendo l'Ira di un PG dalla sua riga nella tab Turni (`src/TurnOrder.tsx`) l'effetto si attiva ma il contatore (es. "Ira (scala)") non scende.
+
+**Fix.** Spostare il controllo "Ira appena accesa → `spendRage`" nel punto unico in cui si salvano gli effetti di un PG (usato sia dalla scheda sia dai Turni) e toglierlo da `EffectsEditor`; l'avviso "Nessun uso dell'Ira rimasto" deve comparire in entrambi i casi.
+
+**Accettazione.** Accendere l'Ira dalla scheda o dai Turni scala un uso; a 0 usi compare l'avviso.
+
+## [ponytail] Import Roll20 senza base_level: classe a livello 0
+
+---
+id: TE-69
+type: bug
+priority: high
+status: todo
+order: 6000
+---
+
+Da audit ponytail (2026-11-20), punto 3. In `src/importer.ts` (~riga 73) `num(attr("base_level"), level)` restituisce 0 quando l'attributo manca, perché `Number("")` è 0: la classe principale diventa "Fighter 0" e il level up mostra "Fighter 0 → 1" con dadi vita e slot calcolati da 0.
+
+**Fix.** `num(attr("base_level") || level, level)`, solo lì.
+
+**Accettazione.** Import di una scheda senza `base_level`: la classe ha il livello del personaggio; il level up mostra "Fighter N → N+1".
+
+## [ponytail] Un solo modo per leggere il livello di una classe
+
+---
+id: TE-70
+type: tech
+priority: medium
+status: todo
+order: 6100
+---
+
+Da audit ponytail (2026-11-20), punto 4. Tre versioni dello stesso calcolo: `classLevel` in `src/classResources.ts`, il livello da ladro in `sneakAttackDice` (`src/classAttacks.ts`) e `rageDamage` in `src/effects.ts` (che usa `/barbar/i` invece del nome esatto). Una classe salvata come "Barbaro" avrebbe danni dell'Ira scalati ma nessun contatore degli usi.
+
+**Fix.** Esportare `classLevel` da `classResources.ts` e usarlo negli altri due punti (−2 funzioni).
+
+**Accettazione.** I test di Ira, Attacco furtivo e risorse passano con un solo helper.
+
+## [ponytail] Riepilogo level up: +2 oltre il 20
+
+---
+id: TE-71
+type: bug
+priority: medium
+status: todo
+order: 6200
+---
+
+Da audit ponytail (2026-11-20), punto 5. Con Forza 19 e "+2 a una caratteristica" il riepilogo di `src/LevelUpDialog.tsx` dice "Forza +2" ma `applyLevelUp` applica +1 (massimo 20).
+
+**Fix.** Nel riepilogo calcolare l'aumento con lo stesso limite a 20.
+
+**Accettazione.** Forza 19 con +2: il riepilogo dice "Forza +1" (19 → 20).
+
+## [ponytail] Level up: niente simulazione completa a ogni render
+
+---
+id: TE-72
+type: tech
+priority: low
+status: todo
+order: 6300
+---
+
+Da audit ponytail (2026-11-20), punto 6. `maxSpellLevel` in `src/LevelUpDialog.tsx` chiama `applyLevelUp` (copia della scheda, classi, risorse) a ogni render, anche a ogni lettera della ricerca incantesimi.
+
+**Fix.** Calcolare gli slot solo dalle classi dopo il level up (`classSlotTotals`) senza copiare la scheda, oppure `useMemo` sulle scelte che lo cambiano.
+
+**Accettazione.** Stesso limite di livello degli incantesimi; nessuna copia della scheda mentre si scrive nella ricerca.
+
+## Classi PHB 2024, fase 1: dati 5e.tools in locale
+
+---
+id: TE-73
+type: tech
+priority: high
+status: done
+order: 6400
+---
+
+Piano di test delle classi (2026-11-21): si parte dalle 12 classi e 48 sottoclassi del PHB 2024 (XPHB). Le altre sottoclassi restano "solo testo".
+
+Script (es. `npm run data:5etools`) che scarica da 5etools-src, a un commit fissato nello script, i file che usa l'app: `class/class-*.json`, `feats.json`, gli incantesimi, `backgrounds.json`, `races.json`. Cartella locale ignorata da git (es. `test-data/5etools/`), non nel repo. I test che li usano si saltano con un messaggio chiaro se la cartella manca.
+
+**Accettazione.** Dopo lo script i test di parsing girano sui file veri senza rete; senza la cartella `vitest` passa e segnala i test saltati.
+
+## Classi PHB 2024, fase 2: tabella di copertura dei privilegi
+
+---
+id: TE-74
+type: tech
+priority: high
+status: done
+order: 6500
+---
+
+Dipende da TE-73. Script che, per ogni classe e sottoclasse XPHB e per ogni livello 1-20, elenca i privilegi e assegna un tipo: solo testo, opzione della scheda (`featureOptions` in `src/levelUp.ts`), risorsa (`src/classResources.ts`), modificatore (`TRAIT_MODIFIERS`), scelta gestita (Maestria, sottoclasse, aumento caratteristiche, incantesimi). Un privilegio non gestito con "choose" / "of your choice" nel testo è "scelta mancante". Risultato in `docs/copertura-classi.md`, rigenerabile.
+
+**Accettazione.** La tabella copre le 48 sottoclassi e riporta il numero di scelte mancanti raggruppate per tipo (abilità, incantesimi extra, stile di combattimento, invocazioni, metamagia, manovre…).
+
+## Classi PHB 2024, fase 3: test 1→20 per ogni classe e sottoclasse
+
+---
+id: TE-75
+type: tech
+priority: high
+status: done
+order: 6600
+---
+
+Dipende da TE-73. Un file di test generato (`it.each`) che porta ogni classe+sottoclasse XPHB dal 1° al 20° con `applyLevelUp` e scelte di default, e a ogni livello controlla: PF, dadi vita, bonus di competenza; slot, trucchetti e incantesimi preparati contro la tabella della classe in 5e.tools; risorse attese con i numeri giusti; tratti con source type `Classe N` e senza doppioni; privilegi della sottoclasse dalla versione XPHB; incantesimi solo da manuali ammessi. Si salta senza dati (TE-73).
+
+**Accettazione.** Il test gira su tutte le 48 sottoclassi; ogni fallimento diventa un bug collegato (TE-76…TE-80 o nuovi).
+
+**Fatto (2026-11-21).** `src/classProgression.test.ts`. Ha trovato: sottoclassi 2014 al posto delle 2024 in 23 sottoclassi su 48 (TE-76), slot di Eldritch Knight e Arcane Trickster arrotondati per difetto (`casterLevel` in `src/classes.ts`, ora per eccesso come nel PHB 2024).
+
+## Level up: sottoclasse presa dalla versione 2014
+
+---
+id: TE-76
+type: bug
+priority: high
+status: done
+order: 6700
+---
+
+Trovato nel test a mano (2026-11-21): Bardo con College of Lore riceve i privilegi 2014 ("Additional Magical Secrets" al 6°, testi "at 3rd level") invece dei 2024 ("Magical Discoveries"). In `parseLevelOptions` (`src/fivetoolsCharacter.ts`) la sottoclasse si cerca solo per nome e il file ha sia la versione PHB sia XPHB.
+
+**Fix.** Preferire la sottoclasse con `source === "XPHB"` quando ci sono più versioni con lo stesso nome.
+
+**Accettazione.** Test: College of Lore al 6° dà "Magical Discoveries".
+
+## Level up: incantesimi di altri manuali nel popup
+
+---
+id: TE-77
+type: bug
+priority: medium
+status: done
+order: 6800
+---
+
+Trovato nel test a mano (2026-11-21): il popup "Sali di livello" propone Silvery Barbs, Distort Value, Antagonize, Wardaway…; la creazione guidata mostra solo il PHB 2024.
+
+**Fix.** Stesso filtro di manuale della creazione guidata nella lista di `src/LevelUpDialog.tsx`.
+
+**Accettazione.** Test: il Bardo che sale al 2° non vede incantesimi non XPHB.
+
+## Level up: incantesimi da scegliere non obbligatori
+
+---
+id: TE-78
+type: bug
+priority: medium
+status: done
+order: 6900
+---
+
+Trovato nel test a mano (2026-11-21): al 5° il Bardo doveva scegliere 2 incantesimi, ne ha scelto 1 e "Conferma" era attivo.
+
+**Fix.** "Conferma" disattivato finché mancano trucchetti o incantesimi, con avviso come per la Maestria (se non ce ne sono abbastanza disponibili, basta sceglierli tutti).
+
+**Accettazione.** Test: con 1 incantesimo su 2 "Conferma" è disattivato e compare l'avviso.
+
+## Jack of All Trades si somma ad Alert sull'iniziativa
+
+---
+id: TE-79
+type: bug
+priority: medium
+status: done
+order: 7000
+---
+
+Trovato nel test a mano (2026-11-21): Bardo 6 con Alert ha iniziativa +7 (DES 3 + competenza 3 + 1). `src/effects.ts:64` aggiunge metà competenza all'iniziativa anche quando c'è già la competenza piena.
+
+**Fix.** Niente metà competenza sull'iniziativa se un modificatore dà la competenza all'iniziativa.
+
+**Accettazione.** Test: Bardo 6 con Alert e DES 16 ha iniziativa +6.
+
+## Creazione guidata: livello nel source type e scelte nei tratti
+
+---
+id: TE-80
+type: bug
+priority: medium
+status: done
+order: 7100
+---
+
+Trovato nel test a mano (2026-11-21): i tratti di classe della creazione guidata hanno source type `Bard`, quelli del level up `Bard 2`. Le scelte fatte nella creazione (es. Skillful → Percezione, Versatile → Alert) non sono nella descrizione del tratto.
+
+**Fix.** Source type `Classe 1` per i privilegi di classe; riga `Scelta: …` in cima alla descrizione come nel level up (`featureChoice` in `src/levelUp.ts`).
+
+**Accettazione.** Test: Umano con Skillful su Percezione → tratto "Skillful" con `Scelta: Percezione`; Bardo creato → "Bardic Inspiration" con source type `Bard 1`.
+
+## Classi PHB 2024, fase 5: scelte mancanti per tipo
+
+---
+id: TE-81
+type: feature
+priority: high
+status: todo
+order: 7200
+---
+
+Dipende da TE-74. Per ogni tipo di scelta della tabella di copertura (es. abilità come Bonus Proficiencies, incantesimi da altre liste come Magical Secrets, stile di combattimento, invocazioni, metamagia, manovre, strumenti del talento Musician) un solo componente nel box del privilegio del popup "Sali di livello" (e della creazione guidata se serve), con la scelta scritta nella descrizione del tratto. Un ticket figlio per tipo, partendo da quelli che coprono più privilegi.
+
+**Accettazione.** Ogni tipo ha un test; le "scelte mancanti" in `docs/copertura-classi.md` arrivano a zero per il PHB 2024.
+
+## Classi PHB 2024, fase 6: personaggio di prova in dev e prova a mano per tipo
+
+---
+id: TE-82
+type: feature
+priority: medium
+status: todo
+order: 7300
+---
+
+In sviluppo (`import.meta.env.DEV`, libreria in `src/devSheets.ts`) un tasto "Personaggio di prova" nella Libreria che crea direttamente classe, sottoclasse e livello scelti (applicando i level up con scelte di default), senza la creazione guidata. Poi prova nel browser di un personaggio per ogni tipo di scelta (circa 8-10), con un report breve.
+
+**Accettazione.** Dal tasto si ottiene, per esempio, un Mago 5 pronto in pochi secondi; c'è un report per tipo di scelta.
+
+## Level up e creazione guidata: testi e default
+
+---
+id: TE-83
+type: bug
+priority: low
+status: todo
+order: 7400
+---
+
+Trovato nel test a mano (2026-11-21):
+- "1 incantesimi" → "1 incantesimo" nel popup "Sali di livello".
+- Aumento caratteristiche: default "+2 Forza"; meglio nessuna scelta o la caratteristica principale della classe.
+- Creazione guidata: "light", "simple", "30 ft." non tradotti/convertiti in metri; voce generica "Musical Instrument" tra gli strumenti.
+- Al livello della sottoclasse "Bard Subclass" e "College of Lore" diventano due tratti di solo testo introduttivo: basta uno con `Scelta: …`.
+- Multiclasse: compare "Artificer", che non è nel PHB 2024.
+
+**Accettazione.** I punti sopra non si vedono più nel popup e nella creazione guidata.
+
+## Multiclasse: requisiti di caratteristica
+
+---
+id: TE-84
+type: feature
+priority: low
+status: todo
+order: 7500
+---
+
+Il popup "Sali di livello" permette qualsiasi nuova classe. Le regole PHB 2024 chiedono 13 nella caratteristica principale della classe attuale e di quella nuova.
+
+**Fix.** Nel menu della classe, le classi non ammesse sono disattivate con il motivo (es. "serve FOR 13").
+
+**Accettazione.** Test: Bardo con FOR 8 non può prendere Barbarian.
+
+## TE-81 · Risorse di classe mancanti
+
+---
+id: TE-85
+type: feature
+priority: high
+status: done
+order: 7210
+---
+
+Figlio di TE-81. Righe "risorsa mancante?" di `docs/copertura-classi.md` (99, da rivedere: il tipo è indovinato dal testo). Le principali: Channel Divinity, Wild Shape, Second Wind, Action Surge, Indomitable, Monk's Focus, Lay on Hands, Font of Magic (punti stregoneria), Combat Superiority (dadi superiorità), Arcane Recovery, Magical Cunning, Innate Sorcery. Contatori creati e aggiornati col livello come Ira e Ispirazione bardica (`src/classResources.ts`), con usi e recupero dalla tabella della classe.
+
+**Accettazione.** Nel test 1→20 (`src/classProgression.test.ts`) i contatori seguono le colonne della tabella 5e.tools (es. "Channel Divinity", "Wild Shape", "Focus Points", "Sorcery Points"); le righe passano a "risorsa" nella tabella di copertura.
+
+**Fase 1 fatta (2026-11-21).** Risorse con una colonna nella tabella di classe, in `src/classResources.ts`: Incanalare Divinità (Chierico, Paladino), Forma selvatica, Recuperare energie, Punti focus, Punti stregoneria, Nemico prescelto, Energia psionica (Psi Warrior, Soulknife). Il test 1→20 le confronta con le colonne.
+
+**Fase 2 fatta (2026-11-21).** Privilegi con usi scritti nel testo (`FEATURE_USES` in `src/classResources.ts`, 60 privilegi): il contatore nasce quando la scheda ha il tratto con quel nome e segue livello, modificatore e dado (es. Action Surge, Indomitable, Lay on Hands 5 × livello, Combat Superiority con d8/d10/d12, Warding Flare con riposo breve da Improved Warding Flare). I falsi positivi del testo sono in `NOT_RESOURCES` di `src/classCoverage.test.ts`. In `docs/copertura-classi.md` "risorsa mancante?" è a zero.
+
+## TE-81 · Incantesimi di sottoclasse sempre preparati
+
+---
+id: TE-86
+type: feature
+priority: high
+status: todo
+order: 7220
+---
+
+Figlio di TE-81. Righe "incantesimi sempre preparati mancanti?" (39): Domain Spells, Oath Spells, Circle of the Land Spells, Psionic/Draconic/Clockwork Spells, Fey Wanderer Spells, incantesimi del patrono… Al livello giusto il level up aggiunge gli incantesimi alla tab Magia, preparati e segnati come sempre preparati (Circle of the Land: con la scelta del terreno nel box del privilegio).
+
+**Accettazione.** Test: Chierico del Dominio della Vita al 3° ha Bless e Cure Wounds sempre preparati.
+
+## TE-81 · Maestria nelle armi e stile di combattimento
+
+---
+id: TE-87
+type: feature
+priority: high
+status: todo
+order: 7230
+---
+
+Figlio di TE-81. Weapon Mastery (Barbaro, Guerriero, Paladino, Ranger, Ladro; più armi con il livello) e Fighting Style / Additional Fighting Style (Guerriero, Paladino, Ranger, Campione). Scelta nel box del privilegio, nella creazione guidata e nel level up, con la scelta nella descrizione del tratto; lo stile scelto diventa un tratto talento (sono talenti nel PHB 2024).
+
+**Accettazione.** Test: Guerriero 1 creato con stile Archery ha il tratto Archery e le armi di Weapon Mastery scritte nel tratto.
+
+## TE-81 · Opzioni da una lista (metamagia, invocazioni, manovre, ordini…)
+
+---
+id: TE-88
+type: feature
+priority: medium
+status: todo
+order: 7240
+---
+
+Figlio di TE-81. Privilegi che fanno scegliere una o più opzioni da un elenco 5e.tools (`optionalfeatures` o voci del privilegio): Metamagic, Eldritch Invocations, manovre di Combat Superiority, Divine Order, Primal Order, Blessed Strikes, Elemental Fury, Hunter's Prey, Defensive Tactics, Rage of the Wilds / Aspect of the Wilds / Power of the Wilds, Elemental Affinity. Un componente generico "scegli N da questa lista" nel box del privilegio; ogni opzione scelta diventa un tratto (o la scelta nella descrizione).
+
+**Accettazione.** Test: Stregone al 2° sceglie 2 metamagie e trova i due tratti; Warlock al 1° sceglie un'invocazione.
+
+## TE-81 · Competenze aggiuntive dai privilegi
+
+---
+id: TE-89
+type: feature
+priority: medium
+status: todo
+order: 7250
+---
+
+Figlio di TE-81. Bonus Proficiencies (College of Lore: 3 abilità), Primal Knowledge, Student of War, Scholar (Maestria del Mago), Thieves' Cant (lingua). Scelta di abilità/strumenti/lingue nel box del privilegio, applicata alla scheda come la Maestria.
+
+**Accettazione.** Test: Bardo College of Lore al 3° sceglie 3 abilità e diventano competenti.
+
+## TE-81 · Incantesimi a scelta da altre liste
+
+---
+id: TE-90
+type: feature
+priority: medium
+status: todo
+order: 7260
+---
+
+Figlio di TE-81. Magical Secrets, Magical Discoveries, Mystic Arcanum (11°, 13°, 15°, 17°), Spell Mastery, Signature Spells. Nel box del privilegio la lista degli incantesimi del livello giusto anche di altre classi (Magical Secrets: Bardo, Chierico, Druido, Mago; Mystic Arcanum: un incantesimo del livello del privilegio).
+
+**Accettazione.** Test: Warlock all'11° sceglie un incantesimo di 6° livello per Mystic Arcanum e lo trova nella tab Magia.

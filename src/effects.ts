@@ -60,8 +60,10 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
   const bonuses = Object.entries(options.bonuses ?? {}).filter(([, amount]) => amount).flatMap(([target, amount]) =>
     (target === "saveAll" ? ABILITY_KEYS.map((ability) => `save:${ability}`) : [target]).map((item) => ({ id: `option:${item}`, target: item, amount })));
   const expertise = (options.expertise ?? []).filter((skill) => sheet.skills[skill]?.proficient).map((skill) => ({ id: `expertise:${skill}`, target: `skill:${skill}`, amount: pb }));
-  // Jack of all trades (2024): metà competenza, per difetto, alle prove senza competenza, iniziativa compresa.
-  const jack = options.jackOfAllTrades ? [...Object.entries(sheet.skills).filter(([, skill]) => !skill.proficient).map(([key]) => `skill:${key}`), "initiative"].map((target) => ({ id: `jack:${target}`, target, amount: Math.floor(pb / 2) })) : [];
+  // Jack of all trades (2024): metà competenza, per difetto, alle prove senza competenza, iniziativa compresa se non ha già la competenza (es. Alert).
+  // shortcut: guarda la competenza all'iniziativa solo nei tratti, non in effetti e oggetti; estenderlo se un oggetto la dà.
+  const initiativeProficient = sheet.traits.some((trait) => trait.modifiers?.some((mod) => mod.target === "initiative" && mod.proficient));
+  const jack = options.jackOfAllTrades ? [...Object.entries(sheet.skills).filter(([, skill]) => !skill.proficient).map(([key]) => `skill:${key}`), ...initiativeProficient ? [] : ["initiative"]].map((target) => ({ id: `jack:${target}`, target, amount: Math.floor(pb / 2) })) : [];
   return [{ name: "Opzioni", modifiers: bonuses }, { name: "Maestria", modifiers: expertise }, { name: "Jack of all trades", modifiers: jack }];
 }
 

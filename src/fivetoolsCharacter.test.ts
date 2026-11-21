@@ -112,10 +112,10 @@ const fighterFile = {
 };
 
 it("dice cosa porta un livello: privilegi, sottoclassi da scegliere, aumento caratteristiche, incantesimi", () => {
-  expect(parseLevelOptions(fighterFile, 3)).toMatchObject({ features: [{ name: "Fighter Subclass", description: "Choose a subclass." }], subclasses: ["Champion", "Rune Knight"], abilityIncrease: false });
+  expect(parseLevelOptions(fighterFile, 3)).toMatchObject({ features: [{ name: "Fighter Subclass", description: "Choose a subclass." }], subclasses: ["Champion", "Rune Knight"], subclassFeature: "Fighter Subclass", abilityIncrease: false });
   expect(parseLevelOptions(fighterFile, 3, "Champion").features.map((feature) => feature.name)).toEqual(["Fighter Subclass", "Improved Critical"]);
   expect(parseLevelOptions(fighterFile, 4)).toMatchObject({ features: [{ description: "Increase scores." }], subclasses: [], abilityIncrease: true });
   expect(parseLevelOptions(fighterFile, 7, "Champion")).toMatchObject({ features: [{ name: "Heroic Warrior" }], subclasses: [] });
   expect(parseLevelOptions(wizardFile, 2)).toMatchObject({ cantrips: 0, spells: 1 });
-  expect(parseLevelFeats({ feat: [{ name: "Alert", source: "XPHB", category: "O" }, { name: "Great Weapon Master", source: "XPHB", category: "G", entries: ["Heavy."] }, { name: "Boon of Fate", source: "XPHB", category: "EB", entries: ["Fate."] }] }).map((feat) => feat.name)).toEqual(["Great Weapon Master", "Boon of Fate"]);
+  expect(parseLevelFeats({ feat: [{ name: "Alert", source: "XPHB", category: "O" }, { name: "Great Weapon Master", source: "XPHB", category: "G", entries: ["Heavy."] }, { name: "Boon of Fate", source: "XPHB", category: "EB", entries: ["Fate."] }] }).map((feat) => feat.name)).toEqual(["Alert", "Great Weapon Master", "Boon of Fate"]);
 });

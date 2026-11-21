@@ -77,6 +77,8 @@ it("crea un Guerriero passo per passo e consegna la scheda compilata", async () 
   await tick("Furtività");
   await choose("Strumento del background", "Dice Set");
   await choose("Lingua 2 (oltre al Comune)", "Dwarvish");
+  // La lingua già scelta non si ripropone nell'altro menu.
+  expect([...host.querySelectorAll<HTMLOptionElement>('select[aria-label="Lingua 3 (oltre al Comune)"] option')].map((option) => option.value)).not.toContain("Dwarvish");
   await choose("Lingua 3 (oltre al Comune)", "Giant");
   await advance();
 

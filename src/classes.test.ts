@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it("livello da incantatore e slot del multiclasse 2024, patto a parte", () => {
   expect(casterLevel([{ name: "Wizard", level: 5 }, { name: "Paladin", level: 3 }])).toBe(7);
-  expect(casterLevel([{ name: "Fighter", level: 7, subclass: "Eldritch Knight" }])).toBe(2);
+  expect(casterLevel([{ name: "Fighter", level: 7, subclass: "Eldritch Knight" }])).toBe(3);
   expect(casterLevel([{ name: "Rogue", level: 6 }], { rogue: true })).toBe(2);
   expect(classSlotTotals([{ name: "Paladin", level: 1 }])).toEqual({ level_1: 2 });
   expect(classSlotTotals([{ name: "Wizard", level: 4 }])).toEqual({ level_1: 4, level_2: 3 });

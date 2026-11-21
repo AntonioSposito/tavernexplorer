@@ -56,3 +56,14 @@ it("i privilegi che sono opzioni del tab Modifica le attivano, e la Maestria va 
   expect(applyLevelUp(fighter(2), { ...plan, features: [{ name: "Improved Critical", description: "" }] }).options?.critRange).toBe(19);
   expect(applyLevelUp(fighter(6), { ...plan, features: [{ name: "Reliable Talent", description: "" }] }).options?.reliableTalent).toBe(true);
 });
+
+it("i tratti della classe hanno il livello nel source type e la scelta fatta nella descrizione", () => {
+  const asi = { name: "Ability Score Improvement", description: "Aumenta." };
+  const [split] = applyLevelUp(fighter(3), { ...plan, features: [asi], abilityIncrease: ["strength", "constitution"] }).traits;
+  expect([split.sourceType, split.description]).toEqual(["Fighter 4", "Scelta: FOR +1, COS +1\n\nAumenta."]);
+  expect(applyLevelUp(fighter(3), { ...plan, features: [asi], abilityIncrease: ["strength", "strength"] }).traits[0].description).toMatch(/^Scelta: FOR \+2/);
+  const withFeat = applyLevelUp(fighter(3), { ...plan, features: [asi], feat: { name: "Alert", description: "" } }).traits;
+  expect(withFeat.map((item) => [item.name, item.description.split("\n")[0]])).toEqual([["Ability Score Improvement", "Scelta: talento Alert"], ["Alert", ""]]);
+  expect(applyLevelUp(fighter(2), { ...plan, subclass: "Champion", subclassFeature: "Fighter Subclass", features: [{ name: "Fighter Subclass", description: "" }] }).traits[0].description).toBe("Scelta: Champion");
+  expect(applyLevelUp(fighter(1), { ...plan, features: [{ name: "Expertise", description: "" }], expertise: ["stealth"] }).traits[0].description).toBe("Scelta: Maestria in Furtività");
+});

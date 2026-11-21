@@ -17,7 +17,7 @@ vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [],
   loadClassFile: async (name: string) => name === "Bard" ? { class: [{ name: "Bard", source: "XPHB", classFeatures: ["Expertise|Bard|XPHB|2", "Jack of All Trades|Bard|XPHB|2"] }], classFeature: [{ name: "Expertise", source: "XPHB", className: "Bard", level: 2, entries: ["Two skills."] }, { name: "Jack of All Trades", source: "XPHB", className: "Bard", level: 2, entries: ["Half proficiency."] }] }
     : name === "Wizard" ? { class: [{ name: "Wizard", source: "XPHB", preparedSpellsProgression: [4, 5], cantripProgression: [3, 3], classFeatures: [] }] } : ({ class: [{ name: "Fighter", source: "XPHB", classFeatures: ["Action Surge|Fighter|XPHB|2", "Ability Score Improvement|Fighter|XPHB|4"] }], classFeature: [{ name: "Action Surge", source: "XPHB", className: "Fighter", level: 2, entries: ["One more action."] }, { name: "Ability Score Improvement", source: "XPHB", className: "Fighter", level: 4, entries: ["Increase."] }] }),
   loadLevelFeats: async () => [{ name: "Great Weapon Master", description: "Heavy hits." }],
-  loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
+  loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], source: "XPHB", spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], source: "XPHB", spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }, { name: "Silvery Barbs", level: 1, classes: ["Wizard"], source: "SCC", spell: { name: "Silvery Barbs", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));
@@ -741,7 +741,7 @@ it("importa un incantesimo da 5e.tools nella scheda; un doppione resta in elenco
   await click("Magia");
   await click("Importa da 5e.tools");
   await settle();
-  expect([...host.querySelectorAll(".catalog-option")].map((option) => option.textContent)).toEqual([expect.stringContaining("Fireball"), expect.stringContaining("già nella scheda")]);
+  expect([...host.querySelectorAll(".catalog-option")].map((option) => option.textContent)).toEqual([expect.stringContaining("Fireball"), expect.stringContaining("già nella scheda"), expect.stringContaining("Silvery Barbs")]);
   await click("Sleep");
   expect(host.querySelector(".catalog-list")).not.toBeNull();
   await click("Fireball");
@@ -1634,6 +1634,13 @@ it("un mago che sale sceglie i nuovi incantesimi solo fino al livello di slot ch
   await click("↑ Sali di livello");
   await vi.waitFor(() => expect(host.querySelector('[aria-label="Scegli Sleep"]')).not.toBeNull());
   expect(host.querySelector('[aria-label="Scegli Fireball"]')).toBeNull();
+  // Solo PHB 2024 (TE-77); senza scegliere gli incantesimi non si conferma (TE-78).
+  expect(host.querySelector('[aria-label="Scegli Silvery Barbs"]')).toBeNull();
+  expect([...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.disabled).toBe(true);
+  expect(host.querySelector(".ui-dialog")!.textContent).toContain("Scegli i nuovi incantesimi per confermare.");
+  // L'avviso sta sopra i pulsanti, visibile senza scorrere fino in fondo.
+  const warning = [...host.querySelectorAll(".level-up small")].find((item) => item.textContent === "Scegli i nuovi incantesimi per confermare.")!;
+  expect(warning.compareDocumentPosition(host.querySelector(".level-up .action-form-buttons")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Scegli Sleep"]')!.click());
   expect([...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent)).toContain("Incantesimi: Sleep");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.click());

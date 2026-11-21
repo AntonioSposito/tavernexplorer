@@ -50,6 +50,7 @@ import { fetchCloudMessages, mergeMessages, postCloudMessage } from "./cloudMess
 import { GmChatLink } from "./GmChatLink";
 import { DEFAULT_RULESET, getRuleset } from "./rulesets";
 import { aclCandidates, canEditCloudSheet, EVERYONE, createCloudLibrary, SheetExistsError, type LibraryState } from "./cloudSheets";
+import { devSheetsFetch } from "./devSheets";
 import { storage, type PhoneSession } from "./storage";
 import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 import { Alert, Button, Card, Dialog, Input, Select, Spinner } from "./ui";
@@ -170,7 +171,15 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       libraryRef.current = cloud;
       return cloud.start();
     }
-    if (!OBR.isAvailable) { setPlayer({ id: "preview", name: "Modalità anteprima", role: "GM" }); return; }
+    if (!OBR.isAvailable) {
+      const info = { id: "preview", name: "Modalità anteprima", role: "GM" as const };
+      setPlayer(info);
+      if (!import.meta.env.DEV) return;
+      // In sviluppo le schede di prova stanno nel localStorage (devSheets): si provano creazione e salita di livello senza Owlbear.
+      const cloud = createCloudLibrary({ room: "dev", viewer: info, onChange: setLibrary, fetch: devSheetsFetch, debounceMs: 300 });
+      libraryRef.current = cloud;
+      return cloud.start();
+    }
     let cleanup = () => undefined;
     let stopLibrary: () => void = () => undefined;
     let disposed = false;
@@ -547,7 +556,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       {syncNotice && <Alert tone="danger">{syncNotice}</Alert>}
       {library.offline && <Alert tone="danger">Server non raggiungibile: le schede sono in sola lettura.</Alert>}
       {library.conflict && <Alert tone="danger"><p>{library.conflict}</p><Button variant="outline" onClick={() => libraryRef.current?.clearConflict()}>OK</Button></Alert>}
-      {!OBR.isAvailable && !phone && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
+      {!OBR.isAvailable && !phone && !import.meta.env.DEV && tab === "sheet" && <Alert tone="danger">Le schede sono salvate nel cloud della stanza: apri TavernExplorer dentro Owlbear Rodeo.</Alert>}
       {tab === "sheet" && (active ? <SheetView sheet={active} editable={activeEditable} section={section} onRollValue={(name, formula, extras) => executeRoll(name, lucky(active, formula), "normal", extras)} sheetTab={sheetTab} setSheetTab={setSheetTab} rollMode={rollMode} setRollMode={setRollMode} visibility={visibility} setVisibility={setVisibility} onRoll={(title, formula, attack, mode) => performRoll(title, lucky(active, formula), attack, mode)} onShare={shareEntry} onUpdate={updateActive} onRest={(summary) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title: "Riposo", body: summary, visibility }))); }} onResourceUsed={(title, body) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body, visibility }))); }} onNotice={(title, alert) => { void runAction(() => publish(makeMessage({ kind: "share", author: active.name, characterId: active.id, title, body: alert, card: { name: title, rolls: [], alert }, visibility: "everyone" }))); }}/> : <Empty onImport={() => fileRef.current?.click()}/>)}
       {tab === "turns" && <div className="stack">{player.role === "GM" && <div className="library-actions"><PartyXp characters={characters} onGive={(ids, each) => ids.forEach((id) => updateSheet(id, (next) => { next.identity.experience = String(parseXp(next.identity.experience) + each); return next; }))}/></div>}<TurnOrder state={turns} showStats={player.role === "GM"} pcStats={pcStats} onPcHp={(id, value) => updateSheet(id, (next) => { next.combat = setHitPointTotal(next.combat, value, effectiveSheet(next).combat.hp.max); return next; })} onOpenForPlayers={OBR.isAvailable && player.role === "GM" ? () => { void runAction(async () => { await openPanelForPlayers("turns"); await OBR.notification.show("Turn order aperto ai giocatori", "SUCCESS"); }); } : undefined} images={Object.fromEntries(turns.entries.flatMap((entry) => { const image = (entry.tokenId && tokenImages[entry.tokenId]) || characters.find((sheet) => sheet.id === entry.characterId)?.avatar; return image ? [[entry.id, image]] : []; }))} canManage={player.role === "GM" || permissions.playersManageTurns} onChange={(next) => void changeTurns(next)} onNext={() => void nextTurn()} pcEffects={Object.fromEntries(characters.map((sheet) => [sheet.id, sheet.effects ?? []]))} onPcEffects={(id, update) => updateSheet(id, (next) => { next.effects = update(next.effects ?? []); return next; })} onShareEffect={(entry, item, card) => { if (characters.some((sheet) => sheet.id === entry.characterId)) void runAction(() => publish(makeMessage({ kind: "share", author: entry.name, characterId: entry.characterId, title: item.name, body: item.description || "Nessuna descrizione", card, visibility }))); else void shareEntry(item, card, { author: entry.name, visibility }); }} onPrevious={() => void changeTurns(stepTurn(turns, -1))} onFocusToken={OBR.isAvailable ? (tokenId) => { void runAction(() => highlightToken(tokenId)); } : undefined} active={active} onAttach={phone ? undefined : async () => { if (!active || (player.role !== "GM" && !permissions.playersManageTurns)) return; try { const bonus = effectiveSheet(active).combat.initiative; await addSelectedTokenToTurns(active.id, active.name, roll(`1d20${signed(bonus)}`, "normal").total, bonus); } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Token non collegato", "ERROR"); } }}/>{player.role === "GM" && !floatingView && !phone && (assignableSheets.length > 0 || monsters.length > 0) && <AssignmentPanel sheets={assignableSheets} monsters={monsters} members={partyMembers}/>}</div>}
       {tab === "messages" && <Messages messages={visibleMessages} speakers={speakers} speakAs={speaker?.id ?? ""} setSpeakAs={setSpeakAs} playerName={player.name} draft={draft} setDraft={setDraft} visibility={visibility} setVisibility={setVisibility} onSend={sendText}/>}

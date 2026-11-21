@@ -235,6 +235,8 @@ export interface LevelOptions {
   features: Feature[];
   // Al livello in cui la classe dà la sottoclasse: quelle che si possono scegliere.
   subclasses: string[];
+  // Privilegio del livello che dà la sottoclasse (es. "Fighter Subclass"): la scelta si fa nel suo box.
+  subclassFeature?: string;
   // Aumento caratteristiche (o Dono epico): si sceglie +2/+1+1 o un talento.
   abilityIncrease: boolean;
   cantrips: number;
@@ -258,10 +260,14 @@ export function parseLevelOptions(file: unknown, level: number, subclass?: strin
   const classFeatures = refs.map((ref) => refParts(ref).name).filter((featureName) => featureName !== "Subclass Feature")
     .flatMap((featureName) => array(data.classFeature).map(obj).filter((feature) => feature.name === featureName && feature.className === name && feature.level === level && feature.source === source).slice(0, 1).map(describe));
   const subclassRows = array(data.subclass).map(obj).filter((item) => item.className === name && (item.classSource ?? source) === source);
-  const chosen = subclassRows.find((item) => item.name === subclass);
+  // Stesso nome nel PHB 2014 e 2024 (es. College of Lore): vale la versione 2024.
+  const named = subclassRows.filter((item) => item.name === subclass);
+  const chosen = named.find((item) => item.source === SOURCE) ?? named[0];
   const subclassFeatures = chosen ? array(data.subclassFeature).map(obj).filter((feature) => feature.className === name && feature.subclassShortName === chosen.shortName && feature.subclassSource === chosen.source && feature.level === level).map(describe) : [];
+  const subclassRef = refs.find((ref) => obj(ref).gainSubclassFeature);
   return {
     features: [...classFeatures, ...subclassFeatures],
+    ...subclassRef ? { subclassFeature: refParts(subclassRef).name } : {},
     subclasses: refs.some((ref) => obj(ref).gainSubclassFeature) && !refs.some((ref) => refParts(ref).name === "Subclass Feature") ? [...new Set(subclassRows.map((item) => text(item.name)))].sort() : [],
     abilityIncrease: classFeatures.some((feature) => feature.name === "Ability Score Improvement" || feature.name === "Epic Boon"),
     cantrips: gain(row.cantripProgression, level),
@@ -269,7 +275,7 @@ export function parseLevelOptions(file: unknown, level: number, subclass?: strin
   };
 }
 
-// Talenti generali (dal 4° livello) e doni epici (19°) del PHB 2024, per l'aumento caratteristiche.
+// Talenti generali (dal 4° livello), d'origine (senza prerequisiti, quindi sempre ammessi) e doni epici (19°) del PHB 2024, per l'aumento caratteristiche.
 export function parseLevelFeats(file: unknown): Feature[] {
-  return array(obj(file).feat).map(obj).filter((row) => row.source === SOURCE && (row.category === "G" || row.category === "EB")).map((row) => ({ name: text(row.name), description: renderEntries(row.entries) }));
+  return array(obj(file).feat).map(obj).filter((row) => row.source === SOURCE && ["G", "O", "EB"].includes(text(row.category))).map((row) => ({ name: text(row.name), description: renderEntries(row.entries) }));
 }

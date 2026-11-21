@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { buildCharacter, type CharacterChoices } from "./buildCharacter";
+import { buildCharacter, trait, type CharacterChoices } from "./buildCharacter";
 import { effectiveSheet } from "./effects";
 import type { CharacterOptions } from "./fivetoolsCharacter";
 import type { FiveToolsItem } from "./import5etools";
@@ -26,7 +26,7 @@ const OPTIONS: CharacterOptions = {
     { name: "Sage", abilities: ["constitution", "intelligence", "wisdom"], feat: "Magic Initiate (Wizard)", skills: ["arcana", "history"], tools: [{ name: "Calligrapher's Supplies" }], equipment: [{ key: "B", items: [], tools: [], copper: 5000 }] },
   ],
   species: [
-    { name: "Human", sizes: ["S", "M"], speed: 30, skills: { from: ["stealth", "perception"], count: 1 }, originFeat: true, traits: [{ name: "Resourceful", description: "Heroic Inspiration." }] },
+    { name: "Human", sizes: ["S", "M"], speed: 30, skills: { from: ["stealth", "perception"], count: 1 }, originFeat: true, traits: [{ name: "Resourceful", description: "Heroic Inspiration." }, { name: "Skillful", description: "One skill." }, { name: "Versatile", description: "Origin feat." }] },
     { name: "Elf", sizes: ["M"], speed: 30, skills: { from: ["insight", "perception"], count: 1 }, originFeat: false, traits: [{ name: "Darkvision", description: "60 feet." }] },
   ],
   feats: [{ name: "Savage Attacker", description: "Reroll damage." }, { name: "Tough", description: "+2 HP per level." }, { name: "Magic Initiate", description: "Two cantrips." }],
@@ -67,7 +67,7 @@ it("Guerriero Soldato Umano: caratteristiche, competenze, PF, CA, zaino e attacc
   expect(sheet.actions.map((action) => action.name)).toEqual(["Greatsword", "Dagger"]);
   expect(sheet.tools?.map((tool) => tool.name)).toEqual(["Dice Set"]);
   expect(sheet.proficiencies?.map((entry) => entry.name)).toEqual(["Common", "Dwarvish", "Giant", "light armor", "heavy armor", "Shields", "simple weapons", "martial weapons"]);
-  expect(sheet.traits.map((entry) => [entry.name, entry.sourceKind])).toEqual([["Second Wind", "Class"], ["Resourceful", "Racial"], ["Savage Attacker", "Feat"], ["Tough", "Feat"]]);
+  expect(sheet.traits.map((entry) => [entry.name, entry.sourceKind])).toEqual([["Second Wind", "Class"], ["Resourceful", "Racial"], ["Skillful", "Racial"], ["Versatile", "Racial"], ["Savage Attacker", "Feat"], ["Tough", "Feat"]]);
   expect(sheet.spells).toEqual([]);
 });
 
@@ -99,4 +99,18 @@ it("lo stesso oggetto da classe e background diventa una riga con la quantità s
   options.classes[0].equipment[0].items.push({ ref: "dagger|xphb", name: "Dagger", quantity: 1 });
   const sheet = buildCharacter(fighter, options, ITEMS);
   expect(sheet.inventory.filter((entry) => entry.name === "Dagger").map((entry) => entry.count)).toEqual([3]);
+});
+
+it("i tratti hanno il livello nel source type di classe e le scelte della specie nella descrizione (TE-80)", () => {
+  const traits = buildCharacter(fighter, OPTIONS, ITEMS).traits;
+  const byName = (name: string) => traits.find((entry) => entry.name === name);
+  expect(traits.filter((entry) => entry.sourceKind === "Class").every((entry) => entry.sourceType === "Fighter 1")).toBe(true);
+  expect(byName("Skillful")?.description).toBe("Scelta: Furtività\n\nOne skill.");
+  expect(byName("Versatile")?.description).toBe("Scelta: talento Tough\n\nOrigin feat.");
+  expect(byName("Resourceful")?.description).toBe("Heroic Inspiration.");
+});
+
+it("Difesa senza armatura riconosce la classe anche con il livello nel source type", () => {
+  expect(trait({ name: "Unarmored Defense", description: "" }, "Class", "Barbarian 1").modifiers).toMatchObject([{ target: "ac", ability: "constitution", unarmored: true }]);
+  expect(trait({ name: "Unarmored Defense", description: "" }, "Class", "Monk 1").modifiers).toMatchObject([{ ability: "wisdom" }]);
 });

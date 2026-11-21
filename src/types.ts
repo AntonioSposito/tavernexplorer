@@ -135,8 +135,10 @@ export interface ResourceCounter {
   traitId?: string;
   // Usi recuperati col riposo breve quando recovery è "long" (Ira: 1).
   shortRestGain?: number;
-  // Risorsa di classe (Ira, Ispirazione bardica): massimo e recupero seguono livello e caratteristiche.
-  classResource?: "rage" | "bardic";
+  // Risorsa di classe (Ira, Ispirazione bardica, Incanalare Divinità…): massimo e recupero seguono livello e caratteristiche.
+  classResource?: "rage" | "bardic" | "channel" | "wildShape" | "secondWind" | "focus" | "sorcery" | "favoredEnemy" | "psionic";
+  // Usi di un privilegio (Action Surge, Lay on Hands…): nome del tratto da cui segue massimo e recupero (classResources.ts).
+  featureUse?: string;
 }
 
 export interface TraitEntry {

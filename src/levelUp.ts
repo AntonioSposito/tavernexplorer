@@ -2,6 +2,7 @@ import { trait } from "./buildCharacter";
 import { classDisplay, classRule } from "./classes";
 import { syncClassResources } from "./classResources";
 import { applyClassChanges } from "./classSync";
+import { ABILITY_SHORT, SKILL_LABELS } from "./constants";
 import { setAbilityScore } from "./effects";
 import type { Feature } from "./fivetoolsCharacter";
 import type { CharacterClass, CharacterSheet, SpellEntry } from "./types";
@@ -11,6 +12,8 @@ export interface LevelUpPlan {
   // Classe che sale: una già presente o una nuova (multiclasse, parte dal 1°).
   className: string;
   subclass?: string;
+  // Privilegio che dà la sottoclasse: nella sua descrizione si scrive quale è stata scelta.
+  subclassFeature?: string;
   hitPoints: number;
   features: Feature[];
   // +2 a una caratteristica o +1 a due (la stessa due volte = +2); oppure un talento.
@@ -23,6 +26,18 @@ export interface LevelUpPlan {
 
 // Quante abilità con Maestria dà un privilegio (Bardo e Ladro 2, Esploratore abile del Ranger 1).
 export const EXPERTISE_FEATURES: Record<string, number> = { Expertise: 2, "Deft Explorer": 1 };
+export const ABILITY_FEATURES = ["Ability Score Improvement", "Epic Boon"];
+// Cosa ha scelto il giocatore in un privilegio, da scrivere nella descrizione del tratto.
+function featureChoice(feature: Feature, plan: LevelUpPlan): string | undefined {
+  if (ABILITY_FEATURES.includes(feature.name)) {
+    if (plan.feat) return `talento ${plan.feat.name}`;
+    const increase = plan.abilityIncrease ?? [];
+    if (increase.length) return [...new Set(increase)].map((key) => `${ABILITY_SHORT[key] ?? key} +${increase.filter((item) => item === key).length}`).join(", ");
+  }
+  if (plan.subclass && feature.name === plan.subclassFeature) return plan.subclass;
+  if (EXPERTISE_FEATURES[feature.name] && plan.expertise?.length) return `Maestria in ${plan.expertise.map((key) => SKILL_LABELS[key] ?? key).join(", ")}`;
+}
+
 // Privilegi che nella scheda sono un'opzione del tab Modifica: aggiungerli la attiva.
 function featureOptions(next: CharacterSheet, features: Feature[]) {
   const names = new Set(features.map((feature) => feature.name));
@@ -65,7 +80,9 @@ export function applyLevelUp(sheet: CharacterSheet, plan: LevelUpPlan): Characte
   }
   featureOptions(next, plan.features);
   if (plan.expertise?.length) next.options = { ...next.options, expertise: [...new Set([...next.options?.expertise ?? [], ...plan.expertise])] };
-  next.traits = [...next.traits, ...plan.features.map((feature) => trait(feature, "Class", plan.className)), ...plan.feat ? [trait(plan.feat, "Feat", "Talento")] : []];
+  const classLevel = classes.find((entry) => entry.name === plan.className)!.level;
+  const featureTrait = (feature: Feature) => { const choice = featureChoice(feature, plan); return trait(choice ? { ...feature, description: `Scelta: ${choice}\n\n${feature.description}`.trim() } : feature, "Class", `${plan.className} ${classLevel}`); };
+  next.traits = [...next.traits, ...plan.features.map(featureTrait), ...plan.feat ? [trait(plan.feat, "Feat", "Talento")] : []];
   next.spells = [...next.spells, ...plan.spells.map((spell) => ({ ...spell, id: crypto.randomUUID() }))];
   syncClassResources(next);
   return next;
