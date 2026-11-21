@@ -20,7 +20,7 @@ async function get(path) {
 const spellIndex = await get("spells/index.json");
 const paths = [
   ...CLASSES.map((name) => `class/class-${name}.json`),
-  "races.json", "backgrounds.json", "feats.json", "generated/gendata-spell-source-lookup.json",
+  "races.json", "backgrounds.json", "feats.json", "optionalfeatures.json", "generated/gendata-spell-source-lookup.json",
   ...Object.values(spellIndex).map((file) => `spells/${file}`),
 ];
 await Promise.all(paths.map(get));

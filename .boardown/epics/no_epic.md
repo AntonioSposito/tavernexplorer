@@ -287,11 +287,423 @@ order: 50
   6. Trucchetti e incantesimi nuovi secondo `cantripProgression` / `preparedSpellsProgression`.
 - Ricalcolo dei bonus legati al livello lasciati dalla creazione guidata (shortcut in `buildCharacter.ts`: Tough +2 PF per livello, Alert = bonus di competenza, Dwarven Toughness +1 PF per livello).
 - Anteprima delle differenze (prima → dopo) e conferma. Messaggio in chat "X sale al livello N".
-- Le scelte secondarie dei privilegi (Stile di combattimento, Suppliche, ecc.) restano testo nei Tratti, come nella creazione guidata.
+- Ogni privilegio di classi, sottoclassi, talenti, specie e background diventa quello che dice `docs/classificazione-privilegi-phb2024.md` (classificazione da 5e.tools XPHB). Le scelte secondarie (Stile di combattimento, Suppliche, manovre, metamagie) si fanno nel popup.
+
+**Piano (2026-11-21).** Step verificabili, ognuno un ticket figlio: TE-91 (Tough/Alert col livello), TE-92 … TE-96 (campi che mancano nel modello), TE-97 (motore e popup), TE-98 … TE-109 (privilegi, una classe per ticket), TE-110 (talenti), TE-111 (specie e background), TE-112 (creazione guidata), TE-113 (annullare, facoltativo).
 
 **Accettazione.** Mago 4 → 5 con COS +2, valore fisso: +6 PF, competenza +3, slot 4/3/2, trucchetto in più; Guerriero 3 sceglie la sottoclasse; con Tough i PF crescono di 2 per livello; riposo e TavernPack coerenti.
 
 **Test.** Funzione pura `levelUp(sheet, choices, options)` (PF, privilegi, sottoclasse, aumenti, incantesimi, Tough/Alert) e test UI del popup.
+
+## TE-34 · Step 1: Tough, Dwarven Toughness e Alert col livello
+
+---
+id: TE-91
+type: bug
+priority: high
+status: todo
+order: 51
+---
+
+Figlio di TE-34. Sostituisce lo shortcut di `TRAIT_MODIFIERS` in `src/buildCharacter.ts`.
+- `StatModifier.scale: "level"`: `amount` × livello totale del personaggio (vedi "Cosa manca nel modello", punto 9, in `docs/classificazione-privilegi-phb2024.md`).
+- Tough: `hpMax 2 scale level`. Dwarven Toughness: `hpMax 1 scale level`. Alert: `initiative +0` con `proficient`.
+- Le schede già create con i vecchi valori si correggono quando si apre la scheda o restano come sono? Da decidere prima di iniziare.
+
+**Verifica (utente).** Un PG di livello 5 con Tough ha 10 PF in più; con Alert l'iniziativa ha +3; un nano di livello 5 ha 5 PF in più.
+
+**Test.** `effects.test.ts`: `scale: "level"` ai livelli 1, 5 e 20.
+
+## TE-34 · Step 2a: modificatori condizionali (senza armatura, solo a distanza…)
+
+---
+id: TE-92
+type: feature
+priority: high
+status: todo
+order: 52
+---
+
+Figlio di TE-34. Punto 1 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`.
+- Condizione sul modificatore (`when?: "noArmor" | "noHeavyArmor" | "noArmorNoShield" | …`), letta dove si calcolano CA, velocità, attacco e danno.
+- Casi: Unarmored Defense (Barbaro, Monaco), Draconic Resilience, Dance Bard, Fast Movement, Unarmored Movement, Roving, stili Archery, Defense, Dueling, Thrown Weapon Fighting.
+
+**Verifica (utente).** Monaco con Unarmored Defense: equipaggiando un'armatura la CA passa al calcolo dell'armatura; togliendola torna 10 + DES + SAG.
+
+**Test.** Un caso per ogni condizione.
+
+## TE-34 · Step 2b: resistenze, immunità, sensi e velocità speciali del PG
+
+---
+id: TE-93
+type: feature
+priority: high
+status: todo
+order: 53
+---
+
+Figlio di TE-34. Punti 2 e 3 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`.
+- Campi testo nella scheda (come `resistances` / `senses` dei mostri) e velocità aggiuntive (scalare, nuotare, volare). Popup di modifica e tasto chat come le altre sezioni (`docs/ui-rules.md`).
+- Usati da classi (Ira, auree, Mente protetta…), specie (Aasimar, Dragonborn, Dwarf, Tiefling, scurovisione) e talenti (Athlete, Skulker, Energy Resistance).
+
+**Verifica (utente).** I campi si vedono nella scheda, si modificano in un popup e si mandano in chat.
+
+**Test.** Test UI del popup.
+
+## TE-34 · Step 2c: risorse con recupero parziale al riposo breve
+
+---
+id: TE-94
+type: feature
+priority: high
+status: todo
+order: 54
+---
+
+Figlio di TE-34. Punto 4 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`.
+- `CounterRecovery`: modo "1 al riposo breve, tutti al lungo" (Ira, Incanalare divinità, Forma selvatica, Recuperare energie, dadi psionici).
+- `src/rest.ts` lo applica.
+
+**Verifica (utente).** Ira a 0/3, riposo breve → 1/3; riposo lungo → 3/3.
+
+**Test.** `rest`: breve e lungo con il nuovo modo.
+
+## TE-34 · Step 2d: vantaggio ai TS contro morte, concentrazione e condizioni
+
+---
+id: TE-95
+type: feature
+priority: medium
+status: todo
+order: 55
+---
+
+Figlio di TE-34. Punti 5 e 11 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`.
+- Nuovi target `adv:`: TS contro la morte (Durable, Diamond Soul…), concentrazione (War Caster, Mente arcana…), contro una condizione (Dwarf, Elf, Halfling, Mindless Rage…). Il vantaggio contro una condizione è un suggerimento al tiro, non automatico.
+- Vantaggio solo agli attacchi con incantesimi (punto 8), se serve.
+
+**Verifica (utente).** Con Durable il TS contro la morte si tira con vantaggio; con War Caster il TS di concentrazione propone il vantaggio.
+
+**Test.** Un caso per target.
+
+## TE-34 · Step 2e: minimo +1 e massimo dei punteggi
+
+---
+id: TE-96
+type: feature
+priority: medium
+status: todo
+order: 56
+---
+
+Figlio di TE-34. Punti 6 e 7 di "Cosa manca nel modello" in `docs/classificazione-privilegi-phb2024.md`. Copre anche TE-71.
+- `StatModifier` con minimo (Aura of Protection, Thaumaturge…: mod. caratteristica, minimo +1).
+- Massimo del punteggio: 20 per ASI, talenti e background; 25 per Primal Champion e Body and Mind; 30 per i Doni epici.
+
+**Verifica (utente).** FOR 19 + ASI +2 → 20, e il riepilogo dice +1; Aura of Protection con CAR 8 dà +1 ai TS.
+
+**Test.** Limiti 20 / 25 / 30 e minimo +1.
+
+## TE-34 · Step 3: motore del level up e popup con le regole comuni
+
+---
+id: TE-97
+type: feature
+priority: critical
+status: todo
+order: 57
+---
+
+Figlio di TE-34. Sezione "Comuni a tutte le classi" di `docs/classificazione-privilegi-phb2024.md`.
+- Funzione pura `applyLevel(sheet, classe, livello, scelte)`: ogni voce creata porta l'id del privilegio d'origine, così il livello dopo la aggiorna invece di duplicarla e non tocca ciò che l'utente ha modificato.
+- Popup "Sali di livello" (solo chi può modificare la scheda): classe (anche nuova, con i requisiti di TE-84), PF (media o tiro + COS), dado vita, PB, slot, sottoclasse al 3, ASI o talento, riepilogo, conferma. Messaggio in chat "X sale al livello N".
+- Sostituisce TE-72, TE-77, TE-83 (popup vecchio, tolto con il revert).
+
+**Verifica (utente).** Guerriero 1 → 4: PF, dadi vita, PB, sottoclasse al 3 e ASI al 4 corretti; il riepilogo mostra cosa cambia prima di confermare.
+
+**Test.** `applyLevel` sulle regole comuni; test UI del popup.
+
+## TE-34 · Step 4: privilegi del Barbaro
+
+---
+id: TE-98
+type: feature
+priority: high
+status: todo
+order: 58
+---
+
+Figlio di TE-34. Sezione "Barbaro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Path of the Berserker, Wild Heart, World Tree, Zealot: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Barbaro in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Ira 2→6 usi e danni +2/+3/+4; Danger Sense e Feral Instinct come vantaggi; Primal Champion FOR e COS +4 al 20.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Guerriero
+
+---
+id: TE-99
+type: feature
+priority: high
+status: todo
+order: 59
+---
+
+Figlio di TE-34. Sezione "Guerriero" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Battle Master, Champion, Eldritch Knight, Psi Warrior: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Guerriero in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Second Wind 2→4, Action Surge, Indomitable; Battle Master: manovre 3/5/7/9 e dadi di superiorità; Champion: critico 19 e poi 18.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Guerriero ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Ladro
+
+---
+id: TE-100
+type: feature
+priority: high
+status: todo
+order: 60
+---
+
+Figlio di TE-34. Sezione "Ladro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Arcane Trickster, Assassin, Soulknife, Thief: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Ladro in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Sneak Attack 1d6→10d6, Expertise al 1 e al 6, Reliable Talent al 7; Arcane Trickster: slot da terzo incantatore.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Ladro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Monaco
+
+---
+id: TE-101
+type: feature
+priority: high
+status: todo
+order: 61
+---
+
+Figlio di TE-34. Sezione "Monaco" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Warrior of Mercy, Shadow, Elements, Open Hand: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Monaco in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Focus = livello, Martial Arts 1d6→1d12, Unarmored Movement +3→+9 m, Diamond Soul.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Monaco ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Paladino
+
+---
+id: TE-102
+type: feature
+priority: high
+status: todo
+order: 62
+---
+
+Figlio di TE-34. Sezione "Paladino" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Devotion, Glory, Ancients, Vengeance: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Paladino in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Lay on Hands = 5 × livello, Channel Divinity, Aura of Protection (minimo +1), incantesimi del giuramento.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Paladino ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Ranger
+
+---
+id: TE-103
+type: feature
+priority: high
+status: todo
+order: 63
+---
+
+Figlio di TE-34. Sezione "Ranger" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Beast Master, Fey Wanderer, Gloom Stalker, Hunter: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Ranger in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Favored Enemy (Hunter's Mark gratis) 2→6, Expertise, Primal Companion con le statistiche.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Ranger ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Bardo
+
+---
+id: TE-104
+type: feature
+priority: high
+status: todo
+order: 64
+---
+
+Figlio di TE-34. Sezione "Bardo" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Dance, Glamour, Lore, Valor: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Bardo in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Bardic Inspiration = CAR, d6→d12, Jack of All Trades, Expertise, Magical Secrets.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Bardo ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Chierico
+
+---
+id: TE-105
+type: feature
+priority: high
+status: todo
+order: 65
+---
+
+Figlio di TE-34. Sezione "Chierico" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Life, Light, Trickery, War: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Chierico in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Channel Divinity 2→4, Divine Order, Blessed Strikes, incantesimi di dominio sempre preparati.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Chierico ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Druido
+
+---
+id: TE-106
+type: feature
+priority: high
+status: todo
+order: 66
+---
+
+Figlio di TE-34. Sezione "Druido" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Land, Moon, Sea, Stars: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Druido in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Wild Shape 2→4, Primal Order, Elemental Fury, incantesimi del circolo.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Druido ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Stregone
+
+---
+id: TE-107
+type: feature
+priority: high
+status: todo
+order: 67
+---
+
+Figlio di TE-34. Sezione "Stregone" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Aberrant, Clockwork, Draconic, Wild Magic: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Stregone in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Sorcery Points = livello, metamagie 2/4/6, Innate Sorcery, incantesimi di sottoclasse.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Stregone ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Warlock
+
+---
+id: TE-108
+type: feature
+priority: high
+status: todo
+order: 68
+---
+
+Figlio di TE-34. Sezione "Warlock" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Archfey, Celestial, Fiend, Great Old One: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Warlock in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Pact Magic, invocazioni 1→10 con prerequisiti, Mystic Arcanum 11/13/15/17, Magical Cunning.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Warlock ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 4: privilegi del Mago
+
+---
+id: TE-109
+type: feature
+priority: high
+status: todo
+order: 69
+---
+
+Figlio di TE-34. Sezione "Mago" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Abjurer, Diviner, Evoker, Illusionist: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
+- Personaggio di prova del Mago in `src/devSheets.ts` (vedi TE-82).
+- Sostituisce, per questa classe, TE-74, TE-81 e TE-85 … TE-90.
+
+**Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Arcane Recovery, libro degli incantesimi, Scholar, Spell Mastery, Signature Spells.
+
+**Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Mago ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
+
+## TE-34 · Step 5: talenti nel level up
+
+---
+id: TE-110
+type: feature
+priority: high
+status: todo
+order: 70
+---
+
+Figlio di TE-34. Sezione "Talenti" di `docs/classificazione-privilegi-phb2024.md`: 10 delle origini, 43 generali, Doni epici al 19.
+- Lista dei talenti con prerequisiti controllati (livello 4, caratteristica 13, competenza nelle armature, incantatore); +1 alla caratteristica scelta (massimo 20).
+- Incantesimi dei talenti sempre preparati, con le risorse "gratis 1/LR" (Fey-Touched, Shadow-Touched, Magic Initiate, Telepathic, Ritual Caster, Telekinetic).
+
+**Verifica (utente).** Fey-Touched: Misty Step e l'incantesimo scelto sono preparati, con due risorse 1/LR; senza FOR 13 Great Weapon Master non è proposto; Skill Expert dà competenza e Maestria.
+
+**Test.** Un caso per tipo di talento (modificatore, competenza, incantesimo, risorsa, scelta).
+
+## TE-34 · Step 6: specie e background al level up
+
+---
+id: TE-111
+type: feature
+priority: high
+status: todo
+order: 71
+---
+
+Figlio di TE-34. Sezioni "Specie", "Background" e "Cosa cambia al level up oltre alla classe" di `docs/classificazione-privilegi-phb2024.md`.
+- Al livello totale 3 e 5: incantesimi di Elf, Tiefling, Celestial Revelation, Draconic Flight, Large Form. Al 5, 11, 17: Breath Weapon. All'aumento del PB: risorse con usi = PB (Lucky, Breath Weapon, Stonecunning, Giant Ancestry, Adrenaline Rush…).
+- Vale anche quando il livello si prende in un'altra classe.
+
+**Verifica (utente).** Tiefling infernale 2 → 3: Hellish Rebuke preparato con 1 uso per LR; Dragonborn 4 → 5: Breath Weapon 2d10, usi 3, Draconic Flight.
+
+**Test.** Livelli 3, 5, 9, 11, 17 per le specie con scale.
+
+## TE-34 · Step 7: la creazione guidata usa il motore del level up
+
+---
+id: TE-112
+type: feature
+priority: medium
+status: todo
+order: 72
+---
+
+Figlio di TE-34. La creazione guidata a livello N = creazione del livello 1 + N−1 volte `applyLevel` con le scelte del wizard. Sostituisce TE-80.
+
+**Verifica (utente).** Un Mago creato al livello 5 è uguale a un Mago creato al livello 1 e portato al 5 con le stesse scelte.
+
+**Test.** Confronto delle due schede.
+
+## TE-34 · Step 8: annullare l'ultimo level up
+
+---
+id: TE-113
+type: feature
+priority: low
+status: todo
+order: 73
+---
+
+Figlio di TE-34. Facoltativo: da fare solo se l'utente lo chiede. Copia della scheda salvata prima della conferma; "Annulla level up" la ripristina.
+
+**Verifica (utente).** Guerriero 4 → 5 e poi annulla: la scheda torna identica al livello 4.
 
 ## Sintonia e munizioni
 
