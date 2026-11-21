@@ -1182,10 +1182,11 @@ it("nel popup dell'oggetto un modificatore somma caratteristica e competenza", a
     select.dispatchEvent(new Event("change", { bubbles: true }));
   });
   await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Aggiungi bonus di competenza"]')!.click());
+  await act(async () => host.querySelector<HTMLInputElement>('input[aria-label="Moltiplica per il livello del personaggio"]')!.click());
   await click("Salva");
   await settle(1_700);
-  expect(cloudSheet().sheet.inventory[0].modifiers[0]).toMatchObject({ target: "ac", amount: 1, ability: "wisdom", proficient: true });
-  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Classe armatura +1 +Saggezza +Competenza");
+  expect(cloudSheet().sheet.inventory[0].modifiers[0]).toMatchObject({ target: "ac", amount: 1, ability: "wisdom", proficient: true, scale: "level" });
+  expect(host.querySelector(".inventory-mods")?.textContent).toBe("Classe armatura +1 +Saggezza +Competenza × livello");
 });
 
 it("nel popup Nuovo oggetto importa i campi da 5e.tools", async () => {

@@ -25,7 +25,7 @@ export function ModifierEditor({ modifiers, onChange, rollModes }: { modifiers: 
         <Select aria-label="Aggiungi modificatore di caratteristica" value={modifier.ability ?? ""} onChange={(event) => patch(modifier.id, { ability: event.target.value || undefined })}><option value="">Nessuna caratteristica</option>{Object.entries(ABILITY_LABELS).map(([value, label]) => <option key={value} value={value}>+ mod. {label}</option>)}</Select>
         <label className="action-form-check"><input type="checkbox" aria-label="Aggiungi bonus di competenza" checked={!!modifier.proficient} onChange={(event) => patch(modifier.id, { proficient: event.target.checked || undefined })}/> + Competenza</label>
         {modifier.scale === "rage" && <small>+ danni d'Ira (dal livello da barbaro)</small>}
-        {modifier.scale === "level" && <small>× livello del personaggio</small>}
+        {modifier.scale !== "rage" && <label className="action-form-check"><input type="checkbox" aria-label="Moltiplica per il livello del personaggio" checked={modifier.scale === "level"} onChange={(event) => patch(modifier.id, { scale: event.target.checked ? "level" : undefined })}/> × livello del personaggio</label>}
       </div>}
     </div>)}
     <Button type="button" variant="outline" onClick={() => onChange([...modifiers, { id: crypto.randomUUID(), target: "", amount: 1 }])}>+ Modificatore</Button>
