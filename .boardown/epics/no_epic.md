@@ -314,7 +314,7 @@ Figlio di TE-34. Sostituisce lo shortcut di `TRAIT_MODIFIERS` in `src/buildChara
 
 **Test.** `effects.test.ts`: `scale: "level"` ai livelli 1, 5 e 20.
 
-## TE-34 · Step 2a: modificatori condizionali (senza armatura, solo a distanza…)
+## TE-34 · Step 2a: modificatori condizionali sull'armatura (senza armatura, senza scudo…)
 
 ---
 id: TE-92
@@ -1151,9 +1151,11 @@ Caricando i token il nome inizia con "Beast": capire perché e toglierlo.
 id: TE-67
 type: bug
 priority: high
-status: todo
+status: done
 order: 5800
 ---
+
+**Chiuso (2026-11-21).** Il codice (`attackAll`, tasto ×2/×N) è stato tolto con il revert 32d7575: non esiste più.
 
 Da audit ponytail (2026-11-20), punto 1. Il tasto ×2/×N (`attackAll` in `EntryList`, `src/App.tsx`) chiama `run` più volte, ma `left` (risorsa collegata, es. frecce) è letto una volta prima dei tiri: con 40 frecce entrambe le card dicono "Frecce −1 (39/40)" mentre il contatore scende a 38; con 1 freccia il secondo attacco non mostra "esaurite".
 
@@ -1167,9 +1169,11 @@ Da audit ponytail (2026-11-20), punto 1. Il tasto ×2/×N (`attackAll` in `Entry
 id: TE-68
 type: bug
 priority: high
-status: todo
+status: done
 order: 5900
 ---
+
+**Chiuso (2026-11-21).** Il codice (`spendRage` in `EffectsEditor`) è stato tolto con il revert 32d7575: non esiste più. L'Ira come risorsa torna con TE-98 (Barbaro).
 
 Da audit ponytail (2026-11-20), punto 2. L'uso dell'Ira si scala solo in `EffectsEditor` (`change`, `src/EffectsEditor.tsx`); accendendo l'Ira di un PG dalla sua riga nella tab Turni (`src/TurnOrder.tsx`) l'effetto si attiva ma il contatore (es. "Ira (scala)") non scende.
 
@@ -1186,6 +1190,8 @@ priority: high
 status: todo
 order: 6000
 ---
+
+**Rimandato (2026-11-21).** Per scelta dell'utente gli import da Roll20 non si correggono per ora; il level up (TE-97) non ne dipende.
 
 Da audit ponytail (2026-11-20), punto 3. In `src/importer.ts` (~riga 73) `num(attr("base_level"), level)` restituisce 0 quando l'attributo manca, perché `Number("")` è 0: la classe principale diventa "Fighter 0" e il level up mostra "Fighter 0 → 1" con dadi vita e slot calcolati da 0.
 
