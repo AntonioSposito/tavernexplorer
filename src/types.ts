@@ -50,8 +50,6 @@ export interface ActionEntry {
   resourceId?: string;
   // Tipo d'arma (chiave di MASTERY_WEAPONS): dà la maestria dell'arma, solo se il personaggio la conosce (Weapon Mastery).
   weapon?: string;
-  // Azione di classe tenuta allineata al livello (Arti marziali: dado e caratteristica migliore).
-  classAction?: "martialArts";
 }
 
 export interface SpellEntry extends ActionEntry {
@@ -101,10 +99,7 @@ export interface StatModifier {
   ability?: string;
   proficient?: boolean;
   // "rage": si somma il bonus ai danni dell'Ira, che cresce col livello da barbaro.
-  // "level": amount vale per ogni livello del personaggio (Tough: +2 PF per livello).
-  scale?: "rage" | "level";
-  // Vale solo senza armatura indossata (Difesa e Movimento senza armatura).
-  unarmored?: true;
+  scale?: "rage";
 }
 
 // Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).
@@ -133,12 +128,6 @@ export interface ResourceCounter {
   // Creata da "Crea risorsa": con itemId la quantità dell'oggetto dello zaino è il valore attuale.
   itemId?: string;
   traitId?: string;
-  // Usi recuperati col riposo breve quando recovery è "long" (Ira: 1).
-  shortRestGain?: number;
-  // Risorsa di classe (Ira, Ispirazione bardica, Incanalare Divinità…): massimo e recupero seguono livello e caratteristiche.
-  classResource?: "rage" | "bardic" | "channel" | "wildShape" | "secondWind" | "focus" | "sorcery" | "favoredEnemy" | "psionic";
-  // Usi di un privilegio (Action Surge, Lay on Hands…): nome del tratto da cui segue massimo e recupero (classResources.ts).
-  featureUse?: string;
 }
 
 export interface TraitEntry {

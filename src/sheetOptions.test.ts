@@ -74,10 +74,3 @@ it("tooltip di iniziativa, TS e abilità: caratteristica, competenza se si appli
   expect(explainCheck(sheet, view, "skill:insight", "Intuizione", view.skills.insight.bonus)).toBe("Intuizione +2\nSaggezza +1\nJack of all trades +1");
   expect(explainCheck(sheet, view, "passivePerception", "Percezione passiva", 11)).toBe("Percezione passiva 11\nBase 10\nSaggezza +1");
 });
-
-it("Jack of all trades non si somma alla competenza all'iniziativa di Alert (TE-79)", () => {
-  const sheet = base();
-  sheet.options = { proficiency: "level", jackOfAllTrades: true };
-  sheet.traits = [{ id: "alert", name: "Alert", description: "", modifiers: [{ id: "m", target: "initiative", amount: 0, proficient: true }] }];
-  expect(effectiveSheet(sheet).combat.initiative).toBe(5);
-});

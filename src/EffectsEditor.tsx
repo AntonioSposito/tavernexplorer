@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { spendRage } from "./classResources";
-import { EFFECT_CHOICES, conditionRule, effectPreset, named, opened, withEmoji } from "./conditions";
+import { EFFECT_CHOICES, conditionRule, named, opened, withEmoji } from "./conditions";
 import { modifierTags } from "./effects";
 import { ChatIcon, EditIcon } from "./icons";
 import { ModifierEditor } from "./ModifierEditor";
 import type { ActionEntry, CharacterEffect, CharacterSheet, RollCard } from "./types";
-import { Alert, Button, Card, Dialog, Input, Select, Textarea } from "./ui";
+import { Button, Card, Dialog, Input, Select, Textarea } from "./ui";
 
 type EffectsUpdate = (update: (effects: CharacterEffect[]) => CharacterEffect[]) => void;
 export type ShareEffect = (entry: ActionEntry, card: RollCard) => void;
@@ -53,20 +52,8 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
   </>;
 }
 
-// Ira accesa adesso (nuova o riaccesa): consuma un uso della risorsa Ira.
-const rageStarted = (before: CharacterEffect[], after: CharacterEffect[]) => after.some((effect) => effect.active && effectPreset(effect.name)?.en === "Rage" && !before.some((item) => item.id === effect.id && item.active));
-
 export function EffectsEditor({ sheet, onUpdate, onShare }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: ShareEffect }) {
-  const [noRage, setNoRage] = useState(false);
-  const change = (update: (effects: CharacterEffect[]) => CharacterEffect[]) => {
-    const before = sheet.effects ?? [];
-    const starting = rageStarted(before, update(before));
-    const left = sheet.counters?.find((counter) => counter.classResource === "rage")?.current;
-    setNoRage(starting && left === 0);
-    onUpdate((next) => { const previous = next.effects ?? []; next.effects = update(previous); if (rageStarted(previous, next.effects)) spendRage(next); return next; });
-  };
   return <Card><div className="editor-heading"><h2>Effetti e condizioni</h2></div><p className="effect-note">Buff, debuff e condizioni. I modificatori attivi si sommano ai valori di base e ai tiri; un valore negativo è un debuff. I round rimasti scendono a ogni turno del personaggio nel turn order; a zero l'effetto si spegne.</p>
-    {noRage && <Alert>Nessun uso dell'Ira rimasto: l'effetto è acceso lo stesso, recuperalo con un riposo.</Alert>}
-    <div className="effects-list"><EffectList effects={sheet.effects ?? []} editable onShare={onShare} onChange={change}/></div>
+    <div className="effects-list"><EffectList effects={sheet.effects ?? []} editable onShare={onShare} onChange={(update) => onUpdate((next) => { next.effects = update(next.effects ?? []); return next; })}/></div>
   </Card>;
 }

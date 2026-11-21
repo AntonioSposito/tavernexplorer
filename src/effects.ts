@@ -60,18 +60,15 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
   const bonuses = Object.entries(options.bonuses ?? {}).filter(([, amount]) => amount).flatMap(([target, amount]) =>
     (target === "saveAll" ? ABILITY_KEYS.map((ability) => `save:${ability}`) : [target]).map((item) => ({ id: `option:${item}`, target: item, amount })));
   const expertise = (options.expertise ?? []).filter((skill) => sheet.skills[skill]?.proficient).map((skill) => ({ id: `expertise:${skill}`, target: `skill:${skill}`, amount: pb }));
-  // Jack of all trades (2024): metà competenza, per difetto, alle prove senza competenza, iniziativa compresa se non ha già la competenza (es. Alert).
-  // shortcut: guarda la competenza all'iniziativa solo nei tratti, non in effetti e oggetti; estenderlo se un oggetto la dà.
-  const initiativeProficient = sheet.traits.some((trait) => trait.modifiers?.some((mod) => mod.target === "initiative" && mod.proficient));
-  const jack = options.jackOfAllTrades ? [...Object.entries(sheet.skills).filter(([, skill]) => !skill.proficient).map(([key]) => `skill:${key}`), ...initiativeProficient ? [] : ["initiative"]].map((target) => ({ id: `jack:${target}`, target, amount: Math.floor(pb / 2) })) : [];
+  // Jack of all trades (2024): metà competenza, per difetto, alle prove senza competenza, iniziativa compresa.
+  const jack = options.jackOfAllTrades ? [...Object.entries(sheet.skills).filter(([, skill]) => !skill.proficient).map(([key]) => `skill:${key}`), "initiative"].map((target) => ({ id: `jack:${target}`, target, amount: Math.floor(pb / 2) })) : [];
   return [{ name: "Opzioni", modifiers: bonuses }, { name: "Maestria", modifiers: expertise }, { name: "Jack of all trades", modifiers: jack }];
 }
 
 // Valori numerici dei modificatori con caratteristica e competenza.
 // shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
 function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
-  const armored = modifiers.some((mod) => mod.unarmored) && wearsArmor(sheet);
-  return modifiers.filter((mod) => !(armored && mod.unarmored)).map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: (scale === "level" ? amount * sheet.identity.level : amount) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
+  return modifiers.map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
 }
 
 // Danni dell'Ira (2024): +2, +3 dal 9° livello da barbaro, +4 dal 16°. Senza classi salvate vale il livello del personaggio.
@@ -102,7 +99,6 @@ export function modifierSources(sheet: CharacterSheet, target: string): Array<{ 
   ].filter((source) => source.amount !== 0);
 }
 
-const wearsArmor = (sheet: CharacterSheet) => equippedItems(sheet).some((item) => itemModifierList(item).some((mod) => mod.target.startsWith("armor:")));
 const equippedItems = (sheet: CharacterSheet) => sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0));
 
 // CA con le parti che la compongono (per il tooltip). dexMod è il modificatore di DES già con gli effetti.
@@ -200,7 +196,7 @@ const TARGET_LABELS: Record<string, string> = Object.fromEntries([...MODIFIER_TA
 export function modifierTags(modifiers: StatModifier[]): string[] {
   return modifiers.filter((mod) => mod.target).map((mod) => {
     if (isRollModeTarget(mod.target)) return TARGET_LABELS[mod.target] ?? mod.target;
-    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira", mod.scale === "level" && "per livello", mod.unarmored && "senza armatura"].filter(Boolean);
+    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira"].filter(Boolean);
     const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
     return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras].join(" ");
   });

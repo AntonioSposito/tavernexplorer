@@ -1,4 +1,3 @@
-import { syncClassResources } from "./classResources";
 import { ABILITY_LABELS, ABILITY_SHORT, MASTERY_WEAPONS, SKILL_ABILITIES, SKILL_LABELS, WEAPON_MASTERIES } from "./constants";
 import { ClassOptions } from "./ClassOptions";
 import { effectiveProficiency, proficiencyByLevel, setAbilityScore } from "./effects";
@@ -27,7 +26,7 @@ export function SheetOptionsPanel({ sheet, onUpdate }: { sheet: CharacterSheet; 
     </div></Card>
     <Card><h2>Caratteristiche</h2><div className="options-skills options-saves">{ABILITIES.filter((ability) => sheet.abilities[ability]).map((ability) => <div key={ability}>
       <span>{ABILITY_LABELS[ability]}</span>
-      <Input type="number" aria-label={`Punteggio ${ABILITY_LABELS[ability]}`} value={sheet.abilities[ability].score} onChange={(event) => onUpdate((next) => { setAbilityScore(next, ability, Number(event.target.value) || 0); syncClassResources(next); return next; })}/>
+      <Input type="number" aria-label={`Punteggio ${ABILITY_LABELS[ability]}`} value={sheet.abilities[ability].score} onChange={(event) => onUpdate((next) => { setAbilityScore(next, ability, Number(event.target.value) || 0); return next; })}/>
       <Input type="number" aria-label={`Bonus aggiuntivo ${ABILITY_LABELS[ability]}`} value={options.bonuses?.[`ability:${ability}`] ?? 0} onChange={(event) => setOptions((next) => { next.bonuses = { ...next.bonuses, [`ability:${ability}`]: Math.trunc(Number(event.target.value)) || 0 }; })}/>
     </div>)}</div><p className="muted">Punteggio base e bonus aggiuntivo (si somma al punteggio).</p></Card>
     <Card><h2>Tiri salvezza</h2>

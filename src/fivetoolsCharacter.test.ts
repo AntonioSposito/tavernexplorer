@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { parseBackgrounds, parseClass, parseLevelFeats, parseLevelOptions, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells } from "./fivetoolsCharacter";
 
 // Estratti dei file 5e.tools (5etools-src, data/): solo i campi letti dal parser.
 const wizardFile = {
@@ -87,35 +87,4 @@ it("nel catalogo unisce PHB 2024 e supplementi, tenendo la versione 2024 dei dop
   expect(parseSpellCatalog([xphb, tce, xge], lookup).map((spell) => [spell.name, spell.source, spell.classes])).toEqual([
     ["Booming Blade", "TCE", ["Artificer", "Wizard", "Sorcerer"]], ["Mind Sliver", "XPHB", ["Wizard"]], ["Thunderclap", "XGE", []],
   ]);
-});
-
-const fighterFile = {
-  class: [{
-    name: "Fighter", source: "XPHB",
-    classFeatures: ["Second Wind|Fighter|XPHB|1", { classFeature: "Fighter Subclass|Fighter|XPHB|3", gainSubclassFeature: true }, "Ability Score Improvement|Fighter|XPHB|4", { classFeature: "Subclass Feature|Fighter|XPHB|7", gainSubclassFeature: true }],
-  }],
-  classFeature: [
-    { name: "Fighter Subclass", source: "XPHB", className: "Fighter", level: 3, entries: ["Choose a subclass."] },
-    { name: "Ability Score Improvement", source: "XPHB", className: "Fighter", level: 4, entries: ["Increase scores."] },
-    { name: "Ability Score Improvement", source: "PHB", className: "Fighter", level: 4, entries: ["Old."] },
-    { name: "Subclass Feature", source: "XPHB", className: "Fighter", level: 7, entries: ["Gain a feature."] },
-  ],
-  subclass: [
-    { name: "Champion", shortName: "Champion", source: "XPHB", className: "Fighter", classSource: "XPHB" },
-    { name: "Rune Knight", shortName: "Rune Knight", source: "TCE", className: "Fighter", classSource: "XPHB" },
-    { name: "Champion", shortName: "Champion", source: "PHB", className: "Fighter", classSource: "PHB" },
-  ],
-  subclassFeature: [
-    { name: "Improved Critical", source: "XPHB", className: "Fighter", subclassShortName: "Champion", subclassSource: "XPHB", level: 3, entries: ["Crit on 19."] },
-    { name: "Heroic Warrior", source: "XPHB", className: "Fighter", subclassShortName: "Champion", subclassSource: "XPHB", level: 7, entries: ["Heroic Inspiration."] },
-  ],
-};
-
-it("dice cosa porta un livello: privilegi, sottoclassi da scegliere, aumento caratteristiche, incantesimi", () => {
-  expect(parseLevelOptions(fighterFile, 3)).toMatchObject({ features: [{ name: "Fighter Subclass", description: "Choose a subclass." }], subclasses: ["Champion", "Rune Knight"], subclassFeature: "Fighter Subclass", abilityIncrease: false });
-  expect(parseLevelOptions(fighterFile, 3, "Champion").features.map((feature) => feature.name)).toEqual(["Fighter Subclass", "Improved Critical"]);
-  expect(parseLevelOptions(fighterFile, 4)).toMatchObject({ features: [{ description: "Increase scores." }], subclasses: [], abilityIncrease: true });
-  expect(parseLevelOptions(fighterFile, 7, "Champion")).toMatchObject({ features: [{ name: "Heroic Warrior" }], subclasses: [] });
-  expect(parseLevelOptions(wizardFile, 2)).toMatchObject({ cantrips: 0, spells: 1 });
-  expect(parseLevelFeats({ feat: [{ name: "Alert", source: "XPHB", category: "O" }, { name: "Great Weapon Master", source: "XPHB", category: "G", entries: ["Heavy."] }, { name: "Boon of Fate", source: "XPHB", category: "EB", entries: ["Fate."] }] }).map((feat) => feat.name)).toEqual(["Alert", "Great Weapon Master", "Boon of Fate"]);
 });

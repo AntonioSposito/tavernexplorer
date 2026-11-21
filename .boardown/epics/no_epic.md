@@ -830,7 +830,7 @@ Script (es. `npm run data:5etools`) che scarica da 5etools-src, a un commit fiss
 id: TE-74
 type: tech
 priority: high
-status: done
+status: todo
 order: 6500
 ---
 
@@ -838,13 +838,15 @@ Dipende da TE-73. Script che, per ogni classe e sottoclasse XPHB e per ogni live
 
 **Accettazione.** La tabella copre le 48 sottoclassi e riporta il numero di scelte mancanti raggruppate per tipo (abilità, incantesimi extra, stile di combattimento, invocazioni, metamagia, manovre…).
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Classi PHB 2024, fase 3: test 1→20 per ogni classe e sottoclasse
 
 ---
 id: TE-75
 type: tech
 priority: high
-status: done
+status: todo
 order: 6600
 ---
 
@@ -854,13 +856,15 @@ Dipende da TE-73. Un file di test generato (`it.each`) che porta ogni classe+sot
 
 **Fatto (2026-11-21).** `src/classProgression.test.ts`. Ha trovato: sottoclassi 2014 al posto delle 2024 in 23 sottoclassi su 48 (TE-76), slot di Eldritch Knight e Arcane Trickster arrotondati per difetto (`casterLevel` in `src/classes.ts`, ora per eccesso come nel PHB 2024).
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Level up: sottoclasse presa dalla versione 2014
 
 ---
 id: TE-76
 type: bug
 priority: high
-status: done
+status: todo
 order: 6700
 ---
 
@@ -870,13 +874,15 @@ Trovato nel test a mano (2026-11-21): Bardo con College of Lore riceve i privile
 
 **Accettazione.** Test: College of Lore al 6° dà "Magical Discoveries".
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Level up: incantesimi di altri manuali nel popup
 
 ---
 id: TE-77
 type: bug
 priority: medium
-status: done
+status: todo
 order: 6800
 ---
 
@@ -886,13 +892,15 @@ Trovato nel test a mano (2026-11-21): il popup "Sali di livello" propone Silvery
 
 **Accettazione.** Test: il Bardo che sale al 2° non vede incantesimi non XPHB.
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Level up: incantesimi da scegliere non obbligatori
 
 ---
 id: TE-78
 type: bug
 priority: medium
-status: done
+status: todo
 order: 6900
 ---
 
@@ -902,13 +910,15 @@ Trovato nel test a mano (2026-11-21): al 5° il Bardo doveva scegliere 2 incante
 
 **Accettazione.** Test: con 1 incantesimo su 2 "Conferma" è disattivato e compare l'avviso.
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Jack of All Trades si somma ad Alert sull'iniziativa
 
 ---
 id: TE-79
 type: bug
 priority: medium
-status: done
+status: todo
 order: 7000
 ---
 
@@ -918,13 +928,15 @@ Trovato nel test a mano (2026-11-21): Bardo 6 con Alert ha iniziativa +7 (DES 3 
 
 **Accettazione.** Test: Bardo 6 con Alert e DES 16 ha iniziativa +6.
 
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
+
 ## Creazione guidata: livello nel source type e scelte nei tratti
 
 ---
 id: TE-80
 type: bug
 priority: medium
-status: done
+status: todo
 order: 7100
 ---
 
@@ -933,6 +945,8 @@ Trovato nel test a mano (2026-11-21): i tratti di classe della creazione guidata
 **Fix.** Source type `Classe 1` per i privilegi di classe; riga `Scelta: …` in cima alla descrizione come nel level up (`featureChoice` in `src/levelUp.ts`).
 
 **Accettazione.** Test: Umano con Skillful su Percezione → tratto "Skillful" con `Scelta: Percezione`; Bardo creato → "Bardic Inspiration" con source type `Bard 1`.
+
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
 
 ## Classi PHB 2024, fase 5: scelte mancanti per tipo
 
@@ -1003,7 +1017,7 @@ Il popup "Sali di livello" permette qualsiasi nuova classe. Le regole PHB 2024 c
 id: TE-85
 type: feature
 priority: high
-status: done
+status: todo
 order: 7210
 ---
 
@@ -1014,6 +1028,8 @@ Figlio di TE-81. Righe "risorsa mancante?" di `docs/copertura-classi.md` (99, da
 **Fase 1 fatta (2026-11-21).** Risorse con una colonna nella tabella di classe, in `src/classResources.ts`: Incanalare Divinità (Chierico, Paladino), Forma selvatica, Recuperare energie, Punti focus, Punti stregoneria, Nemico prescelto, Energia psionica (Psi Warrior, Soulknife). Il test 1→20 le confronta con le colonne.
 
 **Fase 2 fatta (2026-11-21).** Privilegi con usi scritti nel testo (`FEATURE_USES` in `src/classResources.ts`, 60 privilegi): il contatore nasce quando la scheda ha il tratto con quel nome e segue livello, modificatore e dado (es. Action Surge, Indomitable, Lay on Hands 5 × livello, Combat Superiority con d8/d10/d12, Warding Flare con riposo breve da Improved Warding Flare). I falsi positivi del testo sono in `NOT_RESOURCES` di `src/classCoverage.test.ts`. In `docs/copertura-classi.md` "risorsa mancante?" è a zero.
+
+**Annullato (2026-11-21).** Il lavoro è stato tolto con il revert della salita di livello (f4ddef6, 43c0cd0) per ripensarla da capo: da rifare sul nuovo level up. Il codice vecchio resta leggibile in 43c0cd0.
 
 ## TE-81 · Incantesimi di sottoclasse sempre preparati
 

@@ -42,27 +42,3 @@ it("i danni dell'Ira crescono col livello da barbaro, o col livello del personag
   expect(raging(12, [{ name: "Barbarian", level: 8 }, { name: "Fighter", level: 4 }])).toBe(2);
   expect(modifierTags([{ id: "d", target: "damage", amount: 0, scale: "rage" }])).toEqual(["Danni +Ira"]);
 });
-
-it("Difesa senza armatura: modificatore visibile del tratto (COS Barbaro, SAG Monaco), solo senza armatura; Tough cresce col livello", async () => {
-  const { armorClass } = await import("./effects");
-  const { trait } = await import("./buildCharacter");
-  const barbarian = sheet();
-  barbarian.combat.acMode = "auto"; barbarian.combat.acBase = 10;
-  barbarian.abilities.constitution = { score: 16, mod: 3, save: 3, saveProficient: false };
-  barbarian.traits = [trait({ name: "Unarmored Defense", description: "" }, "Class", "Barbarian")];
-  expect(barbarian.traits[0].modifiers).toMatchObject([{ target: "ac", amount: 0, ability: "constitution", unarmored: true }]);
-  expect(modifierTags(barbarian.traits[0].modifiers!)).toEqual(["Classe armatura +Costituzione senza armatura"]);
-  expect(armorClass(barbarian, 2).total).toBe(15);
-  barbarian.inventory = [{ id: "a", name: "Chain Shirt", count: 1, equipped: true, modifiers: [{ id: "m", target: "armor:medium", amount: 13 }] }];
-  expect(armorClass(barbarian, 2).parts.map((part) => part.name)).toEqual(["Chain Shirt", "DES"]);
-  // Senza modificatore il nome del tratto da solo non fa niente: niente calcoli nascosti.
-  const named = sheet();
-  named.combat.acMode = "auto"; named.combat.acBase = 10;
-  named.traits = [{ id: "u", name: "Unarmored Defense", sourceType: "Monk", description: "" }];
-  expect(armorClass(named, 2).total).toBe(12);
-  const tough = sheet();
-  tough.identity.level = 5;
-  tough.traits = [{ id: "t", name: "Tough", description: "", modifiers: [{ id: "h", target: "hpMax", amount: 2, scale: "level" }] }];
-  expect(modifierTotal(tough, "hpMax")).toBe(10);
-  expect(modifierTags([{ id: "h", target: "hpMax", amount: 2, scale: "level" }])).toEqual(["PF massimi +2 per livello"]);
-});

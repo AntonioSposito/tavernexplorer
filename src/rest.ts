@@ -11,10 +11,7 @@ export function restoreCounters(counters: ResourceCounter[], kind: RestKind): { 
   const restored: string[] = [];
   return { counters: counters.map((counter) => {
     const shouldRestore = counter.recovery === "short" || kind === "long" && counter.recovery === "long";
-    if (counter.current >= counter.max) return counter;
-    // Riposo breve su una risorsa da riposo lungo: solo shortRestGain usi (Ira).
-    if (!shouldRestore && kind === "short" && counter.shortRestGain) { restored.push(counter.name); return { ...counter, current: Math.min(counter.max, counter.current + counter.shortRestGain) }; }
-    if (!shouldRestore) return counter;
+    if (!shouldRestore || counter.current >= counter.max) return counter;
     restored.push(counter.name);
     return { ...counter, current: counter.max };
   }), restored };

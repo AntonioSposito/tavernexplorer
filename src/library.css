@@ -217,9 +217,3 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 /* Crediti delle icone (CC BY 3.0) in fondo alla Libreria. */
 .icon-credits { margin-top: 1rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
 .icon-credits a { color: inherit; text-decoration: underline; }
-/* Extra Attack: ×N accanto al nome dell'azione. */
-.entry summary .entry-multi{margin-left:.35rem;padding:.05rem .4rem;border:1px solid hsl(var(--primary) / .6);border-radius:999px;background:hsl(var(--primary) / .1);color:hsl(var(--primary));font-size:.72rem;font-weight:700;cursor:pointer}
-.sneak-toggle{padding:.5rem .7rem;border:1px solid hsl(var(--border));border-radius:var(--radius)}
-/* span: deve battere ".entry summary span:first-child", che mette in colonna. */
-.entry summary span.entry-name-row{display:flex;flex-direction:row;align-items:center;gap:.35rem}
-.entry summary .entry-name-row .entry-multi{margin-left:0}

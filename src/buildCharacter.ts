@@ -1,7 +1,5 @@
 import { createBlankSheet } from "./blankSheet";
-import { syncClassResources } from "./classResources";
 import { applyClassChanges } from "./classSync";
-import { SKILL_LABELS } from "./constants";
 import { setAbilityScore } from "./effects";
 import type { CharacterOptions, EquipmentOption, Feature } from "./fivetoolsCharacter";
 import type { FiveToolsItem } from "./import5etools";
@@ -33,36 +31,19 @@ export interface CharacterChoices {
 }
 
 const uid = () => crypto.randomUUID();
-const withChoice = (feature: Feature, choice?: string): Feature => choice ? { ...feature, description: `Scelta: ${choice}\n\n${feature.description}`.trim() } : feature;
-// Tratti della specie in cui si sceglie qualcosa nella creazione guidata (PHB 2024: Umano ed Elfo).
-function speciesChoice(name: string, choices: CharacterChoices): string | undefined {
-  if ((name === "Skillful" || name === "Keen Senses") && choices.speciesSkills.length) return choices.speciesSkills.map((key) => SKILL_LABELS[key] ?? key).join(", ");
-  if (name === "Versatile" && choices.speciesFeat) return `talento ${choices.speciesFeat}`;
-}
 const feetToMeters = (feet: number) => `${Math.round(feet * 0.3 * 10) / 10} m`;
 const modOf = (score: number) => Math.floor((score - 10) / 2);
 
-// Meccaniche semplici di tratti, talenti e privilegi, come modificatori sempre attivi (si ricalcolano col livello).
-// Sono modificatori normali del tratto: si vedono come etichette e si cambiano o tolgono dal suo popup.
+// Meccaniche semplici di tratti e talenti, come modificatori sempre attivi.
+// shortcut: valori del livello 1 (Tough +2, Alert = competenza +2); con il passaggio di livello (TE-34) vanno ricalcolati.
 const TRAIT_MODIFIERS: Record<string, Array<Omit<StatModifier, "id">>> = {
-  Tough: [{ target: "hpMax", amount: 2, scale: "level" }],
-  Alert: [{ target: "initiative", amount: 0, proficient: true }],
-  "Dwarven Toughness": [{ target: "hpMax", amount: 1, scale: "level" }],
-  // Barbaro dal 5°: +3 m senza armatura pesante. shortcut: vale anche con armatura pesante; se serve, legarla all'armatura come la Difesa senza armatura.
-  "Fast Movement": [{ target: "speed", amount: 3 }],
-  // Monaco: +3 m dal 2° livello, poi il level up aggiorna il valore (syncClassResources).
-  "Unarmored Movement": [{ target: "speed", amount: 3, unarmored: true }],
-};
-// Difesa senza armatura: 10 + DES (già nella CA senza armatura) + COS per il Barbaro, + SAG per il Monaco.
-const UNARMORED_DEFENSE: Record<string, string> = { Barbarian: "constitution", Monk: "wisdom" };
-// sourceType "Barbarian 1": la classe è senza il livello.
-const traitModifiers = (name: string, sourceType: string): Array<Omit<StatModifier, "id">> | undefined => {
-  const ability = UNARMORED_DEFENSE[sourceType.replace(/ \d+$/, "")];
-  return name === "Unarmored Defense" && ability ? [{ target: "ac", amount: 0, ability, unarmored: true }] : TRAIT_MODIFIERS[name];
+  Tough: [{ target: "hpMax", amount: 2 }],
+  Alert: [{ target: "initiative", amount: 2 }],
+  "Dwarven Toughness": [{ target: "hpMax", amount: 1 }],
 };
 
-export function trait(feature: Feature, sourceKind: TraitSource, sourceType: string): TraitEntry {
-  const modifiers = traitModifiers(feature.name, sourceType)?.map((modifier) => ({ ...modifier, id: uid() }));
+function trait(feature: Feature, sourceKind: TraitSource, sourceType: string): TraitEntry {
+  const modifiers = TRAIT_MODIFIERS[feature.name]?.map((modifier) => ({ ...modifier, id: uid() }));
   return { id: uid(), name: feature.name, sourceKind, sourceType, source: `${sourceType} • ${sourceKind}`, description: feature.description, ...modifiers ? { modifiers } : {} };
 }
 
@@ -129,9 +110,8 @@ export function buildCharacter(choices: CharacterChoices, options: CharacterOpti
   ];
 
   sheet.traits = [
-    // Come nel level up (levelUp.ts): livello nel source type e la scelta in cima alla descrizione.
-    ...cls.features.map((feature) => trait(feature, "Class", `${cls.name} 1`)),
-    ...species.traits.map((feature) => trait(withChoice(feature, speciesChoice(feature.name, choices)), "Racial", species.name)),
+    ...cls.features.map((feature) => trait(feature, "Class", cls.name)),
+    ...species.traits.map((feature) => trait(feature, "Racial", species.name)),
     featTrait(background.feat, options.feats, background.name),
     ...choices.speciesFeat ? [featTrait(choices.speciesFeat, options.feats, species.name)] : [],
   ];
@@ -158,7 +138,6 @@ export function buildCharacter(choices: CharacterChoices, options: CharacterOpti
     // Il Mago sceglie 6 incantesimi per il libro e ne prepara 4: i primi.
     ...chosen(choices.spells).map((option, index) => ({ ...option.spell, id: uid(), prepared: index < cls.prepared })),
   ];
-  syncClassResources(sheet);
   return sheet;
 }
 
