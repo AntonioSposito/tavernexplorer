@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effectiveSheet, modifierTags, modifierTotal } from "./effects";
-import type { CharacterSheet } from "./types";
+import type { CharacterSheet, StatModifier } from "./types";
 
 const sheet = (): CharacterSheet => ({
   schemaVersion: 1, id: "hero", name: "Eroe", ruleset: { id: "dnd-5.5", version: "2024.1" },
@@ -41,4 +41,14 @@ it("i danni dell'Ira crescono col livello da barbaro, o col livello del personag
   expect([raging(1), raging(9), raging(16)]).toEqual([2, 3, 4]);
   expect(raging(12, [{ name: "Barbarian", level: 8 }, { name: "Fighter", level: 4 }])).toBe(2);
   expect(modifierTags([{ id: "d", target: "damage", amount: 0, scale: "rage" }])).toEqual(["Danni +Ira"]);
+});
+
+it("i modificatori scale level crescono col livello del personaggio (Tough, Dwarven Toughness); Alert segue la competenza", () => {
+  const at = (level: number, target: string, modifier: Omit<StatModifier, "id">) => { const hero = sheet(); hero.identity.level = level; hero.options = { proficiency: "level" }; hero.traits = [{ id: "t", name: "T", description: "", modifiers: [{ id: "m", ...modifier }] }]; return modifierTotal(hero, target); };
+  const tough = { target: "hpMax", amount: 2, scale: "level" } as const;
+  expect([at(1, "hpMax", tough), at(5, "hpMax", tough), at(20, "hpMax", tough)]).toEqual([2, 10, 40]);
+  expect(at(5, "hpMax", { target: "hpMax", amount: 1, scale: "level" })).toBe(5);
+  const alert = { target: "initiative", amount: 0, proficient: true };
+  expect([at(1, "initiative", alert), at(5, "initiative", alert), at(17, "initiative", alert)]).toEqual([2, 3, 6]);
+  expect(modifierTags([{ id: "m", ...tough }])).toEqual(["PF massimi +2 × livello"]);
 });

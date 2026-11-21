@@ -308,7 +308,7 @@ order: 51
 Figlio di TE-34. Sostituisce lo shortcut di `TRAIT_MODIFIERS` in `src/buildCharacter.ts`.
 - `StatModifier.scale: "level"`: `amount` × livello totale del personaggio (vedi "Cosa manca nel modello", punto 9, in `docs/classificazione-privilegi-phb2024.md`).
 - Tough: `hpMax 2 scale level`. Dwarven Toughness: `hpMax 1 scale level`. Alert: `initiative +0` con `proficient`.
-- Le schede già create con i vecchi valori si correggono quando si apre la scheda o restano come sono? Da decidere prima di iniziare.
+- Le schede già create restano come sono (deciso il 2026-11-21: nessun PG della campagna è stato creato con la creazione guidata). I valori nuovi valgono per i personaggi creati da ora in poi.
 
 **Verifica (utente).** Un PG di livello 5 con Tough ha 10 PF in più; con Alert l'iniziativa ha +3; un nano di livello 5 ha 5 PF in più.
 
@@ -1178,9 +1178,11 @@ Da audit ponytail (2026-11-20), punto 3. In `src/importer.ts` (~riga 73) `num(at
 id: TE-70
 type: tech
 priority: medium
-status: todo
+status: done
 order: 6100
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Da audit ponytail (2026-11-20), punto 4. Tre versioni dello stesso calcolo: `classLevel` in `src/classResources.ts`, il livello da ladro in `sneakAttackDice` (`src/classAttacks.ts`) e `rageDamage` in `src/effects.ts` (che usa `/barbar/i` invece del nome esatto). Una classe salvata come "Barbaro" avrebbe danni dell'Ira scalati ma nessun contatore degli usi.
 
@@ -1194,9 +1196,11 @@ Da audit ponytail (2026-11-20), punto 4. Tre versioni dello stesso calcolo: `cla
 id: TE-71
 type: bug
 priority: medium
-status: todo
+status: done
 order: 6200
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-96.
 
 Da audit ponytail (2026-11-20), punto 5. Con Forza 19 e "+2 a una caratteristica" il riepilogo di `src/LevelUpDialog.tsx` dice "Forza +2" ma `applyLevelUp` applica +1 (massimo 20).
 
@@ -1210,9 +1214,11 @@ Da audit ponytail (2026-11-20), punto 5. Con Forza 19 e "+2 a una caratteristica
 id: TE-72
 type: tech
 priority: low
-status: todo
+status: done
 order: 6300
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Da audit ponytail (2026-11-20), punto 6. `maxSpellLevel` in `src/LevelUpDialog.tsx` chiama `applyLevelUp` (copia della scheda, classi, risorse) a ogni render, anche a ogni lettera della ricerca incantesimi.
 
@@ -1242,9 +1248,11 @@ Script (es. `npm run data:5etools`) che scarica da 5etools-src, a un commit fiss
 id: TE-74
 type: tech
 priority: high
-status: todo
+status: done
 order: 6500
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Dipende da TE-73. Script che, per ogni classe e sottoclasse XPHB e per ogni livello 1-20, elenca i privilegi e assegna un tipo: solo testo, opzione della scheda (`featureOptions` in `src/levelUp.ts`), risorsa (`src/classResources.ts`), modificatore (`TRAIT_MODIFIERS`), scelta gestita (Maestria, sottoclasse, aumento caratteristiche, incantesimi). Un privilegio non gestito con "choose" / "of your choice" nel testo è "scelta mancante". Risultato in `docs/copertura-classi.md`, rigenerabile.
 
@@ -1258,9 +1266,11 @@ Dipende da TE-73. Script che, per ogni classe e sottoclasse XPHB e per ogni live
 id: TE-75
 type: tech
 priority: high
-status: todo
+status: done
 order: 6600
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Dipende da TE-73. Un file di test generato (`it.each`) che porta ogni classe+sottoclasse XPHB dal 1° al 20° con `applyLevelUp` e scelte di default, e a ogni livello controlla: PF, dadi vita, bonus di competenza; slot, trucchetti e incantesimi preparati contro la tabella della classe in 5e.tools; risorse attese con i numeri giusti; tratti con source type `Classe N` e senza doppioni; privilegi della sottoclasse dalla versione XPHB; incantesimi solo da manuali ammessi. Si salta senza dati (TE-73).
 
@@ -1276,9 +1286,11 @@ Dipende da TE-73. Un file di test generato (`it.each`) che porta ogni classe+sot
 id: TE-76
 type: bug
 priority: high
-status: todo
+status: done
 order: 6700
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Trovato nel test a mano (2026-11-21): Bardo con College of Lore riceve i privilegi 2014 ("Additional Magical Secrets" al 6°, testi "at 3rd level") invece dei 2024 ("Magical Discoveries"). In `parseLevelOptions` (`src/fivetoolsCharacter.ts`) la sottoclasse si cerca solo per nome e il file ha sia la versione PHB sia XPHB.
 
@@ -1294,9 +1306,11 @@ Trovato nel test a mano (2026-11-21): Bardo con College of Lore riceve i privile
 id: TE-77
 type: bug
 priority: medium
-status: todo
+status: done
 order: 6800
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Trovato nel test a mano (2026-11-21): il popup "Sali di livello" propone Silvery Barbs, Distort Value, Antagonize, Wardaway…; la creazione guidata mostra solo il PHB 2024.
 
@@ -1312,9 +1326,11 @@ Trovato nel test a mano (2026-11-21): il popup "Sali di livello" propone Silvery
 id: TE-78
 type: bug
 priority: medium
-status: todo
+status: done
 order: 6900
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Trovato nel test a mano (2026-11-21): al 5° il Bardo doveva scegliere 2 incantesimi, ne ha scelto 1 e "Conferma" era attivo.
 
@@ -1330,9 +1346,11 @@ Trovato nel test a mano (2026-11-21): al 5° il Bardo doveva scegliere 2 incante
 id: TE-79
 type: bug
 priority: medium
-status: todo
+status: done
 order: 7000
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-91.
 
 Trovato nel test a mano (2026-11-21): Bardo 6 con Alert ha iniziativa +7 (DES 3 + competenza 3 + 1). `src/effects.ts:64` aggiunge metà competenza all'iniziativa anche quando c'è già la competenza piena.
 
@@ -1348,9 +1366,11 @@ Trovato nel test a mano (2026-11-21): Bardo 6 con Alert ha iniziativa +7 (DES 3 
 id: TE-80
 type: bug
 priority: medium
-status: todo
+status: done
 order: 7100
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-112.
 
 Trovato nel test a mano (2026-11-21): i tratti di classe della creazione guidata hanno source type `Bard`, quelli del level up `Bard 2`. Le scelte fatte nella creazione (es. Skillful → Percezione, Versatile → Alert) non sono nella descrizione del tratto.
 
@@ -1366,9 +1386,11 @@ Trovato nel test a mano (2026-11-21): i tratti di classe della creazione guidata
 id: TE-81
 type: feature
 priority: high
-status: todo
+status: done
 order: 7200
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Dipende da TE-74. Per ogni tipo di scelta della tabella di copertura (es. abilità come Bonus Proficiencies, incantesimi da altre liste come Magical Secrets, stile di combattimento, invocazioni, metamagia, manovre, strumenti del talento Musician) un solo componente nel box del privilegio del popup "Sali di livello" (e della creazione guidata se serve), con la scelta scritta nella descrizione del tratto. Un ticket figlio per tipo, partendo da quelli che coprono più privilegi.
 
@@ -1394,9 +1416,11 @@ In sviluppo (`import.meta.env.DEV`, libreria in `src/devSheets.ts`) un tasto "Pe
 id: TE-83
 type: bug
 priority: low
-status: todo
+status: done
 order: 7400
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-97.
 
 Trovato nel test a mano (2026-11-21):
 - "1 incantesimi" → "1 incantesimo" nel popup "Sali di livello".
@@ -1429,9 +1453,11 @@ Il popup "Sali di livello" permette qualsiasi nuova classe. Le regole PHB 2024 c
 id: TE-85
 type: feature
 priority: high
-status: todo
+status: done
 order: 7210
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Righe "risorsa mancante?" di `docs/copertura-classi.md` (99, da rivedere: il tipo è indovinato dal testo). Le principali: Channel Divinity, Wild Shape, Second Wind, Action Surge, Indomitable, Monk's Focus, Lay on Hands, Font of Magic (punti stregoneria), Combat Superiority (dadi superiorità), Arcane Recovery, Magical Cunning, Innate Sorcery. Contatori creati e aggiornati col livello come Ira e Ispirazione bardica (`src/classResources.ts`), con usi e recupero dalla tabella della classe.
 
@@ -1449,9 +1475,11 @@ Figlio di TE-81. Righe "risorsa mancante?" di `docs/copertura-classi.md` (99, da
 id: TE-86
 type: feature
 priority: high
-status: todo
+status: done
 order: 7220
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Righe "incantesimi sempre preparati mancanti?" (39): Domain Spells, Oath Spells, Circle of the Land Spells, Psionic/Draconic/Clockwork Spells, Fey Wanderer Spells, incantesimi del patrono… Al livello giusto il level up aggiunge gli incantesimi alla tab Magia, preparati e segnati come sempre preparati (Circle of the Land: con la scelta del terreno nel box del privilegio).
 
@@ -1463,9 +1491,11 @@ Figlio di TE-81. Righe "incantesimi sempre preparati mancanti?" (39): Domain Spe
 id: TE-87
 type: feature
 priority: high
-status: todo
+status: done
 order: 7230
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Weapon Mastery (Barbaro, Guerriero, Paladino, Ranger, Ladro; più armi con il livello) e Fighting Style / Additional Fighting Style (Guerriero, Paladino, Ranger, Campione). Scelta nel box del privilegio, nella creazione guidata e nel level up, con la scelta nella descrizione del tratto; lo stile scelto diventa un tratto talento (sono talenti nel PHB 2024).
 
@@ -1477,9 +1507,11 @@ Figlio di TE-81. Weapon Mastery (Barbaro, Guerriero, Paladino, Ranger, Ladro; pi
 id: TE-88
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7240
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Privilegi che fanno scegliere una o più opzioni da un elenco 5e.tools (`optionalfeatures` o voci del privilegio): Metamagic, Eldritch Invocations, manovre di Combat Superiority, Divine Order, Primal Order, Blessed Strikes, Elemental Fury, Hunter's Prey, Defensive Tactics, Rage of the Wilds / Aspect of the Wilds / Power of the Wilds, Elemental Affinity. Un componente generico "scegli N da questa lista" nel box del privilegio; ogni opzione scelta diventa un tratto (o la scelta nella descrizione).
 
@@ -1491,9 +1523,11 @@ Figlio di TE-81. Privilegi che fanno scegliere una o più opzioni da un elenco 5
 id: TE-89
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7250
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Bonus Proficiencies (College of Lore: 3 abilità), Primal Knowledge, Student of War, Scholar (Maestria del Mago), Thieves' Cant (lingua). Scelta di abilità/strumenti/lingue nel box del privilegio, applicata alla scheda come la Maestria.
 
@@ -1505,9 +1539,11 @@ Figlio di TE-81. Bonus Proficiencies (College of Lore: 3 abilità), Primal Knowl
 id: TE-90
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7260
 ---
+
+**Chiuso (2026-11-21).** Riguardava il level up tolto con il revert 32d7575. Sostituito da TE-98 … TE-109.
 
 Figlio di TE-81. Magical Secrets, Magical Discoveries, Mystic Arcanum (11°, 13°, 15°, 17°), Spell Mastery, Signature Spells. Nel box del privilegio la lista degli incantesimi del livello giusto anche di altre classi (Magical Secrets: Bardo, Chierico, Druido, Mago; Mystic Arcanum: un incantesimo del livello del privilegio).
 

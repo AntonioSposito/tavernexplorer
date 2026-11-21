@@ -99,7 +99,8 @@ export interface StatModifier {
   ability?: string;
   proficient?: boolean;
   // "rage": si somma il bonus ai danni dell'Ira, che cresce col livello da barbaro.
-  scale?: "rage";
+  // "level": amount × livello del personaggio (Tough: 2 PF per livello).
+  scale?: "rage" | "level";
 }
 
 // Effetto unico per buff, debuff e condizioni: sulla scheda dei PG, sulla voce dei turni per mostri e NPC (un token ciascuno).

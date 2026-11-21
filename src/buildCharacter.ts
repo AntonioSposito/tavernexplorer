@@ -1,6 +1,6 @@
 import { createBlankSheet } from "./blankSheet";
 import { applyClassChanges } from "./classSync";
-import { setAbilityScore } from "./effects";
+import { modifierTotal, setAbilityScore } from "./effects";
 import type { CharacterOptions, EquipmentOption, Feature } from "./fivetoolsCharacter";
 import type { FiveToolsItem } from "./import5etools";
 import { actionFromItem, modifiersFromText, parseItemModifiers } from "./itemModifiers";
@@ -35,11 +35,10 @@ const feetToMeters = (feet: number) => `${Math.round(feet * 0.3 * 10) / 10} m`;
 const modOf = (score: number) => Math.floor((score - 10) / 2);
 
 // Meccaniche semplici di tratti e talenti, come modificatori sempre attivi.
-// shortcut: valori del livello 1 (Tough +2, Alert = competenza +2); con il passaggio di livello (TE-34) vanno ricalcolati.
 const TRAIT_MODIFIERS: Record<string, Array<Omit<StatModifier, "id">>> = {
-  Tough: [{ target: "hpMax", amount: 2 }],
-  Alert: [{ target: "initiative", amount: 2 }],
-  "Dwarven Toughness": [{ target: "hpMax", amount: 1 }],
+  Tough: [{ target: "hpMax", amount: 2, scale: "level" }],
+  Alert: [{ target: "initiative", amount: 0, proficient: true }],
+  "Dwarven Toughness": [{ target: "hpMax", amount: 1, scale: "level" }],
 };
 
 function trait(feature: Feature, sourceKind: TraitSource, sourceType: string): TraitEntry {
@@ -116,8 +115,7 @@ export function buildCharacter(choices: CharacterChoices, options: CharacterOpti
     ...choices.speciesFeat ? [featTrait(choices.speciesFeat, options.feats, species.name)] : [],
   ];
   if (species.name === "Halfling") sheet.options = { ...sheet.options, halflingLuck: true };
-  const hpBonus = sheet.traits.flatMap((entry) => entry.modifiers ?? []).filter((modifier) => modifier.target === "hpMax").reduce((sum, modifier) => sum + modifier.amount, 0);
-  sheet.combat.hp.current += hpBonus;
+  sheet.combat.hp.current += modifierTotal(sheet, "hpMax");
 
   const classPack = equipmentItems(cls.equipment.find((option) => option.key === choices.classEquipment), choices.classTools, catalog);
   const backgroundPack = equipmentItems(background.equipment.find((option) => option.key === choices.backgroundEquipment), choices.backgroundTools, catalog);

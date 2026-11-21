@@ -68,7 +68,7 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
 // Valori numerici dei modificatori con caratteristica e competenza.
 // shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
 function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
-  return modifiers.map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
+  return modifiers.map(({ id, target, amount, ability, proficient, scale }) => ({ id, target, amount: amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0) }));
 }
 
 // Danni dell'Ira (2024): +2, +3 dal 9° livello da barbaro, +4 dal 16°. Senza classi salvate vale il livello del personaggio.
@@ -196,7 +196,7 @@ const TARGET_LABELS: Record<string, string> = Object.fromEntries([...MODIFIER_TA
 export function modifierTags(modifiers: StatModifier[]): string[] {
   return modifiers.filter((mod) => mod.target).map((mod) => {
     if (isRollModeTarget(mod.target)) return TARGET_LABELS[mod.target] ?? mod.target;
-    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira"].filter(Boolean);
+    const extras = [mod.ability && `+${ABILITY_LABELS[mod.ability]}`, mod.proficient && "+Competenza", mod.scale === "rage" && "+Ira", mod.scale === "level" && "× livello"].filter(Boolean);
     const value = mod.target.startsWith("armor:") || mod.amount < 0 ? mod.amount : `+${mod.amount}`;
     return [TARGET_LABELS[mod.target] ?? mod.target, ...mod.amount || !extras.length ? [value] : [], ...extras].join(" ");
   });
