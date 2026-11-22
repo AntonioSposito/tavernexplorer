@@ -91,6 +91,58 @@ describe("applyLevel", () => {
   });
 });
 
+describe("privilegi di classe", () => {
+  const climb = (sheet: CharacterSheet, from: number, to: number, texts?: Record<string, string>) => {
+    for (let level = from + 1; level <= to; level += 1) sheet = applyLevel(sheet, "Barbarian", level, { texts, ...level === 3 && { subclass: "Path of the Berserker" } });
+    return sheet;
+  };
+  const counter = (sheet: CharacterSheet, name: string) => sheet.counters?.find((item) => item.name === name);
+
+  it("Barbaro 1 → 2: il tratto Rage della creazione guidata diventa il privilegio, con risorsa ed effetto", () => {
+    const sheet = character("Barbarian", 1);
+    sheet.traits = [{ id: "rage", name: "Rage", description: "testo della creazione guidata", sourceKind: "Class" }];
+    const next = climb(sheet, 1, 2, { "2:Danger Sense": "Vantaggio ai TS di Destrezza." });
+    const rage = next.traits.find((trait) => trait.name === "Rage")!;
+    expect(rage).toMatchObject({ id: "rage", featureId: "Barbarian:1:Rage", description: "testo della creazione guidata" });
+    expect(counter(next, "Rage")).toMatchObject({ current: 2, max: 2, recovery: "shortOne", traitId: "rage" });
+    expect(next.effects?.map((effect) => [effect.name, effect.active, effect.featureId])).toEqual([["Ira", false, "Barbarian:1:Rage"], ["Attacco irruento", false, "Barbarian:2:Reckless Attack"]]);
+    expect(next.traits.map((trait) => trait.name)).toEqual(["Rage", "Unarmored Defense", "Weapon Mastery", "Danger Sense", "Reckless Attack"]);
+    expect(next.traits.find((trait) => trait.name === "Danger Sense")).toMatchObject({ description: "Vantaggio ai TS di Destrezza.", sourceType: "Barbarian 2", modifiers: [{ target: "adv:save:dexterity" }] });
+    expect(levelSummary(sheet, next)).toEqual(expect.arrayContaining(["Nuova risorsa: Rage (2)", "Nuovo effetto: Ira", "Nuovo tratto: Danger Sense"]));
+  });
+
+  it("le Ire crescono con il livello e gli usi rimasti salgono della stessa differenza, senza duplicare tratti ed effetti", () => {
+    let sheet = climb(character("Barbarian", 1), 1, 2);
+    counter(sheet, "Rage")!.current = 1;
+    sheet = climb(sheet, 2, 3);
+    expect(counter(sheet, "Rage")).toMatchObject({ current: 2, max: 3 });
+    sheet = climb(sheet, 3, 17);
+    expect(counter(sheet, "Rage")).toMatchObject({ max: 6 });
+    expect(sheet.traits.filter((trait) => trait.name === "Rage")).toHaveLength(1);
+    expect(sheet.effects?.filter((effect) => effect.name === "Ira")).toHaveLength(1);
+    expect(counter(sheet, "Persistent Rage")).toMatchObject({ max: 1, recovery: "long" });
+  });
+
+  it("un effetto Ira già sulla scheda si collega invece di duplicarsi e resta acceso", () => {
+    const sheet = character("Barbarian", 1);
+    sheet.effects = [{ id: "mia-ira", name: "Ira", active: true, modifiers: [] }];
+    const next = climb(sheet, 1, 2);
+    expect(next.effects?.find((effect) => effect.name === "Ira")).toMatchObject({ id: "mia-ira", active: true, featureId: "Barbarian:1:Rage" });
+  });
+
+  it("modificatori: Unarmored Defense, Fast Movement, Feral Instinct e Primal Champion (massimo 25)", () => {
+    const sheet = climb(character("Barbarian", 1, { strength: 23, constitution: 16, dexterity: 14 }), 1, 20);
+    const view = effectiveSheet(sheet);
+    expect(view.abilities.strength.score).toBe(25);
+    expect(view.abilities.constitution.score).toBe(20);
+    // 10 + DES 2 + COS 5 senza armatura
+    expect(view.combat.ac).toBe(17);
+    expect(view.combat.speed).toBe("12 m");
+    expect(sheet.traits.find((trait) => trait.name === "Feral Instinct")?.modifiers).toMatchObject([{ target: "adv:initiative" }]);
+    expect(sheet.traits.filter((trait) => trait.name === "Improved Brutal Strike").map((trait) => trait.featureId)).toEqual(["Barbarian:13:Improved Brutal Strike", "Barbarian:17:Improved Brutal Strike"]);
+  });
+});
+
 describe("featLevel", () => {
   it("ASI ai livelli della classe e Dono epico al 19", () => {
     expect([4, 6, 8, 10, 14, 19].map((level) => featLevel("Fighter", level))).toEqual(["asi", "asi", "asi", undefined, "asi", "boon"]);

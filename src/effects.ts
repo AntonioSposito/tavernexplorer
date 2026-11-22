@@ -68,11 +68,11 @@ function optionSources(sheet: CharacterSheet): Array<{ name: string; modifiers: 
   return [{ name: "Opzioni", modifiers: bonuses }, { name: "Maestria", modifiers: expertise }, { name: "Jack of all trades", modifiers: jack }];
 }
 
-// Valori numerici dei modificatori con caratteristica e competenza.
-// shortcut: usa il modificatore base, senza i bonus degli oggetti alla caratteristica; se serve, calcolarlo a due passate.
-function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[]): StatModifier[] {
+// Valori numerici dei modificatori con caratteristica e competenza. mods: modificatori delle caratteristiche da usare,
+// di solito quelli con i bonus ai punteggi (abilityMods).
+function resolveModifiers(sheet: CharacterSheet, modifiers: StatModifier[], mods = abilityMods(sheet)): StatModifier[] {
   return modifiers.filter((modifier) => conditionMet(sheet, modifier.when)).map(({ id, target, amount, ability, proficient, scale, min, max }) => {
-    const value = amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? sheet.abilities[ability]?.mod ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0);
+    const value = amount * (scale === "level" ? sheet.identity.level : 1) + (ability ? mods[ability] ?? 0 : 0) + (proficient ? effectiveProficiency(sheet) : 0) + (scale === "rage" ? rageDamage(sheet) : 0);
     return { id, target, amount: min != null ? Math.max(min, value) : value, ...max != null ? { max } : {} };
   });
 }
@@ -116,20 +116,34 @@ export function rageDamage(sheet: CharacterSheet): number {
   return level >= 16 ? 4 : level >= 9 ? 3 : 2;
 }
 
+const modifierList = (sheet: CharacterSheet): StatModifier[] => [
+  ...optionSources(sheet).flatMap((source) => source.modifiers),
+  ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).flatMap((effect) => effect.modifiers),
+  ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item)),
+  ...sheet.traits.flatMap((trait) => trait.modifiers ?? []),
+  // Già inclusi nei valori importati da Roll20: si tolgono, così conta solo lo stato attuale degli oggetti.
+  ...(sheet.importedItemModifiers ?? []).map((modifier) => ({ ...modifier, amount: -modifier.amount })),
+];
+
+// Modificatori delle caratteristiche dopo i bonus ai punteggi (ASI, oggetti, Primal Champion), per i modificatori
+// "+ caratteristica" (Unarmored Defense +COS). Prima passata coi modificatori base, solo sui bersagli "ability:".
+function abilityMods(sheet: CharacterSheet): Record<string, number> {
+  const base = Object.fromEntries(Object.entries(sheet.abilities).map(([key, stat]) => [key, stat.mod]));
+  const bonuses = capScores(sheet, resolveModifiers(sheet, modifierList(sheet).filter((mod) => mod.target.startsWith("ability:")), base));
+  return Object.fromEntries(Object.entries(sheet.abilities).map(([key, stat]) => {
+    const bonus = bonuses.filter((mod) => mod.target === `ability:${key}` && Number.isFinite(mod.amount)).reduce((sum, mod) => sum + mod.amount, 0);
+    return [key, stat.mod + Math.floor((stat.score + bonus - 10) / 2) - Math.floor((stat.score - 10) / 2)];
+  }));
+}
+
 export function activeModifiers(sheet: CharacterSheet): StatModifier[] {
-  return capScores(sheet, resolveModifiers(sheet, [
-    ...optionSources(sheet).flatMap((source) => source.modifiers),
-    ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).flatMap((effect) => effect.modifiers),
-    ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).flatMap((item) => itemModifierList(item)),
-    ...sheet.traits.flatMap((trait) => trait.modifiers ?? []),
-    // Già inclusi nei valori importati da Roll20: si tolgono, così conta solo lo stato attuale degli oggetti.
-    ...(sheet.importedItemModifiers ?? []).map((modifier) => ({ ...modifier, amount: -modifier.amount })),
-  ]).filter((modifier) => Number.isFinite(modifier.amount)));
+  return capScores(sheet, resolveModifiers(sheet, modifierList(sheet)).filter((modifier) => Number.isFinite(modifier.amount)));
 }
 
 // Da dove arriva un modificatore: effetti attivi e oggetti equipaggiati, per nome (senza la correzione dell'import Roll20).
 export function modifierSources(sheet: CharacterSheet, target: string): Array<{ name: string; amount: number }> {
-  const sum = (mods: StatModifier[]) => resolveModifiers(sheet, mods).filter((mod) => mod.target === target && Number.isFinite(mod.amount)).reduce((total, mod) => total + mod.amount, 0);
+  const abilities = abilityMods(sheet);
+  const sum = (mods: StatModifier[]) => resolveModifiers(sheet, mods, abilities).filter((mod) => mod.target === target && Number.isFinite(mod.amount)).reduce((total, mod) => total + mod.amount, 0);
   return [
     ...(sheet.effects ?? []).filter((effect) => effect.active && (effect.remainingRounds === undefined || effect.remainingRounds > 0)).map((effect) => ({ name: effect.name, amount: sum(effect.modifiers) })),
     ...sheet.inventory.filter((item) => item.equipped && (item.count === null || item.count > 0)).map((item) => ({ name: item.name, amount: sum(itemModifierList(item)) })),

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { hasFeatureCatalog } from "./classFeatures";
 import { CLASSES, SUBCLASSES, SUBCLASS_BOOKS } from "./classes";
 import { ABILITY_LABELS } from "./constants";
 import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
+import { loadFeatureTexts } from "./fivetoolsApi";
 import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, multiclassBlock, sheetClasses, type FeatChoice, type LevelChoices } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input, Select } from "./ui";
@@ -20,6 +22,14 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const [mode, setMode] = useState<FeatMode>("");
   const [abilities, setAbilities] = useState(["", ""]);
   const [featName, setFeatName] = useState("");
+  // Testo dei privilegi da 5e.tools: null mentre si carica, "error" se non arriva (i tratti restano senza descrizione).
+  const [texts, setTexts] = useState<Record<string, string> | "error" | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setTexts(hasFeatureCatalog(className) ? null : {});
+    if (hasFeatureCatalog(className)) loadFeatureTexts(className).then((value) => { if (alive) setTexts(value); }, () => { if (alive) setTexts("error"); });
+    return () => { alive = false; };
+  }, [className]);
 
   const current = classes.find((entry) => entry.name === className);
   const level = (current?.level ?? 0) + 1;
@@ -33,7 +43,7 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
     : mode === "split" && abilities[0] && abilities[1] && abilities[0] !== abilities[1] ? { kind: "asi", abilities }
     : mode === "feat" && name ? { kind: "feat", name }
     : mode === "boon" && name && abilities[0] ? { kind: "boon", name, ability: abilities[0] } : undefined;
-  const choices: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat } };
+  const choices: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat }, ...texts && texts !== "error" && { texts } };
   const missing = [needsSubclass && !subclass && "la sottoclasse", featKind && !feat && (featKind === "boon" ? "il Dono epico, l'aumento o il talento" : "l'aumento dei punteggi o il talento")].filter(Boolean);
   const summary = levelSummary(sheet, applyLevel(sheet, className, level, choices));
 
@@ -78,9 +88,13 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
       </div>}
 
       <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>
-      <small>Privilegi della classe, trucchetti e incantesimi nuovi non si aggiungono ancora da qui: vanno messi a mano nei tratti e nella tab Magia.</small>
+      {hasFeatureCatalog(className)
+        ? <small>I privilegi della classe diventano tratti, risorse ed effetti. Le loro scelte (abilità, armi…) e gli incantesimi nuovi vanno fatti a mano.</small>
+        : <small>I privilegi di {className}, trucchetti e incantesimi nuovi non si aggiungono ancora da qui: vanno messi a mano nei tratti e nella tab Magia.</small>}
+      {texts === null && <small>Carico il testo dei privilegi da 5e.tools…</small>}
+      {texts === "error" && <small>Testo dei privilegi non disponibile da 5e.tools: i tratti nuovi restano senza descrizione.</small>}
       {missing.length > 0 && <small>Per confermare scegli {missing.join(" e ")}.</small>}
-      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={missing.length > 0} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
+      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={missing.length > 0 || texts === null} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
     </div>
   </Dialog>;
 }

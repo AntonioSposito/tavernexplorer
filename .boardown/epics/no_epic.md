@@ -452,6 +452,18 @@ Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless 
 
 **Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
 
+**Fase 1 fatta (2026-11-22).** Catalogo `src/classFeatures.ts`, applicato da `applyLevel` con il testo da 5e.tools (`loadFeatureTexts`).
+- Il Barbaro base ha già: Ira (risorsa ed effetto), Unarmored Defense, Danger Sense, Reckless Attack, Fast Movement, Feral Instinct, Persistent Rage e Primal Champion. Gli altri privilegi sono di solo testo.
+- Un tratto con lo stesso nome senza `featureId` (creazione guidata, import) viene adottato invece di duplicarsi.
+- Fix in `effects.ts`: i modificatori "+ caratteristica" ora usano il punteggio con i bonus (ASI, Primal Champion).
+
+**Fase 2 (da fare).**
+- Sottoclassi.
+- Resistenze dell'Ira negli effetti.
+- Brutal Strike come azione.
+- Scelte di Primal Knowledge e Weapon Mastery nel popup.
+- Personaggio di prova in `src/devSheets.ts`.
+
 ## TE-34 · Step 4: modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
 
 ---

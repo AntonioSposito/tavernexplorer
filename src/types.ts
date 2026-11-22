@@ -125,6 +125,8 @@ export interface CharacterEffect {
   lastTickRound?: number;
   // Salvato dal popup: i modificatori sono quelli scritti, anche se vuoti. Senza, una condizione usa i suoi predefiniti.
   edited?: true;
+  // Creato dal level up (Ira, Attacco irruento…): id del privilegio d'origine, come TraitEntry.featureId.
+  featureId?: string;
 }
 
 // "shortOne": 1 uso al riposo breve, tutti al lungo (Ira, Incanalare divinità, Forma selvatica…).
