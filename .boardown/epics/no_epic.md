@@ -735,6 +735,24 @@ Figlio di TE-34. Facoltativo: da fare solo se l'utente lo chiede. Copia della sc
 
 **Verifica (utente).** Guerriero 4 → 5 e poi annulla: la scheda torna identica al livello 4.
 
+## TE-34 · Step 9: privilegi delle sottoclassi di Xanathar e Tasha
+
+---
+id: TE-115
+type: feature
+priority: low
+status: todo
+order: 74
+---
+
+Figlio di TE-34, da fare dopo tutte le sottoclassi del PHB 2024 (TE-98 … TE-109). Il popup "Sali di livello" propone già le sottoclassi di Xanathar e Tasha (`SUBCLASSES_XANATHAR`, `SUBCLASSES_TASHA`), ma i loro privilegi vanno aggiunti a mano: il popup lo dice quando se ne sceglie una (deciso con l'utente il 2026-11-22).
+- Classificare i loro privilegi come quelli del PHB 2024 in `docs/classificazione-privilegi-phb2024.md`, con le regole 2024 (sottoclasse al 3).
+- Il level up li aggiunge come per le sottoclassi del PHB 2024; poi si toglie l'avviso nel popup.
+
+**Verifica (utente).** Una sottoclasse per manuale, dal livello 3 al 20, confrontando la scheda con il manuale.
+
+**Test.** Copertura come negli step 4: ogni `subclassFeature` XGE e TCE delle sottoclassi in elenco ha una voce nel catalogo.
+
 ## Sintonia e munizioni
 
 ---

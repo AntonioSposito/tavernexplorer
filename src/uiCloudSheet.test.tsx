@@ -1634,7 +1634,10 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   await click("↑ Sali di livello");
   const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
   expect(confirm().disabled).toBe(true);
+  await choose("Sottoclasse", "Samurai");
+  expect(host.querySelector(".level-up-box small")?.textContent).toBe("I privilegi di Samurai non si aggiungono in automatico: vanno messi a mano nei tratti.");
   await choose("Sottoclasse", "Champion");
+  expect(host.querySelector(".level-up-box small")).toBeNull();
   const summary = () => [...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent);
   expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3"]);
   // Le classi senza 13 nella caratteristica principale non si possono prendere.

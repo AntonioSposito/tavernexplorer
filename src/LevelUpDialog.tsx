@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CLASSES, SUBCLASS_BOOKS } from "./classes";
+import { CLASSES, SUBCLASSES, SUBCLASS_BOOKS } from "./classes";
 import { ABILITY_LABELS } from "./constants";
 import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
@@ -61,7 +61,10 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
 
       {needsSubclass && <div className="level-up-box"><label><span>Sottoclasse</span><Select aria-label="Sottoclasse" value={subclass} onChange={(event) => setSubclass(event.target.value)}>
         <option value="">Scegli…</option>{books.map(([book, names]) => <optgroup key={book} label={book}>{names.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}
-      </Select></label></div>}
+      </Select></label>
+        {/* shortcut: solo le sottoclassi del PHB 2024 avranno i privilegi automatici; Xanathar e Tasha dopo lo step 4 (TE-115). */}
+        {subclass && !SUBCLASSES[className]?.includes(subclass) && <small>I privilegi di {subclass} non si aggiungono in automatico: vanno messi a mano nei tratti.</small>}
+      </div>}
 
       {featKind && <div className="level-up-box form-field"><span>{featKind === "boon" ? "Dono epico o aumento dei punteggi" : "Aumento dei punteggi (massimo 20) o talento"}</span>
         {featKind === "boon" && radio("boon", "Dono epico (+1 a una caratteristica, massimo 30)")}
