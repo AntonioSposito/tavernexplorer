@@ -22,7 +22,7 @@ export function TraitForm({ trait, onSave, onCancel, onDelete }: { trait: TraitE
     const name = draft.name.trim();
     if (!name) return;
     const sourceType = draft.sourceType?.trim() || undefined;
-    onSave({ ...draft, name, sourceType, source: traitSourceText(draft.sourceKind, sourceType), modifiers: draft.modifiers?.length ? draft.modifiers : undefined });
+    onSave({ ...draft, ...draft.featureId ? { edited: true as const } : {}, name, sourceType, source: traitSourceText(draft.sourceKind, sourceType), modifiers: draft.modifiers?.length ? draft.modifiers : undefined });
   };
   return <form className="action-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
     <label><span>Nome</span><Input aria-label="Nome tratto" value={draft.name} autoFocus onChange={(event) => setDraft({ ...draft, name: event.target.value })}/></label>

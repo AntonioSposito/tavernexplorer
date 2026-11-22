@@ -151,6 +151,10 @@ export interface TraitEntry {
   description: string;
   // Sempre attivi (un tratto non si equipaggia), come gli effetti.
   modifiers?: StatModifier[];
+  // Creato dal level up: id del privilegio d'origine ("Fighter:4:feat"), così lo stesso livello lo aggiorna invece di duplicarlo.
+  featureId?: string;
+  // Salvato dal popup: il level up non lo sovrascrive più.
+  edited?: true;
 }
 
 export type TraitSource = "Racial" | "Class" | "Feat" | "Background" | "Item" | "Other";
@@ -225,6 +229,8 @@ export interface DefenseEntry {
   name: string;
   type: DefenseType;
   meters?: number;
+  // Creata da un tratto: sparisce col tratto. Quelle scritte a mano non ce l'hanno.
+  traitId?: string;
 }
 
 export interface ProficiencyEntry {

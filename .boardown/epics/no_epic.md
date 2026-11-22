@@ -411,7 +411,7 @@ Figlio di TE-34. Punti 6 e 7 di "Cosa manca nel modello" in `docs/classificazion
 id: TE-97
 type: feature
 priority: critical
-status: todo
+status: done
 order: 57
 ---
 
@@ -424,6 +424,15 @@ Figlio di TE-34. Sezione "Comuni a tutte le classi" di `docs/classificazione-pri
 **Verifica (utente).** Guerriero 1 → 4: PF, dadi vita, PB, sottoclasse al 3 e ASI al 4 corretti; il riepilogo mostra cosa cambia prima di confermare.
 
 **Test.** `applyLevel` sulle regole comuni; test UI del popup.
+
+**Fatto (2026-11-22).** `src/levelUp.ts` e `src/LevelUpDialog.tsx`.
+- Il pulsante "Sali di livello" c'è sempre per chi può modificare la scheda, ed è evidenziato quando bastano i PE (deciso con l'utente).
+- L'ASI diventa un tratto con `ability:<a>` e massimo 20. Al 19 c'è anche il Dono epico (+1, massimo 30).
+- Il talento per ora è solo un nome scritto a mano. La lista arriva con TE-110 (deciso con l'utente).
+- Se l'ASI alza la COS, i PF crescono anche per i livelli passati.
+- Senza calcolo automatico dei livelli cambiano solo livello, classi e dadi vita. Slot e TS restano a mano.
+- `DefenseEntry.traitId`: eliminando un tratto si eliminano anche le sue difese. Il level up non crea ancora difese: arriveranno con lo step 4.
+- Requisiti della multiclasse fatti qui (TE-84).
 
 ## TE-34 · Step 4: privilegi del Barbaro
 
@@ -1464,7 +1473,7 @@ Trovato nel test a mano (2026-11-21):
 id: TE-84
 type: feature
 priority: low
-status: todo
+status: done
 order: 7500
 ---
 

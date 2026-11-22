@@ -621,7 +621,7 @@ function SheetView({ sheet, editable, section, onRollValue, sheetTab, setSheetTa
   const [reorderingTraits, setReorderingTraits] = useState(false);
   const moveTrait = (index: number, offset: number) => onUpdate((next) => { const [item] = next.traits.splice(index, 1); next.traits.splice(index + offset, 0, item); return next; });
   const saveTrait = (trait: TraitEntry) => { onUpdate((next) => { const index = next.traits.findIndex((item) => item.id === trait.id); if (index >= 0) next.traits[index] = trait; else next.traits.push(trait); return next; }); setEditingTrait(null); };
-  const deleteTrait = (id: string) => { onUpdate((next) => { unlinkCounters(next, "traitId", id); next.traits = next.traits.filter((item) => item.id !== id); return next; }); setEditingTrait(null); };
+  const deleteTrait = (id: string) => { onUpdate((next) => { unlinkCounters(next, "traitId", id); next.defenses = next.defenses?.filter((entry) => entry.traitId !== id); next.traits = next.traits.filter((item) => item.id !== id); return next; }); setEditingTrait(null); };
   // "Crea risorsa" da zaino o tratti: bozza precompilata, entra nella scheda solo al salvataggio.
   const [editingResource, setEditingResource] = useState<ResourceCounter | null>(null);
   const moveAction = (index: number, offset: number) => onUpdate((next) => { const [item] = next.actions.splice(index, 1); next.actions.splice(index + offset, 0, item); return next; });
@@ -629,7 +629,7 @@ function SheetView({ sheet, editable, section, onRollValue, sheetTab, setSheetTa
   return <>
     {section ? <><div className="popout-row"><Button variant="ghost" onClick={() => void openFloatingPanel("sheet", undefined, new URLSearchParams(window.location.search).get("token") ?? undefined).then(() => OBR.popover.close(TOKEN_ACTIONS_ID))}>Apri scheda completa ↗</Button></div><h2>{TOKEN_SHEET_SECTIONS[section]} · {sheet.name}</h2></> : <section className="hero">
       {sheet.avatar && <img src={sheet.avatar} alt="" referrerPolicy="no-referrer"/>}
-      <div><h1>{sheet.name}</h1><p>{sheet.identity.classDisplay || `${sheet.identity.subclass} ${sheet.identity.className} ${sheet.identity.level}`} · {sheet.identity.race}</p><small>{ruleset.label} · schema {sheet.schemaVersion}</small><XpControl sheet={sheet} editable={editable} onUpdate={onUpdate}/></div>
+      <div><h1>{sheet.name}</h1><p>{sheet.identity.classDisplay || `${sheet.identity.subclass} ${sheet.identity.className} ${sheet.identity.level}`} · {sheet.identity.race}</p><small>{ruleset.label} · schema {sheet.schemaVersion}</small><XpControl sheet={sheet} editable={editable} onUpdate={onUpdate} onNotice={onNotice}/></div>
     </section>}
     {!section && <div className="roll-controls">
       <select value={rollMode} onChange={(event) => setRollMode(event.target.value as RollMode)}><option value="normal">Normale</option><option value="advantage">Vantaggio</option><option value="disadvantage">Svantaggio</option></select>

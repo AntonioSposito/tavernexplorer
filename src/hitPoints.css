@@ -27,3 +27,9 @@ button.xp-control{cursor:pointer}
 .xp-bar{display:block;height:.4rem;border-radius:999px;background:hsl(var(--secondary));overflow:hidden}
 .xp-bar>span{display:block;height:100%;background:hsl(var(--primary))}
 .xp-ready{font-size:.78rem;color:hsl(var(--primary))}
+button.level-up-open{display:block;margin-top:.35rem;padding:.3rem .6rem;border:1px solid hsl(var(--border));border-radius:999px;background:none;color:inherit;font:inherit;font-size:.78rem;cursor:pointer}
+button.level-up-open.ready{border-color:hsl(var(--primary) / .7);background:hsl(var(--primary) / .12);color:hsl(var(--primary))}
+.level-up-box{display:grid;gap:.5rem;border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.5rem .6rem}
+.level-up-summary{border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.6rem .8rem}
+.level-up-summary h3{margin:0 0 .35rem;font-size:.9rem}
+.level-up-summary ul{margin:0;padding-left:1.1rem;display:grid;gap:.2rem;font-size:.85rem}

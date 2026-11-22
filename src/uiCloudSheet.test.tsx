@@ -8,6 +8,7 @@ import { STORAGE_CHARACTERS, STORAGE_CLOSED_MONSTER_SECTIONS, STORAGE_CLOSED_SPE
 import { apiFetch, store } from "./fakeRedis";
 import type { ToolEntry } from "./types";
 import { importRoll20 } from "./importer";
+import { createBlankSheet } from "./blankSheet";
 import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
@@ -1615,8 +1616,42 @@ it("i PE si aggiungono dal popup e superata la soglia la scheda avvisa che si pu
   await type('input[aria-label="PE da aggiungere o togliere"]', "100");
   await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "+ Aggiungi")!.click());
   expect(host.querySelector(".xp-ready")?.textContent).toBe("↑ Pronto per il livello 2");
+  expect(host.querySelector(".level-up-open.ready")?.textContent).toBe("↑ Sali di livello");
   await settle(1_700);
   expect(cloudSheet().sheet.identity.experience).toBe("350");
+});
+
+it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conferma e messaggio in chat", async () => {
+  const sheet = createBlankSheet("Eroe");
+  sheet.classes = [{ name: "Fighter", level: 2 }];
+  sheet.identity = { ...sheet.identity, level: 2, className: "Fighter" };
+  sheet.combat.hp = { current: 20, max: 20, temp: 0 };
+  sheet.combat.hitDice = { current: 2, max: 2, die: "d10" };
+  sheet.abilities.strength = { ...sheet.abilities.strength, score: 15, mod: 2 };
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
+  expect(confirm().disabled).toBe(true);
+  await choose("Sottoclasse", "Champion");
+  const summary = () => [...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent);
+  expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3"]);
+  // Le classi senza 13 nella caratteristica principale non si possono prendere.
+  expect(host.querySelector<HTMLOptionElement>('option[value="Wizard"]')?.disabled).toBe(true);
+  await act(async () => confirm().click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.identity).toMatchObject({ level: 3, subclass: "Champion" });
+  expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Eroe sale al livello 3", visibility: "everyone" });
+
+  await click("↑ Sali di livello");
+  expect(confirm().disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLInputElement>('input[name="level-up-feat"]')!.click());
+  await choose("Caratteristica +2", "strength");
+  expect(summary()).toContain("FOR 15 → 17");
+  await act(async () => confirm().click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.traits).toMatchObject([{ name: "Ability Score Improvement", featureId: "Fighter:4:feat" }]);
 });
 
 it("il GM divide i PE di un incontro tra i PG scelti dalla tab Turni", async () => {
