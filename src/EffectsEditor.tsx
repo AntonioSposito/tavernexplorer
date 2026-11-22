@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EFFECT_CHOICES, conditionRule, named, opened, withEmoji } from "./conditions";
-import { modifierTags } from "./effects";
+import { modifierTags, rageDamage } from "./effects";
 import { ChatIcon, EditIcon } from "./icons";
 import { ModifierEditor } from "./ModifierEditor";
 import type { ActionEntry, CharacterEffect, CharacterSheet, RollCard } from "./types";
@@ -16,7 +16,7 @@ function shareEffect(effect: CharacterEffect, onShare: ShareEffect) {
 
 // Lista di effetti (buff, debuff, condizioni) con lo stesso popup ovunque: scheda del PG e voce dei turni di un token.
 // round: round attuale del turn order; un effetto aggiunto ora non scende già al turno di questo round.
-export function EffectList({ effects, editable, onChange, onShare, round }: { effects: CharacterEffect[]; editable: boolean; onChange: EffectsUpdate; onShare: ShareEffect; round?: number }) {
+export function EffectList({ effects, editable, onChange, onShare, round, rageBonus }: { effects: CharacterEffect[]; editable: boolean; onChange: EffectsUpdate; onShare: ShareEffect; round?: number; rageBonus?: number }) {
   // Copia modificata nel popup; isNew finché non viene salvata la prima volta.
   const [draft, setDraft] = useState<{ effect: CharacterEffect; isNew: boolean } | null>(null);
   const save = () => {
@@ -46,7 +46,7 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
       <label><span>Nome</span><Input aria-label="Nome effetto" value={draft.effect.name} autoFocus placeholder="Benedizione, Avvelenato…" onChange={(event) => setDraft({ ...draft, effect: named(draft.effect, event.target.value) })}/></label>
       <label><span>Descrizione</span><Textarea aria-label="Descrizione effetto" value={draft.effect.description ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, description: event.target.value || undefined } })}/></label>
       <label><span>Round rimasti (vuoto = senza scadenza)</span><Input type="number" min="0" value={draft.effect.remainingRounds ?? ""} onChange={(event) => setDraft({ ...draft, effect: { ...draft.effect, remainingRounds: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) } })}/></label>
-      <ModifierEditor rollModes modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
+      <ModifierEditor rollModes rageBonus={rageBonus} modifiers={draft.effect.modifiers} onChange={(modifiers) => setDraft({ ...draft, effect: { ...draft.effect, modifiers } })}/>
       <div className="action-form-buttons">{!draft.isNew && <Button type="button" variant="destructive" onClick={() => remove(draft.effect.id)}>Elimina</Button>}<Button type="button" variant="secondary" onClick={() => setDraft(null)}>Annulla</Button><Button type="button" onClick={save}>Salva</Button></div>
     </div>}</Dialog>
   </>;
@@ -54,6 +54,6 @@ export function EffectList({ effects, editable, onChange, onShare, round }: { ef
 
 export function EffectsEditor({ sheet, onUpdate, onShare }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: ShareEffect }) {
   return <Card><div className="editor-heading"><h2>Effetti e condizioni</h2></div><p className="effect-note">Buff, debuff e condizioni. I modificatori attivi si sommano ai valori di base e ai tiri; un valore negativo è un debuff. I round rimasti scendono a ogni turno del personaggio nel turn order; a zero l'effetto si spegne.</p>
-    <div className="effects-list"><EffectList effects={sheet.effects ?? []} editable onShare={onShare} onChange={(update) => onUpdate((next) => { next.effects = update(next.effects ?? []); return next; })}/></div>
+    <div className="effects-list"><EffectList effects={sheet.effects ?? []} rageBonus={rageDamage(sheet)} editable onShare={onShare} onChange={(update) => onUpdate((next) => { next.effects = update(next.effects ?? []); return next; })}/></div>
   </Card>;
 }
