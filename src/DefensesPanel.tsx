@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { effectPreset, isEffectOn } from "./conditions";
 import { ChatIcon, EditIcon } from "./icons";
 import type { ActionEntry, CharacterSheet, DefenseEntry, DefenseType, RollCard } from "./types";
 import { Button, Card, Dialog, Input, Select } from "./ui";
@@ -15,7 +16,10 @@ const label = (entry: DefenseEntry) => entry.meters != null ? `${entry.name} ${e
 // Resistenze, immunità, sensi e velocità speciali del PG (Ira, specie, talenti…), come i campi dei mostri.
 export function DefensesPanel({ sheet, onUpdate, onShare, editable }: { sheet: CharacterSheet; onUpdate: (update: (sheet: CharacterSheet) => CharacterSheet) => void; onShare: (entry: ActionEntry, card?: RollCard) => void; editable: boolean }) {
   const [draft, setDraft] = useState<Draft | null>(null);
-  const defenses = sheet.defenses ?? [];
+  // Quelle degli effetti accesi (Ira) si vedono col nome dell'effetto e non si modificano qui: cambiano con l'effetto.
+  const fromEffects = (sheet.effects ?? []).filter(isEffectOn).flatMap((effect) => (effect.defenses ?? effectPreset(effect.name)?.defenses ?? [])
+    .map((entry, index): DefenseEntry & { effect: string } => ({ ...entry, id: `${effect.id}:${index}`, effect: effect.name })));
+  const defenses: Array<DefenseEntry & { effect?: string }> = [...sheet.defenses ?? [], ...fromEffects];
   const share = (entry: DefenseEntry) => onShare({ id: entry.id, name: label(entry), description: TYPE_LABELS[entry.type] }, { name: label(entry), subtitle: TYPE_LABELS[entry.type], rolls: [] });
   const remove = (id: string) => { onUpdate((next) => { next.defenses = (next.defenses ?? []).filter((entry) => entry.id !== id); return next; }); setDraft(null); };
   const save = () => {
@@ -36,10 +40,10 @@ export function DefensesPanel({ sheet, onUpdate, onShare, editable }: { sheet: C
     {editable && <div className="library-actions"><Button onClick={() => setDraft({ id: null, name: "", type: "RESISTANCE", meters: "" })}>+ Nuova difesa o senso</Button></div>}
     {defenses.length ? <dl>
       {(Object.keys(TYPE_LABELS) as DefenseType[]).map((type) => { const entries = defenses.filter((entry) => entry.type === type); return entries.length > 0 && <div key={type}><dt>{TYPE_LABELS[type]}</dt><dd><ul>{entries.map((entry) => <li key={entry.id}>
-        <span>{label(entry)}</span>
+        <span>{label(entry)}{entry.effect && <small> ({entry.effect})</small>}</span>
         <span className="entry-icons">
           <button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={() => share(entry)}><ChatIcon/></button>
-          {editable && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={() => setDraft({ id: entry.id, name: entry.name, type: entry.type, meters: entry.meters != null ? String(entry.meters) : "" })}><EditIcon/></button>}
+          {editable && !entry.effect && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={() => setDraft({ id: entry.id, name: entry.name, type: entry.type, meters: entry.meters != null ? String(entry.meters) : "" })}><EditIcon/></button>}
         </span>
       </li>)}</ul></dd></div>; })}
     </dl> : <p className="muted">Nessuna resistenza, immunità o senso speciale.</p>}

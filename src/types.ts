@@ -50,6 +50,9 @@ export interface ActionEntry {
   resourceId?: string;
   // Tipo d'arma (chiave di MASTERY_WEAPONS): dà la maestria dell'arma, solo se il personaggio la conosce (Weapon Mastery).
   weapon?: string;
+  // Creata dal level up (Brutal Strike, Frenzy…): come TraitEntry.featureId ed edited.
+  featureId?: string;
+  edited?: true;
 }
 
 export interface SpellEntry extends ActionEntry {
@@ -127,6 +130,8 @@ export interface CharacterEffect {
   edited?: true;
   // Creato dal level up (Ira, Attacco irruento…): id del privilegio d'origine, come TraitEntry.featureId.
   featureId?: string;
+  // Resistenze, immunità, sensi e velocità che valgono solo con l'effetto acceso (Ira). Senza: quelle dell'effetto pronto.
+  defenses?: Array<Omit<DefenseEntry, "id" | "traitId">>;
 }
 
 // "shortOne": 1 uso al riposo breve, tutti al lungo (Ira, Incanalare divinità, Forma selvatica…).

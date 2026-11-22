@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classSlotTotals } from "./classes";
 import { hasFiveToolsData, readFiveTools, SKIP_REASON } from "./fivetoolsData";
+import { createBlankSheet } from "./blankSheet";
 import { CLASS_FEATURES } from "./classFeatures";
 import { parseClass, parseFeatureTexts } from "./fivetoolsCharacter";
 
@@ -29,7 +30,20 @@ describe.skipIf(!hasFiveToolsData)(`dati veri di 5e.tools${hasFiveToolsData ? ""
     for (const ref of refs) expect(texts[ref], ref).toBeTruthy();
     const rages = ((row.classTableGroups as Row[])[0].rows as unknown[][]).map((cells) => Number(cells[0]));
     const rage = CLASS_FEATURES.find((feature) => feature.name === "Rage")!;
-    expect(rages.map((_, index) => rage.grant!(index + 1).counter!.max)).toEqual(rages);
+    const sheet = createBlankSheet("Barbaro");
+    expect(rages.map((_, index) => rage.grant!({ level: index + 1, sheet }).counter!.max)).toEqual(rages);
+  });
+
+  it("Barbaro: ogni privilegio XPHB delle 4 sottoclassi ha una voce nel catalogo, con il testo", async () => {
+    const file = await readFiveTools("class/class-barbarian.json");
+    const texts = parseFeatureTexts(file);
+    for (const subclass of (file.subclass as Row[]).filter((row) => row.source === "XPHB" && row.classSource === "XPHB")) {
+      // Il primo privilegio ha il nome della sottoclasse: è solo l'introduzione.
+      const rows = (file.subclassFeature as Row[]).filter((row) => row.source === "XPHB" && row.subclassShortName === subclass.shortName && row.name !== subclass.name);
+      const expected = rows.map((row) => `${row.level}:${row.name}`);
+      expect(CLASS_FEATURES.filter((feature) => feature.subclass === subclass.name).map((feature) => `${feature.level}:${feature.name}`), String(subclass.name)).toEqual(expected);
+      for (const key of expected) expect(texts[key], key).toBeTruthy();
+    }
   });
 
   it("gli slot di Eldritch Knight e Arcane Trickster seguono la loro tabella dal 3° (la sottoclasse) al 20°", async () => {

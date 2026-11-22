@@ -1,9 +1,9 @@
-import { classFeatures, featureEffect, type FeatureGrant } from "./classFeatures";
+import { classFeatures, featureEffect, type FeatureAction, type FeatureGrant } from "./classFeatures";
 import { classDisplay, classRule } from "./classes";
 import { applyClassChanges, derivedSlots } from "./classSync";
 import { ABILITY_SHORT } from "./constants";
 import { effectiveSheet, fixProficiencyChoice } from "./effects";
-import type { CharacterClass, CharacterSheet, CounterRecovery, TraitEntry } from "./types";
+import type { ActionEntry, CharacterClass, CharacterSheet, CounterRecovery, TraitEntry } from "./types";
 
 // Regole comuni a tutte le classi (PHB 2024, docs/classificazione-privilegi-phb2024.md): PF, dadi vita, competenza,
 // slot, sottoclasse e Ability Score Improvement. I privilegi delle singole classi arrivano negli step successivi.
@@ -87,18 +87,30 @@ function upsertCounter(sheet: CharacterSheet, trait: TraitEntry, counter: { max:
 
 // Effetto del privilegio, spento finché non si attiva; uno già sulla scheda con lo stesso nome si collega invece di duplicarsi.
 function upsertEffect(sheet: CharacterSheet, featureId: string, grant: NonNullable<FeatureGrant["effect"]>) {
-  const { name, description, modifiers } = featureEffect(grant);
+  const { name, description, modifiers, defenses } = featureEffect(grant);
   const old = sheet.effects?.find((item) => item.featureId === featureId) ?? sheet.effects?.find((item) => !item.featureId && item.name.trim().toLowerCase() === name.toLowerCase());
-  const fresh = { name, description, modifiers: modifiers.map((mod) => ({ ...mod, id: crypto.randomUUID() })), featureId };
+  const fresh = { name, description, modifiers: modifiers.map((mod) => ({ ...mod, id: crypto.randomUUID() })), featureId, ...defenses?.length ? { defenses } : {} };
   if (!old) sheet.effects = [...sheet.effects ?? [], { id: crypto.randomUUID(), active: false, ...fresh }];
   else Object.assign(old, old.edited ? { featureId } : fresh);
 }
 
+// Azioni del privilegio, una per nome; quelle modificate a mano restano. Nessuna adozione per nome: le azioni importate sono armi.
+function upsertActions(sheet: CharacterSheet, featureId: string, actions: FeatureAction[], counterId: string | undefined) {
+  for (const { spends, ...action } of actions) {
+    const id = `${featureId}:${action.name}`;
+    const fresh: ActionEntry = { ...action, id: crypto.randomUUID(), featureId: id, ...spends && counterId ? { resourceId: counterId } : {} };
+    const index = sheet.actions.findIndex((item) => item.featureId === id);
+    if (index < 0) sheet.actions.push(fresh);
+    else if (!sheet.actions[index].edited) sheet.actions[index] = { ...fresh, id: sheet.actions[index].id };
+  }
+}
+
 // Privilegi della classe fino a classLevel: i nuovi si aggiungono, quelli già presenti si aggiornano (usi, dadi).
 function applyFeatures(sheet: CharacterSheet, className: string, classLevel: number, subclass: string | undefined, texts: Record<string, string>) {
+  const view = effectiveSheet(sheet);
   for (const feature of classFeatures(className, classLevel, subclass)) {
     const featureId = `${className}:${feature.level}:${feature.name}`;
-    const grant = feature.grant?.(classLevel) ?? {};
+    const grant = feature.grant?.({ level: classLevel, subclass, sheet: view }) ?? {};
     const sourceType = `${feature.subclass ?? className} ${feature.level}`;
     const trait = upsertTrait(sheet, {
       id: crypto.randomUUID(), featureId, name: feature.name, sourceKind: "Class", sourceType, source: `${sourceType} • Class`,
@@ -107,6 +119,7 @@ function applyFeatures(sheet: CharacterSheet, className: string, classLevel: num
     }, true);
     if (grant.counter) upsertCounter(sheet, trait, grant.counter);
     if (grant.effect) upsertEffect(sheet, featureId, grant.effect);
+    if (grant.actions) upsertActions(sheet, featureId, grant.actions, sheet.counters?.find((counter) => counter.traitId === trait.id)?.id);
   }
 }
 
@@ -166,5 +179,7 @@ export function levelSummary(before: CharacterSheet, after: CharacterSheet): str
   }
   const effects = new Set((before.effects ?? []).map((effect) => effect.id));
   for (const effect of after.effects ?? []) if (!effects.has(effect.id)) lines.push(`Nuovo effetto: ${effect.name}`);
+  const actions = new Set(before.actions.map((action) => action.id));
+  for (const action of after.actions) if (!actions.has(action.id)) lines.push(`Nuova azione: ${action.name}`);
   return lines;
 }

@@ -612,7 +612,9 @@ function SheetView({ sheet, editable, section, onRollValue, sheetTab, setSheetTa
   const importNotes = sheet.importWarnings.length > 0 && <Card className="import-notes"><h2>Note d’importazione</h2><ul>{sheet.importWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></Card>;
   // Nuova anche quando arriva precompilata (es. "Crea azione" dallo zaino) e non è ancora nella scheda.
   const isNewAction = editingAction === "new" || (editingAction !== null && !sheet.actions.some((item) => item.id === editingAction.id));
-  const saveAction = (entry: ActionEntry) => {
+  const saveAction = (saved: ActionEntry) => {
+    // Azione del level up modificata a mano: il level up dopo non la sovrascrive.
+    const entry: ActionEntry = saved.featureId ? { ...saved, edited: true } : saved;
     onUpdate((next) => { const index = next.actions.findIndex((item) => item.id === entry.id); if (index >= 0) next.actions[index] = entry; else next.actions.push(entry); return next; });
     setEditingAction(null);
   };

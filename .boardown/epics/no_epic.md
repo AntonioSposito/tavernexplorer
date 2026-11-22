@@ -457,11 +457,14 @@ Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless 
 - Un tratto con lo stesso nome senza `featureId` (creazione guidata, import) viene adottato invece di duplicarsi.
 - Fix in `effects.ts`: i modificatori "+ caratteristica" ora usano il punteggio con i bonus (ASI, Primal Champion).
 
-**Fase 2 (da fare).**
-- Sottoclassi.
-- Resistenze dell'Ira negli effetti.
-- Brutal Strike come azione.
-- Scelte di Primal Knowledge e Weapon Mastery nel popup.
+**Fase 2a fatta (2026-11-22).**
+- Le 4 sottoclassi sono nel catalogo, con un test di copertura sui dati veri.
+- Azioni dei privilegi (`ActionEntry.featureId`): Brutal Strike 1d10 → 2d10, Frenzy, Divine Fury, Life-Giving Force, Branches of the Tree, Intimidating Presence e Warrior of the Gods, con CD e risorse. Un'azione modificata a mano non viene sovrascritta.
+- `CharacterEffect.defenses`: le resistenze dell'Ira, Mindless Rage e Rage of the Gods compaiono in "Difese e sensi" solo con l'effetto acceso.
+
+**Fase 2b (da fare).**
+- Scelte nel popup: Primal Knowledge, Weapon Mastery, Rage of the Wilds, Aspect of the Wilds e Power of the Wilds.
+- Incantesimi rituali di Animal Speaker e Nature Speaker.
 - Personaggio di prova in `src/devSheets.ts`.
 
 ## TE-34 · Step 4: modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)

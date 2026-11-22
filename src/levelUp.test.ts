@@ -143,6 +143,45 @@ describe("privilegi di classe", () => {
   });
 });
 
+describe("sottoclassi del Barbaro", () => {
+  const climb = (subclass: string, to: number, scores: Record<string, number> = {}) => {
+    let sheet = character("Barbarian", 1, scores);
+    for (let level = 2; level <= to; level += 1) sheet = applyLevel(sheet, "Barbarian", level, level === 3 ? { subclass } : {});
+    return sheet;
+  };
+  const action = (sheet: CharacterSheet, name: string) => sheet.actions.find((item) => item.name === name);
+
+  it("Berserker: Frenzy 2d6 → 4d6, Mindless Rage nell'Ira, Intimidating Presence con CD e risorsa", () => {
+    expect(action(climb("Path of the Berserker", 3), "Frenzy")?.damages?.[0].dice).toBe("2d6");
+    const sheet = climb("Path of the Berserker", 16, { strength: 18 });
+    expect(action(sheet, "Frenzy")?.damages?.[0].dice).toBe("4d6");
+    expect(sheet.actions.filter((item) => item.name === "Frenzy")).toHaveLength(1);
+    expect(sheet.effects?.find((effect) => effect.name === "Ira")?.defenses?.map((entry) => entry.name)).toEqual(["Contundenti", "Perforanti", "Taglienti", "Affascinato", "Spaventato"]);
+    const presence = action(sheet, "Intimidating Presence")!;
+    // 8 + FOR 4 + competenza 5
+    expect(presence.save).toEqual({ ability: "wisdom", dc: 17, effect: "Spaventato" });
+    expect(presence.resourceId).toBe(sheet.counters?.find((counter) => counter.name === "Intimidating Presence")?.id);
+    expect(action(sheet, "Brutal Strike")?.damages?.[0].dice).toBe("1d10");
+    expect(action(climb("Path of the Berserker", 17), "Brutal Strike")?.damages?.[0].dice).toBe("2d10");
+  });
+
+  it("Zealot: Divine Fury 1d6 + metà livello, dadi di Warrior of the Gods 4 → 7, Rage of the Gods con le sue difese", () => {
+    const sheet = climb("Path of the Zealot", 17);
+    expect(action(sheet, "Divine Fury")?.damages?.[0]).toMatchObject({ dice: "1d6", bonus: 8 });
+    expect(sheet.counters?.find((counter) => counter.name === "Warrior of the Gods")).toMatchObject({ max: 7, recovery: "long" });
+    expect(sheet.effects?.find((effect) => effect.name === "Furia degli dei")?.defenses).toHaveLength(4);
+    expect(sheet.effects?.find((effect) => effect.name === "Ira")?.defenses).toHaveLength(3);
+  });
+
+  it("un'azione modificata a mano non viene sovrascritta dal livello dopo", () => {
+    const sheet = climb("Path of the Berserker", 8);
+    const frenzy = action(sheet, "Frenzy")!;
+    frenzy.description = "mia";
+    frenzy.edited = true;
+    expect(action(applyLevel(sheet, "Barbarian", 9, {}), "Frenzy")).toMatchObject({ description: "mia", damages: [{ dice: "2d6" }] });
+  });
+});
+
 describe("featLevel", () => {
   it("ASI ai livelli della classe e Dono epico al 19", () => {
     expect([4, 6, 8, 10, 14, 19].map((level) => featLevel("Fighter", level))).toEqual(["asi", "asi", "asi", undefined, "asi", "boon"]);

@@ -979,6 +979,19 @@ it("crea, modifica ed elimina competenze e strumenti dalla tab Base", async () =
   expect(saved.tools).toHaveLength(1);
 });
 
+it("le resistenze degli effetti accesi (Ira) compaiono in Difese e sensi, senza tasto Modifica", async () => {
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
+  sheet.effects = [{ id: "ira", name: "Ira", active: true, modifiers: [] }, { id: "volo", name: "Furia degli dei", active: false, modifiers: [], defenses: [{ name: "Psichici", type: "RESISTANCE" }] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const panel = () => host.querySelector(".defenses")!;
+  expect(panel().textContent).toContain("Contundenti (Ira)");
+  expect(panel().textContent).not.toContain("Psichici");
+  expect(panel().querySelector('[aria-label="Mostra in chat Contundenti"]')).not.toBeNull();
+  expect(panel().querySelector('[aria-label="Modifica Contundenti"]')).toBeNull();
+});
+
 it("crea, modifica ed elimina resistenze e sensi dalla tab Base, con la distanza solo per sensi e velocità", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });

@@ -120,11 +120,12 @@ export const isConcentration = (name: string) => /^(concentrazione|concentration
 
 // Effetti pronti (privilegi e incantesimi comuni): scelti dal nome, riempiono descrizione, modificatori e round.
 // Descrizioni riassunte a parole nostre. I dadi bonus (1d4, 1d6) non sono modificatori: restano nella descrizione.
-type EffectPreset = { emoji: string; name: string; en: string; description: string; modifiers: Array<Omit<StatModifier, "id">>; rounds?: number };
+type EffectPreset = { emoji: string; name: string; en: string; description: string; modifiers: Array<Omit<StatModifier, "id">>; rounds?: number; defenses?: CharacterEffect["defenses"] };
 const adv = (target: string) => ({ target: `adv:${target}`, amount: 0 });
 export const EFFECT_PRESETS: EffectPreset[] = [
   { emoji: "💢", name: "Ira", en: "Rage", description: "Vantaggio alle prove e ai TS di Forza. Bonus ai danni degli attacchi con Forza: +2, +3 dal 9° livello da barbaro, +4 dal 16°. Resistenza ai danni contundenti, perforanti e taglienti. Niente incantesimi né concentrazione. Dura fino alla fine del tuo prossimo turno; si prolunga attaccando, imponendo un TS o con un'azione bonus, fino a 10 minuti.",
-    modifiers: [adv("check:strength"), adv("save:strength"), { target: "damage", amount: 0, scale: "rage" }] },
+    modifiers: [adv("check:strength"), adv("save:strength"), { target: "damage", amount: 0, scale: "rage" }],
+    defenses: ["Contundenti", "Perforanti", "Taglienti"].map((name) => ({ name, type: "RESISTANCE" as const })) },
   { emoji: "🗡️", name: "Melodia della lama", en: "Bladesong", description: "Bonus alla CA pari al modificatore di Intelligenza (minimo +1), velocità +3 m, vantaggio alle prove di Acrobazia. Aggiungi il modificatore di Intelligenza ai TS di Costituzione per mantenere la concentrazione. Finisce se sei Incapacitato, se indossi un'armatura media o pesante o uno scudo, o se attacchi con un'arma a due mani. Dura 1 minuto.",
     modifiers: [{ target: "ac", amount: 0, ability: "intelligence" }, { target: "speed", amount: 3 }, adv("skill:acrobatics")], rounds: 10 },
   { emoji: "✨", name: "Benedizione", en: "Bless", description: "Aggiungi 1d4 ai tiri per colpire e ai tiri salvezza. Concentrazione, fino a 1 minuto.", modifiers: [], rounds: 10 },
