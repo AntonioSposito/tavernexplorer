@@ -19,14 +19,21 @@ export async function fetchBestiary(room: string, gmToken: string): Promise<Best
   return (await response.json() as { entries: BestiaryEntry[] }).entries;
 }
 
-// Un mostro per richiesta: uno rifiutato (es. troppo grande) non blocca gli altri. Token non valido: inutile proseguire.
+// Come MAX_BATCH in api/bestiary.ts.
+const BATCH = 20;
+
+// Un blocco per richiesta; se è rifiutato si riprova un mostro alla volta, così uno troppo grande non blocca gli altri.
+// Token non valido: inutile proseguire.
 export async function putMonsters(room: string, gmToken: string, monsters: MonsterSheet[]): Promise<void> {
   const rejected: string[] = [];
-  for (const monster of monsters) {
-    const response = await request("PUT", gmToken, { room, monsters: [monster] });
+  const put = async (batch: MonsterSheet[]): Promise<void> => {
+    const response = await request("PUT", gmToken, { room, monsters: batch });
+    if (response.ok) return;
     if (response.status === 401) throw failure(401);
-    if (!response.ok) rejected.push(`${monster.name} (HTTP ${response.status})`);
-  }
+    if (batch.length === 1) rejected.push(`${batch[0].name} (HTTP ${response.status})`);
+    else for (const monster of batch) await put([monster]);
+  };
+  for (let offset = 0; offset < monsters.length; offset += BATCH) await put(monsters.slice(offset, offset + BATCH));
   if (rejected.length) throw new Error(`Mostri non salvati nel cloud: ${rejected.join(", ")}`);
 }
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { canEditCloudSheet } from "./cloudSheets";
 import { TOKEN_META_KEY } from "./constants";
-import { getPartyMembers, getTurnState, OBR, setTokenCharacter, setTurnState } from "./obr";
+import { getPartyMembers, getTurnState, OBR, setTokenCharacters, setTurnState, type TokenLink } from "./obr";
 import { storage } from "./storage";
-import { announceInitiative, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetInitiative, type InitiativeRolled } from "./tokenInitiative";
+import { announceInitiatives, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetInitiative, type InitiativeRolled } from "./tokenInitiative";
 import { createTokenTurn } from "./tokenTurns";
 import { replaceTurnEntries } from "./turns";
 import type { CloudSheet, MonsterSheet, TurnEntry } from "./types";
@@ -42,25 +42,27 @@ export function TokenInitiativePicker() {
     try {
       const rolled: InitiativeRolled[] = [];
       const turns: TurnEntry[] = [];
+      const links: TokenLink[] = [];
       for (const token of tokens) {
         const choice = choiceOf(token.id);
         const monster = monsters.find((item) => item.id === choice.sheetId);
         if (monster) {
-          await setTokenCharacter(token.id, monster.id);
+          links.push({ tokenId: token.id, characterId: monster.id });
           const added = monsterTokenTurn(token.id, monster);
           turns.push(added.turn); rolled.push(added.rolled);
           continue;
         }
         const entry = sheets.find((item) => item.sheet.id === choice.sheetId);
-        if (entry) await setTokenCharacter(token.id, entry.sheet.id, members.find((member) => member.role !== "GM" && canEditCloudSheet(entry, { name: member.name, role: "PLAYER" }))?.id);
+        if (entry) links.push({ tokenId: token.id, characterId: entry.sheet.id, ownerId: members.find((member) => member.role !== "GM" && canEditCloudSheet(entry, { name: member.name, role: "PLAYER" }))?.id });
         const turn = createTokenTurn({ id: token.id, name: token.name, metadata: entry ? { [TOKEN_META_KEY]: { characterId: entry.sheet.id } } : {} }, entry ? [entry.sheet] : [],
           (_bonus, sheet) => { const roll = rollSheetInitiative(sheet); rolled.push(roll.rolled); return roll.initiative; },
           () => Number(choice.value) || 0);
         if (turn) turns.push(turn);
       }
+      await setTokenCharacters(links);
       const current = await getTurnState();
       await setTurnState(replaceTurnEntries(current, [...current.entries, ...turns.filter((turn) => !current.entries.some((item) => item.tokenId === turn.tokenId))]));
-      for (const roll of rolled) await announceInitiative(roll).catch(() => undefined);
+      await announceInitiatives(rolled).catch(() => undefined);
       await close();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Turn order non salvato"); setBusy(false); }
   };

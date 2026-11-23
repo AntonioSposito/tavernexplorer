@@ -150,7 +150,18 @@ async function loadRoomSheets(): Promise<void> {
   if (response.ok) roomSheets = ((await response.json()) as { sheets: CloudSheet[] }).sheets.filter((entry) => !entry.deletedAt);
 }
 
-async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: TurnState): Promise<void> {
+type BoundsOf = (tokenId: string) => ReturnType<typeof OBR.scene.items.getItemBounds>;
+// getItemBounds su più token dà un solo rettangolo, quindi serve una lettura per token: almeno una sola per giro, per CA/PF e icone.
+function cachedBounds(): BoundsOf {
+  const cache = new Map<string, ReturnType<BoundsOf>>();
+  return (tokenId) => {
+    const known = cache.get(tokenId) ?? OBR.scene.items.getItemBounds([tokenId]);
+    cache.set(tokenId, known);
+    return known;
+  };
+}
+
+async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: TurnState, boundsOf: BoundsOf, cell: number): Promise<void> {
   const entries = new Map(roomSheets.filter((entry) => entry.kind === "pc" || role === "GM").map((entry) => [entry.sheet.id, entry]));
   const monsters = role === "GM" ? new Map(storage.monsters.get().map((monster) => [monster.id, monster])) : new Map<string, MonsterSheet>();
   // Il GM carica nel turn order PF e CA dei token collegati a mostri e NPC; la scrittura riavvia la sincronizzazione.
@@ -165,9 +176,8 @@ async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: Turn
     const stats = characterId ? tokenStats(entries.get(characterId), monsters.get(characterId), turnsByToken.get(token.id)) : null;
     return stats && (role === "GM" || token.visible) ? [{ token, stats }] : [];
   });
-  const cell = await OBR.scene.grid.getDpi();
   const desired = new Map(await Promise.all(wanted.map(async ({ token, stats }) => {
-    const bounds = await OBR.scene.items.getItemBounds([token.id]);
+    const bounds = await boundsOf(token.id);
     const sig = JSON.stringify([stats, Math.round(bounds.width), Math.round(bounds.height), cell]);
     return [token.id, { sig, build: () => statsItems(token.id, bounds, stats, sig, cell) }] as const;
   })));
@@ -180,7 +190,9 @@ async function syncTokenStatus(): Promise<void> {
     OBR.scene.items.getItems((item) => item.layer === "CHARACTER"),
     getTurnState(), OBR.player.getRole(),
   ]);
-  await syncTokenStats(tokens, role, turns);
+  const boundsOf = cachedBounds();
+  const cell = await OBR.scene.grid.getDpi();
+  await syncTokenStats(tokens, role, turns, boundsOf, cell);
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
   const wanted = tokens.flatMap((token) => {
     if (role !== "GM" && !token.visible) return [];
@@ -188,9 +200,8 @@ async function syncTokenStatus(): Promise<void> {
     const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects, sheet?.combat.hp.current === 0 ? sheet.combat.deathSaves : undefined);
     return icons.length ? [{ token, icons }] : [];
   });
-  const cell = await OBR.scene.grid.getDpi();
   const desired = new Map(await Promise.all(wanted.map(async ({ token, icons }) => {
-    const bounds = await OBR.scene.items.getItemBounds([token.id]);
+    const bounds = await boundsOf(token.id);
     const sig = JSON.stringify([icons, Math.round(bounds.width), Math.round(bounds.height), cell]);
     return [token.id, { sig, build: () => conditionItems(token.id, bounds, icons, sig, cell) }] as const;
   })));

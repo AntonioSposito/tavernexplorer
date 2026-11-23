@@ -9,7 +9,7 @@ export const fakeRedisModule = {
     incr: async (key: string) => { const next = Number(hash(key).get("count") ?? 0) + 1; hash(key).set("count", String(next)); return next; },
     // La scadenza si segna nel campo "ttl" della chiave; NX non la cambia se c'è già.
     expire: async (key: string, seconds: number, option?: string) => { if (option === "NX" && hash(key).has("ttl")) return 0; hash(key).set("ttl", String(seconds)); return 1; },
-    rpush: async (key: string, value: string) => { const list = hash(key); list.set(String(list.size), value); return list.size; },
+    rpush: async (key: string, ...values: string[]) => { const list = hash(key); for (const value of values) list.set(String(list.size), value); return list.size; },
     ltrim: async (key: string, start: number) => { const list = hash(key); const values = [...list.values()].slice(start); list.clear(); values.forEach((value, index) => list.set(String(index), value)); return "OK"; },
     lrange: async (key: string) => [...hash(key).values()].map((value) => JSON.parse(value)),
     del: async (key: string) => Number(store.delete(key)),

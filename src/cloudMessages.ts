@@ -4,9 +4,19 @@ const URL = "/api/messages";
 
 // La chat nel cloud arriva anche a chi è fuori da Owlbear. "Solo io" resta su questo dispositivo.
 export async function postCloudMessage(room: string, message: ChatMessage): Promise<void> {
-  if (message.visibility === "self") return;
-  const response = await fetch(URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, message }) });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  await postCloudMessages(room, [message]);
+}
+
+// Come MAX_BATCH in api/messages.ts.
+const BATCH = 20;
+
+// Più messaggi insieme (iniziative di un gruppo di token) in una sola richiesta.
+export async function postCloudMessages(room: string, list: ChatMessage[]): Promise<void> {
+  const messages = list.filter((message) => message.visibility !== "self");
+  for (let offset = 0; offset < messages.length; offset += BATCH) {
+    const response = await fetch(URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ room, messages: messages.slice(offset, offset + BATCH) }) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  }
 }
 
 export async function fetchCloudMessages(room: string, gmToken?: string | null): Promise<ChatMessage[]> {

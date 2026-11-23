@@ -79,3 +79,11 @@ it("al limite di 3000 mostri si modificano quelli esistenti e le lapidi vecchie 
   expect(entries.some((item) => item.id === "m1")).toBe(false);
   expect(entries.some((item) => item.id === "m0")).toBe(true);
 });
+
+it("tanti mostri si caricano a blocchi di 20, non uno per richiesta", async () => {
+  const spy = vi.fn(apiFetch);
+  vi.stubGlobal("fetch", spy);
+  await putMonsters("r1", token, Array.from({ length: 45 }, (_, index) => monster(`m${index}`)));
+  expect(spy).toHaveBeenCalledTimes(3);
+  expect(await fetchBestiary("r1", token)).toHaveLength(45);
+});

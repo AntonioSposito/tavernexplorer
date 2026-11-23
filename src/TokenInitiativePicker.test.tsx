@@ -6,15 +6,15 @@ import { STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS } from "./const
 import { importRoll20 } from "./importer";
 import type { TurnState } from "./types";
 
-const mock = vi.hoisted(() => ({ setTurnState: vi.fn(), setTokenCharacter: vi.fn(), close: vi.fn(), broadcast: vi.fn() }));
+const mock = vi.hoisted(() => ({ setTurnState: vi.fn(), setTokenCharacters: vi.fn(), close: vi.fn(), broadcast: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined) }));
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: { player: { getId: async () => "gm-id", getName: async () => "Master" } } }));
 vi.mock("./obr", () => ({
   OBR: { onReady: (callback: () => void) => callback(), room: { id: "r1" }, popover: { close: mock.close },
     scene: { items: { getItems: async () => [{ id: "t1", name: "Eroe" }, { id: "t2", name: "Lupo" }, { id: "t3", name: "Mostro" }] } } },
   getPartyMembers: async () => [{ id: "marco", name: "Marco", role: "PLAYER" }],
   getTurnState: async (): Promise<TurnState> => ({ round: 1, activeIndex: 0, entries: [] }),
-  setTurnState: mock.setTurnState, setTokenCharacter: mock.setTokenCharacter,
-  broadcastMessage: mock.broadcast, showRollOnMap: async () => undefined,
+  setTurnState: mock.setTurnState, setTokenCharacters: mock.setTokenCharacters,
+  broadcastMessage: mock.broadcast, showRollsOnMap: async () => undefined,
 }));
 
 it("collega il token al PG o al mostro scelto e tira l'iniziativa; senza scheda usa il valore scritto", async () => {
@@ -38,8 +38,7 @@ it("collega il token al PG o al mostro scelto e tira l'iniziativa; senza scheda 
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(value, "14"); value.dispatchEvent(new Event("input", { bubbles: true })); });
   await act(async () => host.querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
 
-  expect(mock.setTokenCharacter).toHaveBeenCalledWith("t1", sheet.id, "marco");
-  expect(mock.setTokenCharacter).toHaveBeenCalledWith("t3", "goblin");
+  expect(mock.setTokenCharacters.mock.calls).toEqual([[[{ tokenId: "t1", characterId: sheet.id, ownerId: "marco" }, { tokenId: "t3", characterId: "goblin" }]]]);
   const turns: TurnState = mock.setTurnState.mock.calls[0][0];
   // Il turn order è ordinato per iniziativa, che qui è tirata a caso.
   expect(turns.entries).toHaveLength(3);

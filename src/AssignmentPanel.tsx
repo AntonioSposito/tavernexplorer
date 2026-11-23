@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { focusToken, getCharacterTokens, highlightToken, OBR, setTokenCharacter, setTokenOwner, type CharacterToken } from "./obr";
+import { focusToken, getCharacterTokens, highlightToken, OBR, setTokenCharacter, setTokenCharacters, setTokenOwner, type CharacterToken } from "./obr";
 import { Alert, Button, Card, Input, Select } from "./ui";
 
 interface PartyMember { id: string; name: string; role: "GM" | "PLAYER" }
@@ -73,9 +73,7 @@ export function AssignmentPanel({ sheets, monsters, members }: AssignmentPanelPr
     if (!matches.length) return;
     // Ogni scrittura fa ripartire refresh ed effetto: senza questo segno lo stesso token si ricollegherebbe.
     for (const { token } of matches) autoLinked.current.add(token.tokenId);
-    void run(async () => {
-      for (const { token, sheet } of matches) await setTokenCharacter(token.tokenId, sheet.id, sheet.ownerId);
-    }, matches.length === 1 ? `${matches[0].token.tokenName} collegato a ${matches[0].sheet.name}.` : `${matches.length} token collegati alle schede con lo stesso nome.`);
+    void run(() => setTokenCharacters(matches.map(({ token, sheet }) => ({ tokenId: token.tokenId, characterId: sheet.id, ownerId: sheet.ownerId }))), matches.length === 1 ? `${matches[0].token.tokenName} collegato a ${matches[0].sheet.name}.` : `${matches.length} token collegati alle schede con lo stesso nome.`);
   }, [tokens, sheets, monsters, run]);
 
   const sheetName = (id: string) => sheets.find((sheet) => sheet.id === id)?.name ?? monsters.find((monster) => monster.id === id)?.name;

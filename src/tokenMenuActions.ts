@@ -1,7 +1,7 @@
 import OBR, { type Item } from "@owlbear-rodeo/sdk";
 import { EXTENSION_ID, PERMISSIONS_META_KEY, TURN_META_KEY } from "./constants";
 import { storage } from "./storage";
-import { announceInitiative, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetInitiative, type InitiativeRolled } from "./tokenInitiative";
+import { announceInitiatives, INITIATIVE_PICKER_ID, monsterTokenTurn, rollSheetInitiative, type InitiativeRolled } from "./tokenInitiative";
 import { createTokenTurn, linkedCharacterId } from "./tokenTurns";
 import { openFloatingPanel } from "./floatingPanels";
 import { replaceTurnEntries } from "./turns";
@@ -106,7 +106,7 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
   }
   try { await writeRoomMetadata({ [TURN_META_KEY]: replaceTurnEntries(current, entries) }); }
   catch (error) { await OBR.notification.show(error instanceof Error ? error.message : "Ordine dei turni non salvato", "ERROR"); return; }
-  for (const roll of rolled) await announceInitiative(roll).catch(() => undefined);
+  await announceInitiatives(rolled).catch(() => undefined);
   // La tendina si chiude dopo il clic: il popover si apre al centro della vista invece che sul pulsante.
   if (unlinked.length) await OBR.popover.open({
     id: INITIATIVE_PICKER_ID, url: `/?initiative=${unlinked.map(encodeURIComponent).join(",")}`, width: 380, height: 420,

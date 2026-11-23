@@ -4,13 +4,13 @@ import { createRoot } from "react-dom/client";
 import { beforeEach, expect, it, vi } from "vitest";
 
 const unsubscribe = () => () => undefined;
-const mock = vi.hoisted(() => ({ tokens: [] as Array<Record<string, unknown>>, setTokenCharacter: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined), focusToken: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined) }));
+const mock = vi.hoisted(() => ({ tokens: [] as Array<Record<string, unknown>>, setTokenCharacter: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined), setTokenCharacters: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined), focusToken: vi.fn<(...args: unknown[]) => Promise<void>>(async () => undefined) }));
 vi.mock("./obr", () => ({
   OBR: { isAvailable: true, onReady: (callback: () => void) => callback(),
     scene: { isReady: async () => true, onReadyChange: unsubscribe, items: { onChange: unsubscribe } },
     room: { getPermissions: async () => [], onPermissionsChange: unsubscribe } },
   getCharacterTokens: async () => mock.tokens,
-  focusToken: mock.focusToken, highlightToken: async () => undefined, setTokenCharacter: mock.setTokenCharacter, setTokenOwner: async () => undefined,
+  focusToken: mock.focusToken, highlightToken: async () => undefined, setTokenCharacter: mock.setTokenCharacter, setTokenCharacters: mock.setTokenCharacters, setTokenOwner: async () => undefined,
 }));
 
 const sheets = [{ id: "eroe", name: "Eroe", ownerId: "marco" }];
@@ -26,7 +26,7 @@ async function renderPanel(panelMonsters = monsters) {
   return { host, root };
 }
 
-beforeEach(() => { mock.setTokenCharacter.mockClear(); });
+beforeEach(() => { mock.setTokenCharacter.mockClear(); mock.setTokenCharacters.mockClear(); });
 
 it("un token collegato a un mostro del bestiario mostra il mostro, non \"Scheda non disponibile\"", async () => {
   mock.tokens = [{ tokenId: "t1", tokenName: "Token goblin", characterId: "goblin", ownerId: "gm" }];
@@ -57,7 +57,7 @@ it("collega da solo i token con il nome di una scheda, PG prima dei mostri, igno
     { tokenId: "t4", tokenName: "Sconosciuto", ownerId: "gm" },
   ];
   const { root } = await renderPanel([...monsters, { id: "eroe-mostro", name: "Eroe", challengeRating: "5" }]);
-  expect(mock.setTokenCharacter.mock.calls).toEqual([["t1", "eroe", "marco"], ["t2", "oste", undefined], ["t3", "goblin", undefined]]);
+  expect(mock.setTokenCharacters.mock.calls).toEqual([[[{ tokenId: "t1", characterId: "eroe", ownerId: "marco" }, { tokenId: "t2", characterId: "oste" }, { tokenId: "t3", characterId: "goblin" }]]]);
   await act(async () => root.unmount());
 });
 

@@ -43,9 +43,19 @@ export function notifySheetsChanged(): void {
   if (OBR.isAvailable) void OBR.broadcast.sendMessage(SHEETS_CHANNEL, {}, { destination: "ALL" }).catch(() => undefined);
 }
 
+const SHEETS_RELOAD_MS = 500;
 export function onSheetsChanged(callback: () => void): () => void {
   if (!OBR.isAvailable) return () => undefined;
-  return OBR.broadcast.onMessage(SHEETS_CHANNEL, () => callback());
+  // Il primo avviso rilegge subito; quelli a ruota (PE al gruppo, import: uno per scheda) si raggruppano in una rilettura sola.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let again = false;
+  const run = () => {
+    again = false;
+    timer = setTimeout(() => { timer = undefined; if (again) run(); }, SHEETS_RELOAD_MS);
+    callback();
+  };
+  const stop = OBR.broadcast.onMessage(SHEETS_CHANNEL, () => { if (timer) again = true; else run(); });
+  return () => { clearTimeout(timer); stop(); };
 }
 
 export function onBroadcastMessage(callback: (message: ChatMessage) => void): () => void {
@@ -115,19 +125,26 @@ export async function uploadMonsterTokens(monsters: Array<{ name: string; source
 
 export interface CharacterToken { tokenId: string; tokenName: string; characterId?: string; ownerId: string; unlinked?: boolean }
 
-export async function setTokenCharacter(tokenId: string, characterId: string | null, ownerId?: string): Promise<void> {
+export interface TokenLink { tokenId: string; characterId: string | null; ownerId?: string }
+export const setTokenCharacter = (tokenId: string, characterId: string | null, ownerId?: string) => setTokenCharacters([{ tokenId, characterId, ownerId }]);
+
+// Tutti i token con una sola lettura e una sola scrittura; quelli non più nella scena danno errore ma non bloccano gli altri.
+export async function setTokenCharacters(links: TokenLink[]): Promise<void> {
+  if (!links.length) return;
   if (!OBR.isAvailable || !(await OBR.scene.isReady())) throw new Error("Apri una scena Owlbear per collegare il token");
   if (await OBR.player.getRole() !== "GM") throw new Error("Solo il GM può collegare i token alle schede");
-  const token = (await OBR.scene.items.getItems([tokenId]))[0];
-  if (!token || token.layer !== "CHARACTER") throw new Error("Il token non è più nella scena aperta");
-  await OBR.scene.items.updateItems([tokenId], (items) => {
+  const byToken = new Map(links.map((link) => [link.tokenId, link]));
+  const found = (await OBR.scene.items.getItems([...byToken.keys()])).filter((item) => item.layer === "CHARACTER").map((item) => item.id);
+  if (found.length) await OBR.scene.items.updateItems(found, (items) => {
     for (const item of items) {
+      const { characterId, ownerId } = byToken.get(item.id)!;
       if (characterId) item.metadata[TOKEN_META_KEY] = { characterId };
       // Il GM l'ha scollegato a mano: l'abbinamento automatico per nome non deve ricollegarlo.
       else item.metadata[TOKEN_META_KEY] = { unlinked: true };
       if (ownerId) item.createdUserId = ownerId;
     }
   });
+  if (found.length < byToken.size) throw new Error("Il token non è più nella scena aperta");
 }
 
 export async function setTokenOwner(tokenId: string, ownerId: string): Promise<void> {
@@ -155,17 +172,21 @@ export async function getTokenImages(tokenIds: string[]): Promise<Record<string,
 
 export { focusToken, highlightToken } from "./tokenHighlight";
 
-// Mostra il risultato sulla mappa attaccato al token del personaggio; sparisce da solo.
-export async function showRollOnMap(characterId: string, label: string, total: number): Promise<void> {
-  if (!OBR.isAvailable || !(await OBR.scene.isReady())) return;
+export const showRollOnMap = (characterId: string, label: string, total: number) => showRollsOnMap([{ characterId, label, total }]);
+
+// Mostra i risultati sulla mappa attaccati ai token dei personaggi; spariscono da soli.
+export async function showRollsOnMap(rolls: Array<{ characterId: string; label: string; total: number }>): Promise<void> {
+  if (!rolls.length || !OBR.isAvailable || !(await OBR.scene.isReady())) return;
   const items = await OBR.scene.items.getItems();
-  const token = items.find((item) => (item.metadata[TOKEN_META_KEY] as { characterId?: string } | undefined)?.characterId === characterId);
-  if (!token) return;
-  const text = buildText().plainText(`${label}: ${total}`).attachedTo(token.id).position({ x: token.position.x, y: token.position.y - 60 })
+  const texts = rolls.flatMap(({ characterId, label, total }) => {
+    const token = items.find((item) => (item.metadata[TOKEN_META_KEY] as { characterId?: string } | undefined)?.characterId === characterId);
+    return token ? [buildText().plainText(`${label}: ${total}`).attachedTo(token.id).position({ x: token.position.x, y: token.position.y - 60 })
     .fontSize(28).fontWeight(700).strokeColor("#000000").strokeWidth(2).fillOpacity(1).disableHit(true).locked(true).layer("TEXT")
-    .metadata({ [ROLL_LABEL_META_KEY]: true }).build();
-  await OBR.scene.items.addItems([text]);
-  setTimeout(() => { void OBR.scene.items.deleteItems([text.id]).catch(() => undefined); }, 6000);
+    .metadata({ [ROLL_LABEL_META_KEY]: true }).build()] : [];
+  });
+  if (!texts.length) return;
+  await OBR.scene.items.addItems(texts);
+  setTimeout(() => { void OBR.scene.items.deleteItems(texts.map((text) => text.id)).catch(() => undefined); }, 6000);
 }
 
 export { getFloatingPanelPosition, getFloatingPanelSize, openFloatingPanel, openPanelForPlayers, resizeFloatingPanel, type PanelSize } from "./floatingPanels";

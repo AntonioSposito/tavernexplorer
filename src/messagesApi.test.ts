@@ -38,3 +38,13 @@ it("rifiuta i messaggi Solo io, malformati o troppo grandi, e tiene gli ultimi 2
   expect(all).toHaveLength(200);
   expect(all[0].id).toBe("m5");
 });
+
+it("più messaggi in una richiesta: ognuno nella sua lista, tutti o nessuno", async () => {
+  expect((await post({ room: "r1", messages: [message("a", "everyone", 1), message("b", "gm", 2), message("c", "everyone", 3)] })).status).toBe(200);
+  expect((await read()).map((item) => item.id)).toEqual(["a", "c"]);
+  expect((await read(await gmToken("r1", "segreta"))).map((item) => item.id)).toEqual(["a", "b", "c"]);
+  expect((await post({ room: "r1", messages: [message("d", "everyone"), message("e", "self")] })).status).toBe(400);
+  expect((await post({ room: "r1", messages: [] })).status).toBe(400);
+  expect((await post({ room: "r1", messages: Array.from({ length: 21 }, (_, index) => message(`x${index}`, "everyone")) })).status).toBe(400);
+  expect(await read()).toHaveLength(2);
+});
