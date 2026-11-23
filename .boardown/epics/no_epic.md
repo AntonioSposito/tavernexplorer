@@ -1662,3 +1662,80 @@ order: 7260
 Figlio di TE-81. Magical Secrets, Magical Discoveries, Mystic Arcanum (11°, 13°, 15°, 17°), Spell Mastery, Signature Spells. Nel box del privilegio la lista degli incantesimi del livello giusto anche di altre classi (Magical Secrets: Bardo, Chierico, Druido, Mago; Mystic Arcanum: un incantesimo del livello del privilegio).
 
 **Accettazione.** Test: Warlock all'11° sceglie un incantesimo di 6° livello per Mystic Arcanum e lo trova nella tab Magia.
+
+## Indici per una ricerca più veloce
+
+---
+id: TE-116
+type: feature
+priority: medium
+status: todo
+order: 7600
+---
+
+Richiesta dell'utente (2026-11-23): "aggiungere indici alle colonne per una ricerca più veloce".
+
+**Stato.** Non c'è un database SQL: i dati stanno in hash e liste Redis (`api/*.ts`), senza colonne né indici. Schede e bestiario si leggono interi (`HVALS`) e la ricerca gira nel client (`CatalogDialog`, `LibraryPanel`).
+
+**Da decidere.** Se serve davvero con i limiti attuali (500 voci, 3000 mostri): misurare prima la ricerca e il peso delle letture. Alternative: mappe per id e testo di ricerca già pronto nel client; indici Redis (set o sorted set per stanza); database con indici, insieme a TE-20.
+
+**Accettazione.** Tempi misurati prima e dopo, con 500 schede e 3000 mostri.
+
+## Cache dei dati che cambiano raramente
+
+---
+id: TE-117
+type: feature
+priority: medium
+status: todo
+order: 7700
+---
+
+Richiesta dell'utente (2026-11-23): "aggiungere alla cache dati che cambiano raramente".
+
+**Stato.** I dati 5e.tools (classi, talenti, incantesimi, oggetti, bestiario) si scaricano una volta per sessione e restano solo in memoria (`src/fivetoolsApi.ts`): a ogni apertura si riscaricano, salvo la cache HTTP del browser.
+
+**Da fare.**
+- Salvarli nel browser (Cache API o IndexedDB, non `localStorage`: sono megabyte) con scadenza.
+- Rivedere `Cache-Control` per icone e file statici in `vercel.json`.
+- Le schede non si mettono in cache più di oggi: cambiano spesso e il server è la fonte di verità.
+
+**Accettazione.** Alla seconda apertura level up, catalogo incantesimi e oggetti si aprono senza scaricare di nuovo i file; alla scadenza si aggiornano; senza spazio o senza storage tutto funziona come oggi.
+
+## Lazy-load delle parti pesanti
+
+---
+id: TE-118
+type: feature
+priority: medium
+status: todo
+order: 7800
+---
+
+Richiesta dell'utente (2026-11-23): "lazy-load delle cose (se possibile)".
+
+**Stato.** Un solo bundle principale da circa 480 kB (non compresso), senza `React.lazy`. I dati 5e.tools si caricano già solo quando servono.
+
+**Da fare.** Misurare il bundle, poi caricare solo all'apertura ciò che non serve subito: creazione guidata, level up, Bestiario, Journal, Permessi, import. Immagini di schede e mostri con `loading="lazy"`. Tenere il popover del token leggero.
+
+**Accettazione.** Bundle iniziale più piccolo (misura prima e dopo); nessuna tab mostra una pagina bianca durante il caricamento; un file che non si carica dà un errore leggibile con "Riprova".
+
+## Optimistic UI a ogni clic
+
+---
+id: TE-119
+type: feature
+priority: medium
+status: todo
+order: 7900
+---
+
+Richiesta dell'utente (2026-11-23): "optimistic ui ad ogni clic".
+
+**Stato.** Le modifiche alle schede esistenti sono già ottimistiche (`update` in `src/cloudSheets.ts`: interfaccia subito, salvataggio dopo 1,5 s, conflitto segnalato). Creare ed eliminare schede, note e cartelle (`add`, `remove`) aspetta il server. Da controllare una per una: turni, inventario comune, permessi, collegamento dei token, chat.
+
+**Da fare.** Elenco dei clic che aspettano la rete, poi per ognuno: stato nuovo subito, ritorno indietro con un avviso se il salvataggio fallisce.
+
+**Attenzione.** Eliminazioni e conflitti di revisione: il ritorno indietro non deve perdere modifiche di altri.
+
+**Accettazione.** Con la rete rallentata ogni clic dà subito il risultato; con la rete assente l'azione si annulla e l'errore si vede. Un test di ritorno indietro per tipo di azione.
