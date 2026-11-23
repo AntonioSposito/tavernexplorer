@@ -9,7 +9,9 @@ import type { CharacterClass, CharacterSheet, TraitEntry } from "./types";
 // slot, sottoclasse e Ability Score Improvement. I privilegi di classe e sottoclasse (5e.tools) diventano tratti di solo testo.
 
 // Al posto dell'ASI: +1 per voce (la stessa due volte = +2, massimo 20), un talento, o al 19 un Dono epico (+1, massimo 30).
-export type FeatChoice = { kind: "asi"; abilities: string[] } | { kind: "feat"; name: string } | { kind: "boon"; name: string; ability: string };
+// description: testo da 5e.tools; assente se il nome è scritto a mano. increase: il +1 da dare a mano ("FOR o DES").
+interface FeatText { name: string; description?: string }
+export type FeatChoice = { kind: "asi"; abilities: string[] } | ({ kind: "feat"; increase?: string } & FeatText) | ({ kind: "boon"; ability: string } & FeatText);
 export interface LevelChoices {
   // Dado vita tirato; assente = valore fisso (metà del dado + 1).
   hpRoll?: number;
@@ -55,12 +57,12 @@ export function multiclassBlock(sheet: CharacterSheet, className: string): strin
 
 function featTrait(className: string, level: number, choice: FeatChoice): TraitEntry {
   const base = { id: crypto.randomUUID(), featureId: `${className}:${level}:feat`, sourceKind: "Feat" as const, sourceType: `${className} ${level}`, source: `${className} ${level} • Feat` };
-  if (choice.kind === "feat") return { ...base, name: choice.name, description: "" };
+  if (choice.kind === "feat") return { ...base, name: choice.name, description: choice.description ?? "" };
   const counts = choice.kind === "boon" ? { [choice.ability]: 1 } : choice.abilities.reduce<Record<string, number>>((sum, key) => ({ ...sum, [key]: (sum[key] ?? 0) + 1 }), {});
   const max = choice.kind === "boon" ? 30 : 20;
   return {
     ...base, name: choice.kind === "boon" ? choice.name : "Ability Score Improvement",
-    description: `${Object.entries(counts).map(([key, amount]) => `${ABILITY_SHORT[key] ?? key} +${amount}`).join(", ")} (massimo ${max})`,
+    description: [`${Object.entries(counts).map(([key, amount]) => `${ABILITY_SHORT[key] ?? key} +${amount}`).join(", ")} (massimo ${max})`, choice.kind === "boon" && choice.description].filter(Boolean).join("\n\n"),
     modifiers: Object.entries(counts).map(([key, amount]) => ({ id: crypto.randomUUID(), target: `ability:${key}`, amount, max })),
   };
 }
@@ -96,7 +98,7 @@ export function manualSteps(before: CharacterSheet, after: CharacterSheet, choic
     ...b !== undefined && a !== b ? [`Incantesimi nuovi da scegliere (preparati al massimo ${a ?? 0} → ${b})`] : [],
     ...choices.features?.length ? [`Privilegi da impostare se hanno modificatori, risorse, azioni o effetti: ${choices.features.map((feature) => feature.name).join(", ")}`] : [],
     ...missing ? [`Privilegi di ${missing} da aggiungere ai tratti`] : [],
-    ...choices.feat && choices.feat.kind !== "asi" ? [`${choices.feat.name}: descrizione ed effetti del talento`] : [],
+    ...choices.feat && choices.feat.kind !== "asi" ? [`${choices.feat.name}: ${choices.feat.kind === "feat" && choices.feat.increase ? `+1 a ${choices.feat.increase} ed ` : choices.feat.description ? "" : "descrizione ed "}effetti del talento`] : [],
   ];
 }
 

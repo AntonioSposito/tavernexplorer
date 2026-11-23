@@ -1,3 +1,4 @@
+import { ABILITY_SHORT } from "./constants";
 import { renderEntries, stripTags } from "./import5etools";
 import type { ActionAbility, SpellEntry } from "./types";
 
@@ -216,6 +217,41 @@ export function parseSpecies(file: unknown): SpeciesOption[] {
     originFeat: array(row.feats).some((feat) => obj(feat).anyFromCategory),
     traits: array(row.entries).map(obj).filter((entry) => entry.name).map((entry) => ({ name: renderEntries(text(entry.name)), description: renderEntries(entry.entries) })),
   }));
+}
+
+// Talenti del PHB 2024 per il level up. Generali, d'origine, Stili di combattimento e Doni epici; l'aumento dei punteggi
+// e gli stili riservati a Paladino e Ranger (FS:P, FS:R) no.
+export type FeatCategory = "G" | "O" | "FS" | "EB";
+// abilities: caratteristiche tra cui scegliere il +1 (vuoto = nessun aumento). prerequisite: solo testo, non è controllato.
+export interface FeatOption extends Feature { category: FeatCategory; abilities: string[]; prerequisite: string }
+const ARMOR: Record<string, string> = { light: "leggere", medium: "medie", heavy: "pesanti" };
+
+// "FOR o DES 13": le alternative di un prerequisito, anche quando l'elenco è ripetuto in più righe (Athlete).
+function featPrerequisite(value: unknown): string {
+  const rows = array(value).map(obj);
+  const all = (pick: (row: Obj) => unknown[]) => [...new Set(rows.flatMap(pick).map(text).filter(Boolean))];
+  const level = all((row) => [obj(row.level).level ?? row.level])[0];
+  const scores = rows.flatMap((row) => array(row.ability).map(obj).flatMap((scores) => Object.entries(scores)));
+  const abilities = [...new Set(scores.map(([key]) => ABILITY_SHORT[ABILITIES[key]] ?? key))];
+  const armor = all((row) => array(row.proficiency).map((item) => obj(item).armor)).map((kind) => ARMOR[kind] ?? kind);
+  return [
+    level && `livello ${level}`, abilities.length > 0 && `${abilities.join(" o ")} ${text(scores[0][1])}`,
+    armor.length > 0 && `competenza nelle armature ${armor.join(" o ")}`, rows.some((row) => row.spellcasting2020) && "lanciare incantesimi",
+    ...all((row) => array(row.feature)).map((name) => `privilegio ${name}`),
+  ].filter(Boolean).join(", ");
+}
+
+export const abilityChoice = (abilities: string[]) => abilities.length === 6 ? "una caratteristica" : abilities.map((key) => ABILITY_SHORT[key]).join(" o ");
+
+export function parseFeats(file: unknown): FeatOption[] {
+  return array(obj(file).feat).map(obj).filter((row) => row.source === SOURCE && ["G", "O", "FS", "EB"].includes(text(row.category)) && row.name !== "Ability Score Improvement").map((row) => {
+    const category = text(row.category) as FeatCategory;
+    const abilities = array(row.ability).map(obj).flatMap((item) => item.choose ? array(obj(item.choose).from).map(text) : Object.keys(item)).flatMap((key) => ABILITIES[key] ?? []);
+    const prerequisite = featPrerequisite(row.prerequisite);
+    // 5e.tools non scrive l'aumento nel testo: senza questa riga si perderebbe. Nei Doni epici lo scrive il level up.
+    const increase = category !== "EB" && abilities.length ? `+1 a ${abilityChoice(abilities)} (massimo 20).` : "";
+    return { name: text(row.name), category, abilities, prerequisite, description: [prerequisite && `Prerequisiti: ${prerequisite}.`, increase, renderEntries(row.entries)].filter(Boolean).join("\n\n") };
+  }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function parseOriginFeats(file: unknown): Feature[] {

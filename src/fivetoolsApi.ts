@@ -1,5 +1,5 @@
 import { import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseProgression, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type ClassProgression, type SpellOption } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseFeats, parseOriginFeats, parseProgression, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type ClassProgression, type FeatOption, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { MonsterSheet } from "./types";
 
@@ -77,6 +77,14 @@ export function loadProgression(className: string): Promise<ClassProgression | u
   if (!CLASS_FILES.includes(file)) return Promise.resolve(undefined);
   if (!progressions.has(file)) progressions.set(file, request(`class/class-${file}.json`).then(parseProgression).catch((error) => { progressions.delete(file); throw error; }));
   return progressions.get(file)!;
+}
+
+let featsCache: Promise<FeatOption[]> | null = null;
+// Talenti del PHB 2024 per il level up; un errore permette di riprovare.
+export function loadFeats(): Promise<FeatOption[]> {
+  featsCache ??= request("feats.json").then(parseFeats);
+  featsCache.catch(() => { featsCache = null; });
+  return featsCache;
 }
 
 let spellsCache: Promise<SpellOption[]> | null = null;

@@ -173,3 +173,15 @@ describe("cose da sistemare a mano", () => {
     expect(sheet.levelUpNotes?.map((note) => note.lines[0])).toEqual(["A", "B"]);
   });
 });
+
+it("talento dalla lista: testo nel tratto e +1 nel promemoria; Dono epico: +1 automatico e testo", () => {
+  const sheet = character("Fighter", 18, { strength: 20 });
+  const feat = { feat: { kind: "feat" as const, name: "Sentinel", description: "Testo", increase: "FOR o DES" } };
+  const after = applyLevel(sheet, "Fighter", 19, feat);
+  expect(after.traits).toMatchObject([{ name: "Sentinel", description: "Testo", sourceKind: "Feat" }]);
+  expect(manualSteps(sheet, after, feat, [])).toEqual(["Sentinel: +1 a FOR o DES ed effetti del talento"]);
+  const boon = { feat: { kind: "boon" as const, name: "Boon of Fate", description: "Testo", ability: "strength" } };
+  const epic = applyLevel(sheet, "Fighter", 19, boon);
+  expect(epic.traits[0].description).toBe("FOR +1 (massimo 30)\n\nTesto");
+  expect(manualSteps(sheet, epic, boon, [])).toEqual(["Boon of Fate: effetti del talento"]);
+});

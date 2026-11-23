@@ -3,12 +3,13 @@ import { CLASSES, SUBCLASS_BOOKS } from "./classes";
 import { ABILITY_LABELS } from "./constants";
 import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
-import { loadProgression } from "./fivetoolsApi";
-import type { ClassProgression } from "./fivetoolsCharacter";
+import { loadFeats, loadProgression } from "./fivetoolsApi";
+import { abilityChoice, type ClassProgression, type FeatCategory, type FeatOption } from "./fivetoolsCharacter";
 import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, manualSteps, multiclassBlock, newFeatures, sheetClasses, tableChanges, type FeatChoice, type LevelChoices } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input, Select } from "./ui";
 
+const FEAT_GROUPS: Array<[FeatCategory, string]> = [["G", "Generali"], ["O", "D'origine"], ["FS", "Stile di combattimento"]];
 type FeatMode = "" | "two" | "split" | "feat" | "boon";
 const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 
@@ -22,6 +23,9 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const [mode, setMode] = useState<FeatMode>("");
   const [abilities, setAbilities] = useState(["", ""]);
   const [featName, setFeatName] = useState("");
+  // Nome scelto dalla lista, "custom" = scritto a mano. feats: "failed" se 5e.tools non risponde (si scrive a mano).
+  const [featPick, setFeatPick] = useState("");
+  const [feats, setFeats] = useState<FeatOption[] | "failed" | null>(null);
   // data: undefined = la classe non è nei dati del PHB 2024. Vale solo se className è ancora quella scelta.
   const [loaded, setLoaded] = useState<{ className: string; data?: ClassProgression; failed?: true } | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -39,12 +43,20 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const conMod = effectiveSheet(sheet).abilities.constitution?.mod ?? 0;
   const needsSubclass = level === SUBCLASS_LEVEL && !current?.subclass;
   const featKind = featLevel(className, level);
-  const name = featName.trim();
+  useEffect(() => {
+    if (!featKind) return;
+    let live = true;
+    loadFeats().then((list) => { if (live) setFeats(list); }, () => { if (live) setFeats("failed"); });
+    return () => { live = false; };
+  }, [featKind, attempt]);
+  const typed = feats === "failed" || featPick === "custom";
+  const option = !typed && Array.isArray(feats) ? feats.find((item) => item.name === featPick) : undefined;
+  const name = typed ? featName.trim() : option?.name ?? "";
   const feat: FeatChoice | undefined = !featKind ? undefined
     : mode === "two" && abilities[0] ? { kind: "asi", abilities: [abilities[0], abilities[0]] }
     : mode === "split" && abilities[0] && abilities[1] && abilities[0] !== abilities[1] ? { kind: "asi", abilities }
-    : mode === "feat" && name ? { kind: "feat", name }
-    : mode === "boon" && name && abilities[0] ? { kind: "boon", name, ability: abilities[0] } : undefined;
+    : mode === "feat" && name ? { kind: "feat", name, ...option && { description: option.description, ...option.abilities.length > 0 && { increase: abilityChoice(option.abilities) } } }
+    : mode === "boon" && name && abilities[0] ? { kind: "boon", name, ability: abilities[0], ...option && { description: option.description } } : undefined;
   const owned = current?.subclass || (needsSubclass ? subclass : "");
   // Sottoclasse fuori dal PHB 2024: solo ai livelli in cui le sottoclassi di questa classe danno privilegi.
   const unknown = owned && !progression?.features.some((feature) => feature.subclass === owned) && progression?.features.some((feature) => feature.subclass && feature.level === level);
@@ -56,12 +68,25 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const missing = [needsSubclass && !subclass && "la sottoclasse", featKind && !feat && (featKind === "boon" ? "il Dono epico, l'aumento o il talento" : "l'aumento dei punteggi o il talento")].filter(Boolean);
   const summary = levelSummary(sheet, after);
 
-  const change = (value: string) => { setClassName(value); setRolled(null); setSubclass(""); setMode(""); setAbilities(["", ""]); setFeatName(""); };
-  const abilitySelect = (index: number, label: string) => <Select aria-label={label} value={abilities[index]} onChange={(event) => setAbilities(abilities.map((value, position) => position === index ? event.target.value : value))}>
-    <option value="">Scegli…</option>{Object.entries(ABILITY_LABELS).map(([key, text]) => <option key={key} value={key}>{text} ({effectiveSheet(sheet).abilities[key]?.score ?? 10})</option>)}
+  const resetFeat = () => { setAbilities(["", ""]); setFeatName(""); setFeatPick(""); };
+  const change = (value: string) => { setClassName(value); setRolled(null); setSubclass(""); setMode(""); resetFeat(); };
+  const abilitySelect = (index: number, label: string, allowed?: string[]) => <Select aria-label={label} value={abilities[index]} onChange={(event) => setAbilities(abilities.map((value, position) => position === index ? event.target.value : value))}>
+    <option value="">Scegli…</option>{Object.entries(ABILITY_LABELS).filter(([key]) => !allowed || allowed.includes(key)).map(([key, text]) => <option key={key} value={key}>{text} ({effectiveSheet(sheet).abilities[key]?.score ?? 10})</option>)}
   </Select>;
   const books = SUBCLASS_BOOKS.flatMap(([book, lists]) => lists[className]?.length ? [[book, lists[className]] as const] : []);
-  const radio = (value: FeatMode, text: string) => <label className="action-form-check"><input type="radio" name="level-up-feat" checked={mode === value} onChange={() => setMode(value)}/> {text}</label>;
+  const radio = (value: FeatMode, text: string) => <label className="action-form-check"><input type="radio" name="level-up-feat" checked={mode === value} onChange={() => { setMode(value); resetFeat(); }}/> {text}</label>;
+  const taken = new Set(sheet.traits.map((trait) => trait.name.trim().toLowerCase()));
+  // Lista dei talenti o dei Doni epici; i prerequisiti si leggono sotto, non bloccano.
+  const featSelect = (label: string, groups: Array<[FeatCategory, string]>) => <>
+    {feats !== "failed" && <Select aria-label={label} value={featPick} onChange={(event) => { setFeatPick(event.target.value); setAbilities(["", ""]); }}>
+      <option value="">{feats ? "Scegli…" : "Carico i talenti da 5e.tools…"}</option>
+      {groups.map(([category, group]) => <optgroup key={category} label={group}>{(feats ?? []).filter((item) => item.category === category).map((item) => <option key={item.name} value={item.name}>{item.name}{taken.has(item.name.toLowerCase()) ? " · già nella scheda" : ""}</option>)}</optgroup>)}
+      <option value="custom">Altro, scritto a mano…</option>
+    </Select>}
+    {feats === "failed" && <small role="alert">Talenti non caricati da 5e.tools: scrivi il nome a mano.</small>}
+    {typed && <Input aria-label={`${label}: nome`} placeholder="Nome del talento" value={featName} onChange={(event) => setFeatName(event.target.value)}/>}
+    {option && <p className="level-up-feat">{option.description}</p>}
+  </>;
 
   return <Dialog open title={`Sali al livello ${sheet.identity.level + 1}`} description={sheet.name} onClose={onClose}>
     <div className="action-form level-up">
@@ -86,13 +111,13 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
 
       {featKind && <div className="level-up-box form-field"><span>{featKind === "boon" ? "Dono epico o aumento dei punteggi" : "Aumento dei punteggi (massimo 20) o talento"}</span>
         {featKind === "boon" && radio("boon", "Dono epico (+1 a una caratteristica, massimo 30)")}
-        {mode === "boon" && <><Input aria-label="Nome del Dono epico" placeholder="Boon of…" value={featName} onChange={(event) => setFeatName(event.target.value)}/>{abilitySelect(0, "Caratteristica +1")}</>}
+        {mode === "boon" && <>{featSelect("Dono epico", [["EB", "Doni epici"]])}{abilitySelect(0, "Caratteristica +1", option?.abilities)}</>}
         {radio("two", "+2 a una caratteristica")}
         {mode === "two" && abilitySelect(0, "Caratteristica +2")}
         {radio("split", "+1 a due caratteristiche")}
         {mode === "split" && <div className="action-form-row">{abilitySelect(0, "Prima caratteristica +1")}{abilitySelect(1, "Seconda caratteristica +1")}</div>}
         {radio("feat", "Talento")}
-        {mode === "feat" && <Input aria-label="Nome del talento" placeholder="Nome del talento" value={featName} onChange={(event) => setFeatName(event.target.value)}/>}
+        {mode === "feat" && featSelect("Talento", FEAT_GROUPS)}
       </div>}
 
       <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>

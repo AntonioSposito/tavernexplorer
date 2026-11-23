@@ -37,3 +37,4 @@ button.level-up-open.ready{border-color:hsl(var(--primary) / .7);background:hsl(
 .level-up-notes h3{margin:0;font-size:.95rem}
 .level-up-notes ul{margin:.25rem 0 0;padding-left:1.1rem;display:grid;gap:.2rem}
 .spell-head .over strong{color:hsl(0 80% 62%)}
+.level-up-feat{margin:0;max-height:180px;overflow:auto;white-space:pre-wrap;font-size:.8rem;color:hsl(var(--muted-foreground))}

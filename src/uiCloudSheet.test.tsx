@@ -13,7 +13,10 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ loadProgression: vi.fn(async () => ({ features: [{ name: "Tactical Shift", level: 3, description: "Testo del privilegio" }, { name: "Improved Critical", level: 3, description: "", subclass: "Champion" }], columns: [{ label: "Second Wind", values: ["2", "2", "3", "3"] }] })), listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
+vi.mock("./fivetoolsApi", () => ({ loadFeats: vi.fn(async () => [
+  { name: "Sentinel", category: "G", abilities: ["strength", "dexterity"], prerequisite: "livello 4", description: "Testo di Sentinel" },
+  { name: "Boon of Offense", category: "EB", abilities: ["strength", "dexterity"], prerequisite: "livello 19", description: "Testo del dono" },
+]), loadProgression: vi.fn(async () => ({ features: [{ name: "Tactical Shift", level: 3, description: "Testo del privilegio" }, { name: "Improved Critical", level: 3, description: "", subclass: "Champion" }], columns: [{ label: "Second Wind", values: ["2", "2", "3", "3"] }] })), listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));
@@ -1789,4 +1792,47 @@ it("l'avviso del level up nei Tratti si chiude solo dopo la conferma", async () 
   expect(host.querySelector(".level-up-notes")).toBeNull();
   await settle(1_700);
   expect(cloudSheet().sheet.levelUpNotes).toBeUndefined();
+});
+
+it("Sali di livello: talento dalla lista, scritto a mano, e Dono epico con le sue caratteristiche", async () => {
+  const sheet = createBlankSheet("Eroe");
+  sheet.classes = [{ name: "Fighter", level: 18, subclass: "Champion" }];
+  sheet.identity.level = 18;
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  const choose = async (label: string, value: string) => { const select = host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!; await act(async () => { select.value = value; select.dispatchEvent(new Event("change", { bubbles: true })); }); };
+  const mode = async (index: number) => act(async () => host.querySelectorAll<HTMLInputElement>('input[name="level-up-feat"]')[index].click());
+  const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
+  await click("↑ Sali di livello");
+  await mode(0);
+  await choose("Dono epico", "Boon of Offense");
+  expect([...[...host.querySelectorAll("select")].find((item) => item.getAttribute("aria-label") === "Caratteristica +1")!.options].map((item) => item.value)).toEqual(["", "strength", "dexterity"]);
+  expect(confirm().disabled).toBe(true);
+  await mode(3);
+  await choose("Talento", "custom");
+  expect(confirm().disabled).toBe(true);
+  await type('input[aria-label="Talento: nome"]', "Mio talento");
+  expect(confirm().disabled).toBe(false);
+  await choose("Talento", "Sentinel");
+  expect(host.querySelector(".level-up-feat")?.textContent).toBe("Testo di Sentinel");
+  expect(host.querySelector(".level-up")?.textContent).toContain("Sentinel: +1 a FOR o DES ed effetti del talento");
+  await act(async () => confirm().click());
+  await settle(1_700);
+  expect(cloudSheet().sheet.traits).toMatchObject([{ name: "Sentinel", description: "Testo di Sentinel", featureId: "Fighter:19:feat" }]);
+});
+
+it("Sali di livello: senza la lista dei talenti il nome si scrive a mano", async () => {
+  const { loadFeats } = await import("./fivetoolsApi");
+  vi.mocked(loadFeats).mockRejectedValueOnce(new Error("offline"));
+  const sheet = createBlankSheet("Eroe");
+  sheet.classes = [{ name: "Fighter", level: 3, subclass: "Champion" }];
+  sheet.identity.level = 3;
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  await act(async () => host.querySelectorAll<HTMLInputElement>('input[name="level-up-feat"]')[2].click());
+  expect(host.querySelector('select[aria-label="Talento"]')).toBeNull();
+  expect(host.querySelector('input[aria-label="Talento: nome"]')).not.toBeNull();
 });

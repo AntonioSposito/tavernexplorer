@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classSlotTotals, preparedLimit, SUBCLASSES } from "./classes";
 import { hasFiveToolsData, readFiveTools, SKIP_REASON } from "./fivetoolsData";
-import { parseClass, parseProgression } from "./fivetoolsCharacter";
+import { parseClass, parseFeats, parseProgression } from "./fivetoolsCharacter";
 
 const CLASSES = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"];
 type Row = Record<string, unknown>;
@@ -41,6 +41,23 @@ describe.skipIf(!hasFiveToolsData)(`dati veri di 5e.tools${hasFiveToolsData ? ""
     const barbarian = parseProgression(await readFiveTools("class/class-barbarian.json"))!;
     expect(barbarian.features.filter((feature) => feature.level === 3 && (!feature.subclass || feature.subclass === "Path of the Zealot")).map((feature) => feature.name)).toEqual(["Primal Knowledge", "Divine Fury", "Warrior of the Gods"]);
     expect(barbarian.columns.map((column) => [column.label, column.values[8]])).toEqual([["Rages", "4"], ["Rage Damage", "+3"], ["Weapon Mastery", "3"]]);
+  });
+
+  it("talenti del level up: 42 generali, 10 d'origine, 10 stili, 12 Doni epici, con prerequisiti, +1 e testo", async () => {
+    const feats = parseFeats(await readFiveTools("feats.json"));
+    expect(["G", "O", "FS", "EB"].map((category) => feats.filter((feat) => feat.category === category).length)).toEqual([42, 10, 10, 12]);
+    for (const feat of feats) {
+      expect(feat.description, feat.name).not.toMatch(/\{@|\[object|undefined/);
+      expect(feat.abilities.length > 0, feat.name).toBe(feat.category === "G" || feat.category === "EB");
+    }
+    const of = (name: string) => feats.find((feat) => feat.name === name)!;
+    expect(of("Athlete").prerequisite).toBe("livello 4, FOR o DES 13");
+    expect(of("War Caster").prerequisite).toBe("livello 4, lanciare incantesimi");
+    expect(of("Heavy Armor Master").prerequisite).toBe("livello 4, competenza nelle armature pesanti");
+    expect(of("Archery").prerequisite).toBe("privilegio Fighting Style");
+    expect(of("War Caster").description).toContain("+1 a INT o SAG o CAR (massimo 20).");
+    expect(of("Boon of Irresistible Offense").abilities).toEqual(["strength", "dexterity"]);
+    expect(of("Boon of Fate").description).not.toContain("+1 a");
   });
 
   it("il massimo dei preparati segue la colonna Prepared Spells di ogni classe e sottoclasse", async () => {
