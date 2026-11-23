@@ -20,9 +20,11 @@ Replace whole-array room metadata writes or add conflict handling when multiple 
 id: TE-8
 type: feature
 priority: low
-status: todo
+status: done
 order: 300
 ---
+
+**Chiuso (2026-11-23).** Fatto: "Cerca nel bestiario" per nome, tipo, GS e manuale. La tab Avventure è stata tolta.
 
 Filter imported content by name, source, and challenge rating without loading another manual.
 
@@ -32,9 +34,11 @@ Filter imported content by name, source, and challenge rating without loading an
 id: TE-15
 type: tech
 priority: high
-status: todo
+status: done
 order: 700
 ---
+
+**Chiuso (2026-11-23).** Valutazione conclusa: le schede stanno su Redis (`api/sheets.ts`) con controllo di revisione. I permessi lato server restano in TE-20.
 
 Confrontare le API documentate di room, player, scene e assets con i requisiti: dati disponibili tra scene e sessioni, quota, permessi per elemento e modifiche simultanee. I 200 MB cloud del piano gratuito non aumentano il limite dei metadata room. Scegliere uno storage adatto basandosi sulla documentazione; valutare un servizio autenticato solo se le API Owlbear non coprono i requisiti. Pianificare una migrazione senza perdita.
 
@@ -76,6 +80,8 @@ status: todo
 order: 1200
 ---
 
+**Stato (2026-11-23).** Fatto: storage su Redis con scritture atomiche per revisione. Manca: permessi verificati dal server; oggi l'ACL la applica solo il client e chi conosce la stanza può leggere e scrivere tutto.
+
 Progettare autenticazione, permessi server per elemento, scritture atomiche e migrazione idempotente dalle room metadata. Conservare backup TavernPack e verificare la privacy prima di spostare schede e note.
 
 ## Ripristinare deploy Vercel dopo rate limit
@@ -84,9 +90,11 @@ Progettare autenticazione, permessi server per elemento, scritture atomiche e mi
 id: TE-22
 type: tech
 priority: high
-status: todo
+status: done
 order: 1400
 ---
+
+**Chiuso (2026-11-23).** Deploy di produzione riuscito (308235e): manifest.json pubblico alla 0.51.0, uguale al commit. Il controllo automatico della versione servita non è stato fatto.
 
 Il commit bb2e5a0 ha Action verde ma Vercel ha risposto Deployment rate limited, retry in 24 hours. Dopo il limite, rilanciare il deploy e verificare che manifest.json pubblico corrisponda al commit; valutare un controllo automatico della versione servita.
 
@@ -149,6 +157,8 @@ status: todo
 order: 1900
 ---
 
+**Stato (2026-11-23).** Fatto: pallini 0-6 (`ExhaustionControl`), effetto "Indebolimento N", −2 per livello ai tiri d20 (`conditionRoll`), icona sul token. Manca: −1 livello al riposo lungo (`rest.ts`), velocità ridotta, segno "morto" al livello 6, nessuna penalità col ruleset 2014 (da verificare). Il livello è un effetto, non `combat.exhaustion`.
+
 **Contesto.** Non esiste in nessun file. Regola 5.5: livelli da 1 a 6; ogni tiro d20 (prove, attacchi, TS) subisce −2 × livello; velocità −5 ft × livello; a 6 si muore; un riposo lungo toglie 1 livello. Nel 2014 le regole sono diverse (tabella di effetti): gestire solo 5.5 e, per il ruleset 2014, mostrare il livello senza applicare penalità.
 
 **Da fare.**
@@ -175,6 +185,8 @@ priority: medium
 status: todo
 order: 2100
 ---
+
+**Stato (2026-11-23).** Fatto: concentrazione come effetto, una sola alla volta (`startConcentration`), icona sul token, TS di concentrazione con tasto nella scheda. Manca: CD calcolata dal danno, fine automatica a 0 PF o al TS fallito, avviso se Incapacitato.
 
 **Contesto.** `SpellEntry.concentration` è solo un flag. Regole: un solo incantesimo a concentrazione alla volta (un nuovo lancio sostituisce il precedente). Quando si subisce danno: TS Costituzione con CD = max(10, metà del danno arrotondata per difetto), massimo 30. Incapacitato o 0 PF → la concentrazione termina.
 
@@ -230,6 +242,8 @@ status: todo
 order: 2400
 ---
 
+**Stato (2026-11-23).** Fatto: elenco di resistenze, immunità e vulnerabilità su PG (`DefensesPanel`) e mostri (testo). Manca: calcolo sul danno ricevuto (`hitPoints`), avviso di immunità alle condizioni.
+
 **Contesto.** Non sono modellate. 5e.tools espone sui mostri `resist`, `vulnerable`, `immune`, `conditionImmune`, oggi ignorati in `import5etools.ts:99`.
 
 **Da fare.**
@@ -250,9 +264,11 @@ order: 2400
 id: TE-33
 type: feature
 priority: low
-status: todo
+status: done
 order: 2500
 ---
+
+**Chiuso (2026-11-23).** Fatto con `conditionRoll` (`src/conditions.ts`): vantaggio, svantaggio e fallimento si applicano ai tiri, con la condizione nel titolo. Diverso dal ticket: si applicano da soli invece di essere suggeriti nel dialog.
 
 **Contesto.** Le condizioni sono stringhe libere sulla `TurnEntry`, con suggerimenti in `TurnOrder.tsx` (`CONDITION_SUGGESTIONS`). I tiri passano dal dialog vantaggio/svantaggio di `App.tsx:300`.
 
@@ -271,9 +287,11 @@ order: 2500
 id: TE-34
 type: feature
 priority: critical
-status: todo
+status: done
 order: 50
 ---
+
+**Chiuso (2026-11-23).** Level up minimo pubblicato con la 0.51.0: PF, dadi vita, slot, sottoclasse, aumento dei punteggi o talento, privilegi come tratti di solo testo, avviso nei Tratti con le cose da fare a mano. Risorse, effetti, azioni, modificatori e incantesimi restano a mano per scelta dell'utente.
 
 **Contesto.** Il livello si cambia a mano nella tab Modifica (classi in `ClassOptions`). Esiste già: con il calcolo automatico dei livelli (`options.autoLevel`) `applyClassChanges` in `src/classSync.ts` aggiorna livello, dadi vita (anche per classe), slot (`src/classes.ts`: completo, mezzo, terzo, patto, multiclasse), TS e caratteristica da incantatore; il bonus di competenza segue il livello (`options.proficiency: "level"` + `effectiveSheet`). Manca un flusso guidato: PF, privilegi, sottoclasse, aumenti di caratteristica e incantesimi nuovi. La creazione guidata (`CharacterWizard`, `buildCharacter`, dati 5e.tools XPHB in `fivetoolsCharacter.ts`) copre solo il livello 1.
 
@@ -456,7 +474,7 @@ Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless 
 
 **Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
 
-## TE-34 · Step 4: modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
+## Modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
 
 ---
 id: TE-114
@@ -465,6 +483,8 @@ priority: high
 status: todo
 order: 59
 ---
+
+**Stato (2026-11-23).** Staccato da TE-34 e TE-99 (chiusi): è un miglioramento dei modificatori, non del level up.
 
 Figlio di TE-34, da fare insieme a TE-99 (Guerriero). Seguito di TE-92, che copre solo le condizioni sull'armatura.
 - Oggi il bonus ad attacco e danno è un unico numero per tutte le azioni (`attackModifier` / `damageModifier` di `EntryList`), e l'azione non sa se l'arma è a distanza, da lancio, a una o due mani.
@@ -701,9 +721,11 @@ Figlio di TE-34. Sezione "Mago" di `docs/classificazione-privilegi-phb2024.md`, 
 id: TE-110
 type: feature
 priority: high
-status: todo
+status: done
 order: 70
 ---
+
+**Chiuso (2026-11-23).** Superato: il level up ha la lista dei talenti con testo, prerequisiti (non controllati) e promemoria del +1. Incantesimi e risorse automatici no: restano a mano per scelta dell'utente.
 
 Figlio di TE-34. Sezione "Talenti" di `docs/classificazione-privilegi-phb2024.md`: 10 delle origini, 43 generali, Doni epici al 19.
 - Lista dei talenti con prerequisiti controllati (livello 4, caratteristica 13, competenza nelle armature, incantatore); +1 alla caratteristica scelta (massimo 20).
@@ -719,9 +741,11 @@ Figlio di TE-34. Sezione "Talenti" di `docs/classificazione-privilegi-phb2024.md
 id: TE-111
 type: feature
 priority: high
-status: todo
+status: done
 order: 71
 ---
+
+**Chiuso (2026-11-23).** Superato: risorse e incantesimi di specie e background al level up restano a mano per scelta dell'utente.
 
 Figlio di TE-34. Sezioni "Specie", "Background" e "Cosa cambia al level up oltre alla classe" di `docs/classificazione-privilegi-phb2024.md`.
 - Al livello totale 3 e 5: incantesimi di Elf, Tiefling, Celestial Revelation, Draconic Flight, Large Form. Al 5, 11, 17: Breath Weapon. All'aumento del PB: risorse con usi = PB (Lucky, Breath Weapon, Stonecunning, Giant Ancestry, Adrenaline Rush…).
@@ -731,7 +755,7 @@ Figlio di TE-34. Sezioni "Specie", "Background" e "Cosa cambia al level up oltre
 
 **Test.** Livelli 3, 5, 9, 11, 17 per le specie con scale.
 
-## TE-34 · Step 7: la creazione guidata usa il motore del level up
+## La creazione guidata usa il motore del level up
 
 ---
 id: TE-112
@@ -740,6 +764,8 @@ priority: medium
 status: todo
 order: 72
 ---
+
+**Stato (2026-11-23).** Staccato da TE-34 (chiuso): resta valido col level up minimo.
 
 Figlio di TE-34. La creazione guidata a livello N = creazione del livello 1 + N−1 volte `applyLevel` con le scelte del wizard. Sostituisce TE-80.
 
@@ -753,9 +779,11 @@ Figlio di TE-34. La creazione guidata a livello N = creazione del livello 1 + N�
 id: TE-113
 type: feature
 priority: low
-status: todo
+status: done
 order: 73
 ---
+
+**Chiuso (2026-11-23).** Facoltativo e non richiesto dall'utente.
 
 Figlio di TE-34. Facoltativo: da fare solo se l'utente lo chiede. Copia della scheda salvata prima della conferma; "Annulla level up" la ripristina.
 
@@ -767,9 +795,11 @@ Figlio di TE-34. Facoltativo: da fare solo se l'utente lo chiede. Copia della sc
 id: TE-115
 type: feature
 priority: low
-status: todo
+status: done
 order: 74
 ---
+
+**Chiuso (2026-11-23).** Superato: presupponeva il catalogo dei privilegi, tolto. Il level up ricorda che i privilegi di Xanathar e Tasha vanno aggiunti a mano, ai livelli di sottoclasse.
 
 Figlio di TE-34, da fare dopo tutte le sottoclassi del PHB 2024 (TE-98 … TE-109). Il popup "Sali di livello" propone già le sottoclassi di Xanathar e Tasha (`SUBCLASSES_XANATHAR`, `SUBCLASSES_TASHA`), ma i loro privilegi vanno aggiunti a mano: il popup lo dice quando se ne sceglie una (deciso con l'utente il 2026-11-22).
 - Classificare i loro privilegi come quelli del PHB 2024 in `docs/classificazione-privilegi-phb2024.md`, con le regole 2024 (sottoclasse al 3).
@@ -959,6 +989,8 @@ priority: medium
 status: todo
 order: 3600
 ---
+
+**Stato (2026-11-23).** Gli NPC sono stati uniti al Bestiario e il GM ha l'editor completo (`MonsterForm`). Il ticket va riscritto: resta da decidere se i giocatori possono modificare un mostro condiviso.
 
 **Contesto.** Gli NPC della Libreria sono copie di statblock del Bestiario (`kind: "npc"`, `MonsterSheet`) con permessi "Può vedere / Può modificare". Oggi lo statblock è in sola lettura e il permesso di modifica non ha effetto.
 
@@ -1482,9 +1514,11 @@ Dipende da TE-74. Per ogni tipo di scelta della tabella di copertura (es. abilit
 id: TE-82
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7300
 ---
+
+**Chiuso (2026-11-23).** Superato: serviva a provare il catalogo dei privilegi, tolto. Il level up minimo è stato provato nel browser con schede create da script.
 
 In sviluppo (`import.meta.env.DEV`, libreria in `src/devSheets.ts`) un tasto "Personaggio di prova" nella Libreria che crea direttamente classe, sottoclasse e livello scelti (applicando i level up con scelte di default), senza la creazione guidata. Poi prova nel browser di un personaggio per ogni tipo di scelta (circa 8-10), con un report breve.
 
