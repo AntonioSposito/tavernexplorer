@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAction } from "./actions";
 import { importRoll20 } from "./importer";
-import { higherLevelBonus, toSpell, toSpellDraft, validateSpell } from "./spells";
+import { higherLevelBonus, preparedCount, toSpell, toSpellDraft, validateSpell } from "./spells";
 
 const sheet = () => {
   const value = importRoll20({ character: { name: "Maga" }, normalized: { identity: { character_name: "Maga" } } });
@@ -11,6 +11,20 @@ const sheet = () => {
   return value;
 };
 const base = { id: "s1", level: 1, prepared: true };
+
+describe("incantesimi preparati", () => {
+  it("sempre preparato: prepara l'incantesimo, si rilegge nel form e togliendolo resta preparato", () => {
+    const spell = toSpell({ ...toSpellDraft(null), name: "Bless", alwaysPrepared: true }, { ...base, prepared: false });
+    expect(spell).toMatchObject({ alwaysPrepared: true, prepared: true });
+    expect(toSpellDraft(spell).alwaysPrepared).toBe(true);
+    expect(toSpell({ ...toSpellDraft(spell), alwaysPrepared: false }, { ...base, prepared: spell.prepared })).not.toHaveProperty("alwaysPrepared");
+  });
+
+  it("il conteggio esclude trucchetti, innati, non preparati e tiene a parte i sempre preparati", () => {
+    const spell = (extra: object) => ({ id: "x", name: "X", level: 1, prepared: true, ritual: false, concentration: false, ...extra });
+    expect(preparedCount([spell({}), spell({ level: 3 }), spell({ level: 0 }), spell({ innate: "1/giorno" }), spell({ prepared: false }), spell({ alwaysPrepared: true })])).toEqual({ prepared: 2, always: 1 });
+  });
+});
 
 describe("form incantesimi", () => {
   it("Dardo incantato: danno con modificatore, componenti e livelli superiori", () => {

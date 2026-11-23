@@ -14,7 +14,7 @@ export function SpellForm({ spell, level, onSave, onCancel, onDelete }: { spell:
   const save = () => { const problem = validateSpell(draft); setError(problem); if (!problem) onSave(toSpell(draft, { id: spell?.id ?? crypto.randomUUID(), level: spell?.level ?? level, prepared: spell?.prepared ?? true, source: spell?.source ?? "spell" })); };
   const field = (label: string, key: "castingTime" | "range" | "target" | "duration" | "innate" | "spellClass" | "spellType", placeholder = "") =>
     <label><span>{label}</span><Input value={draft[key]} placeholder={placeholder} onChange={(event) => patch({ [key]: event.target.value })}/></label>;
-  const check = (label: string, key: "ritual" | "verbal" | "somatic" | "material" | "concentration" | "addAbilityMod" | "includeDescription") =>
+  const check = (label: string, key: "ritual" | "alwaysPrepared" | "verbal" | "somatic" | "material" | "concentration" | "addAbilityMod" | "includeDescription") =>
     <label className="action-form-check"><input type="checkbox" checked={draft[key]} onChange={(event) => patch({ [key]: event.target.checked })}/> {label}</label>;
   const schools = draft.school && !SPELL_SCHOOLS.includes(draft.school) ? [draft.school, ...SPELL_SCHOOLS] : SPELL_SCHOOLS;
 
@@ -23,6 +23,7 @@ export function SpellForm({ spell, level, onSave, onCancel, onDelete }: { spell:
     <div className="action-form-row">
       <label><span>Scuola</span><Select value={draft.school} onChange={(event) => patch({ school: event.target.value })}><option value="">—</option>{schools.map((school) => <option key={school} value={school}>{school}</option>)}</Select></label>
       {check("Rituale", "ritual")}
+      {(spell?.level ?? level) > 0 && check("Sempre preparato", "alwaysPrepared")}
     </div>
     <div className="action-form-row">{field("Tempo di lancio", "castingTime", "1 azione")}{field("Gittata", "range", "36 metri")}{field("Bersaglio", "target", "un bersaglio")}</div>
     <fieldset>

@@ -1718,3 +1718,28 @@ it("Sali di livello: se 5e.tools non risponde si può riprovare o confermare sen
   await click("Riprova");
   expect(host.querySelector('.ui-dialog [role="alert"]')).toBeNull();
 });
+
+it("Magia: conteggio dei preparati e incantesimo segnato come sempre preparato dal popup", async () => {
+  const sheet = createBlankSheet("Maga");
+  sheet.spells = [
+    { id: "light", name: "Luce", level: 0, prepared: true, ritual: false, concentration: false },
+    { id: "sleep", name: "Sonno", level: 1, prepared: true, ritual: false, concentration: false },
+    { id: "bless", name: "Benedizione", level: 1, prepared: true, ritual: false, concentration: false },
+  ];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  const head = () => host.querySelector(".spell-head")?.textContent;
+  expect(head()).toContain("2Preparati");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Benedizione"]')!.click());
+  const label = [...host.querySelectorAll<HTMLLabelElement>(".spell-form .action-form-check")].find((item) => item.textContent?.trim() === "Sempre preparato")!;
+  await act(async () => label.querySelector("input")!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".spell-form button")].find((item) => item.textContent === "Salva")!.click());
+  expect(head()).toContain("1Preparati (+1 sempre)");
+  expect(host.querySelector<HTMLButtonElement>('[aria-label="Sempre preparato Benedizione"]')!.disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Preparato Sonno"]')!.click());
+  expect(head()).toContain("0Preparati (+1 sempre)");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Luce"]')!.click());
+  expect(host.querySelector(".spell-form")?.textContent).not.toContain("Sempre preparato");
+});

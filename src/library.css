@@ -64,6 +64,7 @@
 .entry.unprepared summary .entry-use, .entry.unprepared summary strong { opacity: .55; }
 .entry-icons .prepared-toggle .dot { width: 11px; height: 11px; border: 2px solid hsl(var(--muted-foreground)); border-radius: 50%; background: transparent; }
 .entry-icons .prepared-toggle.on .dot { border-color: hsl(var(--primary)); background: hsl(var(--primary)); }
+.entry-icons .prepared-toggle.always .dot { border-radius: 2px; }
 .entry-icons .prepared-toggle:disabled { opacity: 1; cursor: default; }
 .proficiencies dl { display: grid; margin: 0; }
 /* Divisore tra categorie come le righe di Risorse. */

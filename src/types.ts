@@ -55,6 +55,8 @@ export interface ActionEntry {
 export interface SpellEntry extends ActionEntry {
   level: number;
   prepared: boolean;
+  // Incantesimo di dominio, giuramento, talento…: sempre preparato (prepared è true) e fuori dal conteggio.
+  alwaysPrepared?: true;
   ritual: boolean;
   concentration: boolean;
   school?: string;
