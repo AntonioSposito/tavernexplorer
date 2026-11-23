@@ -1,9 +1,8 @@
-import { classFeatures, featureEffect, type FeatureAction, type FeatureGrant } from "./classFeatures";
 import { classDisplay, classRule } from "./classes";
 import { applyClassChanges, derivedSlots } from "./classSync";
 import { ABILITY_SHORT } from "./constants";
 import { effectiveSheet, fixProficiencyChoice } from "./effects";
-import type { ActionEntry, CharacterClass, CharacterSheet, CounterRecovery, TraitEntry } from "./types";
+import type { CharacterClass, CharacterSheet, TraitEntry } from "./types";
 
 // Regole comuni a tutte le classi (PHB 2024, docs/classificazione-privilegi-phb2024.md): PF, dadi vita, competenza,
 // slot, sottoclasse e Ability Score Improvement. I privilegi delle singole classi arrivano negli step successivi.
@@ -15,8 +14,6 @@ export interface LevelChoices {
   hpRoll?: number;
   subclass?: string;
   feat?: FeatChoice;
-  // Testo dei privilegi da 5e.tools, per "livello:nome" (parseFeatureTexts); senza, i tratti nuovi restano senza descrizione.
-  texts?: Record<string, string>;
 }
 
 export const SUBCLASS_LEVEL = 3;
@@ -65,62 +62,10 @@ function featTrait(className: string, level: number, choice: FeatChoice): TraitE
 }
 
 // Stesso privilegio d'origine: si aggiorna la voce invece di duplicarla, salvo che l'utente l'abbia modificata.
-// adopt: un tratto con lo stesso nome e senza featureId (creazione guidata, import Roll20) diventa quello del privilegio,
-// tenendo id (e quindi le risorse collegate) e descrizione se il testo da 5e.tools manca.
-function upsertTrait(sheet: CharacterSheet, trait: TraitEntry, adopt = false): TraitEntry {
-  let index = sheet.traits.findIndex((item) => item.featureId === trait.featureId);
-  if (index < 0 && adopt) index = sheet.traits.findIndex((item) => !item.featureId && item.name.trim().toLowerCase() === trait.name.toLowerCase());
-  if (index < 0) { sheet.traits.push(trait); return trait; }
-  const old = sheet.traits[index];
-  if (!old.edited) sheet.traits[index] = { ...trait, id: old.id, description: trait.description || old.description };
-  return sheet.traits[index];
-}
-
-// Risorsa del tratto: cambia il massimo e gli usi rimasti della stessa differenza (Ira 2/3 al 3° → 3/4).
-function upsertCounter(sheet: CharacterSheet, trait: TraitEntry, counter: { max: number; recovery: CounterRecovery }) {
-  const old = sheet.counters?.find((item) => item.traitId === trait.id);
-  if (!old) { sheet.counters = [...sheet.counters ?? [], { id: crypto.randomUUID(), name: trait.name, current: counter.max, max: counter.max, recovery: counter.recovery, traitId: trait.id }]; return; }
-  old.current = Math.min(counter.max, Math.max(0, old.current + counter.max - old.max));
-  old.max = counter.max;
-  old.recovery = counter.recovery;
-}
-
-// Effetto del privilegio, spento finché non si attiva; uno già sulla scheda con lo stesso nome si collega invece di duplicarsi.
-function upsertEffect(sheet: CharacterSheet, featureId: string, grant: NonNullable<FeatureGrant["effect"]>) {
-  const { name, description, modifiers, defenses } = featureEffect(grant);
-  const old = sheet.effects?.find((item) => item.featureId === featureId) ?? sheet.effects?.find((item) => !item.featureId && item.name.trim().toLowerCase() === name.toLowerCase());
-  const fresh = { name, description, modifiers: modifiers.map((mod) => ({ ...mod, id: crypto.randomUUID() })), featureId, ...defenses?.length ? { defenses } : {} };
-  if (!old) sheet.effects = [...sheet.effects ?? [], { id: crypto.randomUUID(), active: false, ...fresh }];
-  else Object.assign(old, old.edited ? { featureId } : fresh);
-}
-
-// Azioni del privilegio, una per nome; quelle modificate a mano restano. Nessuna adozione per nome: le azioni importate sono armi.
-function upsertActions(sheet: CharacterSheet, featureId: string, actions: FeatureAction[], counterId: string | undefined) {
-  for (const { spends, ...action } of actions) {
-    const id = `${featureId}:${action.name}`;
-    const fresh: ActionEntry = { ...action, id: crypto.randomUUID(), featureId: id, ...spends && counterId ? { resourceId: counterId } : {} };
-    const index = sheet.actions.findIndex((item) => item.featureId === id);
-    if (index < 0) sheet.actions.push(fresh);
-    else if (!sheet.actions[index].edited) sheet.actions[index] = { ...fresh, id: sheet.actions[index].id };
-  }
-}
-
-// Privilegi della classe fino a classLevel: i nuovi si aggiungono, quelli già presenti si aggiornano (usi, dadi).
-function applyFeatures(sheet: CharacterSheet, className: string, classLevel: number, subclass: string | undefined, texts: Record<string, string>) {
-  const view = effectiveSheet(sheet);
-  for (const feature of classFeatures(className, classLevel, subclass)) {
-    const featureId = `${className}:${feature.level}:${feature.name}`;
-    const grant = feature.grant?.({ level: classLevel, subclass, sheet: view }) ?? {};
-    const sourceType = `${feature.subclass ?? className} ${feature.level}`;
-    const trait = upsertTrait(sheet, {
-      id: crypto.randomUUID(), featureId, name: feature.name, sourceKind: "Class", sourceType, source: `${sourceType} • Class`,
-      description: texts[`${feature.level}:${feature.name}`] ?? "",
-      ...grant.modifiers && { modifiers: grant.modifiers.map((mod) => ({ ...mod, id: crypto.randomUUID() })) },
-    }, true);
-    if (grant.counter) upsertCounter(sheet, trait, grant.counter);
-    if (grant.effect) upsertEffect(sheet, featureId, grant.effect);
-    if (grant.actions) upsertActions(sheet, featureId, grant.actions, sheet.counters?.find((counter) => counter.traitId === trait.id)?.id);
-  }
+function upsertTrait(sheet: CharacterSheet, trait: TraitEntry) {
+  const index = sheet.traits.findIndex((item) => item.featureId === trait.featureId);
+  if (index < 0) sheet.traits.push(trait);
+  else if (!sheet.traits[index].edited) sheet.traits[index] = { ...trait, id: sheet.traits[index].id };
 }
 
 // className sale al livello di classe level (1 = nuova classe). Funzione pura: restituisce una scheda nuova.
@@ -143,7 +88,6 @@ export function applyLevel(sheet: CharacterSheet, className: string, level: numb
     next.identity.classDisplay = classDisplay(classes);
     next.combat.hitDice = { ...next.combat.hitDice, max: next.combat.hitDice.max + 1, current: next.combat.hitDice.current + 1 };
   }
-  applyFeatures(next, className, level, entry.subclass, choices.texts ?? {});
   if (choices.feat) upsertTrait(next, featTrait(className, level, choices.feat));
   // PF del livello con la COS di prima; se l'ASI alza il modificatore di COS, +1 PF per livello anche per quelli passati.
   const conBefore = effectiveSheet(sheet).abilities.constitution?.mod ?? 0;
@@ -171,15 +115,5 @@ export function levelSummary(before: CharacterSheet, after: CharacterSheet): str
   }
   const ids = new Set(before.traits.map((trait) => trait.id));
   for (const trait of after.traits) if (!ids.has(trait.id)) lines.push(`Nuovo tratto: ${trait.name}`);
-  const counters = new Map((before.counters ?? []).map((counter) => [counter.id, counter]));
-  for (const counter of after.counters ?? []) {
-    const old = counters.get(counter.id);
-    if (!old) lines.push(`Nuova risorsa: ${counter.name} (${counter.max})`);
-    else if (old.max !== counter.max) lines.push(`${counter.name} ${old.max} → ${counter.max}`);
-  }
-  const effects = new Set((before.effects ?? []).map((effect) => effect.id));
-  for (const effect of after.effects ?? []) if (!effects.has(effect.id)) lines.push(`Nuovo effetto: ${effect.name}`);
-  const actions = new Set(before.actions.map((action) => action.id));
-  for (const action of after.actions) if (!actions.has(action.id)) lines.push(`Nuova azione: ${action.name}`);
   return lines;
 }

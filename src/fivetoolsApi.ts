@@ -1,5 +1,5 @@
 import { import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseFeatureTexts, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { MonsterSheet } from "./types";
 
@@ -68,15 +68,6 @@ export function loadCharacterOptions(): Promise<CharacterOptions> {
   }));
   optionsCache.catch(() => { optionsCache = null; });
   return optionsCache;
-}
-
-const featureTexts = new Map<string, Promise<Record<string, string>>>();
-// Testo dei privilegi di una classe per il level up; un errore permette di riprovare.
-export function loadFeatureTexts(className: string): Promise<Record<string, string>> {
-  const file = className.toLowerCase();
-  if (!CLASS_FILES.includes(file)) return Promise.resolve({});
-  if (!featureTexts.has(file)) featureTexts.set(file, request(`class/class-${file}.json`).then(parseFeatureTexts).catch((error) => { featureTexts.delete(file); throw error; }));
-  return featureTexts.get(file)!;
 }
 
 let spellsCache: Promise<SpellOption[]> | null = null;

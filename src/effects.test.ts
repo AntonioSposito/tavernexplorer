@@ -97,3 +97,13 @@ it("tetto dei punteggi: ogni bonus si ferma al suo massimo, i tetti più bassi p
   expect(strength(19, [{ target: "ability:strength", amount: 2 }, asi])).toBe(22);
   expect(modifierTags([{ id: "m", ...asi }])).toEqual(["Forza +2 (fino a 20)"]);
 });
+
+it("i modificatori \"+ caratteristica\" usano il punteggio con i bonus (Unarmored Defense con un ASI alla COS)", () => {
+  const hero = sheet();
+  hero.abilities.constitution = { score: 14, mod: 2, save: 2, saveProficient: false };
+  hero.traits = [
+    { id: "ud", name: "Unarmored Defense", description: "", modifiers: [{ id: "ac", target: "ac", amount: 0, ability: "constitution" }] },
+    { id: "asi", name: "ASI", description: "", modifiers: [{ id: "con", target: "ability:constitution", amount: 2 }] },
+  ];
+  expect(modifierTotal(hero, "ac")).toBe(3);
+});

@@ -132,13 +132,6 @@ export function parseClass(file: unknown): ClassOption | undefined {
   };
 }
 
-// Testo dei privilegi della classe (e delle sue sottoclassi) del PHB 2024, per "livello:nome": lo usa il level up.
-export function parseFeatureTexts(file: unknown): Record<string, string> {
-  const data = obj(file);
-  const rows = [...array(data.classFeature), ...array(data.subclassFeature)].map(obj).filter((row) => row.source === SOURCE);
-  return Object.fromEntries(rows.map((row) => [`${Number(row.level)}:${text(row.name)}`, renderEntries(row.entries)]));
-}
-
 // "magic initiate; wizard|xphb" → "Magic Initiate (Wizard)".
 const featName = (ref: string) => { const [base, detail] = ref.split("|")[0].split(";").map((part) => titleCase(part.trim())); return detail ? `${base} (${detail})` : base; };
 

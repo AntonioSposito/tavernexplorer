@@ -291,6 +291,8 @@ order: 50
 
 **Piano (2026-11-21).** Step verificabili, ognuno un ticket figlio: TE-91 (Tough/Alert col livello), TE-92 … TE-96 (campi che mancano nel modello), TE-97 (motore e popup), TE-98 … TE-109 (privilegi, una classe per ticket), TE-110 (talenti), TE-111 (specie e background), TE-112 (creazione guidata), TE-113 (annullare, facoltativo).
 
+**Piano (2026-11-23), sostituisce il precedente dopo TE-97.** Level up minimo, uguale per tutte le classi: (1) regole comuni di TE-97; (2) privilegi di classe e sottoclasse PHB 2024 del livello come tratti di solo testo da 5e.tools; (3) promemoria dalle tabelle di classe (trucchetti, incantesimi preparati, Ira, Attacco furtivo…). Risorse, effetti, azioni e modificatori dei privilegi restano a mano. TE-98 … TE-109 chiusi; TE-110 … TE-115 da rivedere.
+
 **Accettazione.** Mago 4 → 5 con COS +2, valore fisso: +6 PF, competenza +3, slot 4/3/2, trucchetto in più; Guerriero 3 sceglie la sottoclasse; con Tough i PF crescono di 2 per livello; riposo e TavernPack coerenti.
 
 **Test.** Funzione pura `levelUp(sheet, choices, options)` (PF, privilegi, sottoclasse, aumenti, incantesimi, Tough/Alert) e test UI del popup.
@@ -440,9 +442,11 @@ Figlio di TE-34. Sezione "Comuni a tutte le classi" di `docs/classificazione-pri
 id: TE-98
 type: feature
 priority: high
-status: todo
+status: done
 order: 58
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless Rage): compaiono in "Difese e sensi" solo con l'effetto acceso (da TE-93). Sezione "Barbaro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Path of the Berserker, Wild Heart, World Tree, Zealot: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Barbaro in `src/devSheets.ts` (vedi TE-82).
@@ -451,21 +455,6 @@ Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless 
 **Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Ira 2→6 usi e danni +2/+3/+4; Danger Sense e Feral Instinct come vantaggi; Primal Champion FOR e COS +4 al 20.
 
 **Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
-
-**Fase 1 fatta (2026-11-22).** Catalogo `src/classFeatures.ts`, applicato da `applyLevel` con il testo da 5e.tools (`loadFeatureTexts`).
-- Il Barbaro base ha già: Ira (risorsa ed effetto), Unarmored Defense, Danger Sense, Reckless Attack, Fast Movement, Feral Instinct, Persistent Rage e Primal Champion. Gli altri privilegi sono di solo testo.
-- Un tratto con lo stesso nome senza `featureId` (creazione guidata, import) viene adottato invece di duplicarsi.
-- Fix in `effects.ts`: i modificatori "+ caratteristica" ora usano il punteggio con i bonus (ASI, Primal Champion).
-
-**Fase 2a fatta (2026-11-22).**
-- Le 4 sottoclassi sono nel catalogo, con un test di copertura sui dati veri.
-- Azioni dei privilegi (`ActionEntry.featureId`): Brutal Strike 1d10 → 2d10, Frenzy, Divine Fury, Life-Giving Force, Branches of the Tree, Intimidating Presence e Warrior of the Gods, con CD e risorse. Un'azione modificata a mano non viene sovrascritta.
-- `CharacterEffect.defenses`: le resistenze dell'Ira, Mindless Rage e Rage of the Gods compaiono in "Difese e sensi" solo con l'effetto acceso.
-
-**Fase 2b (da fare).**
-- Scelte nel popup: Primal Knowledge, Weapon Mastery, Rage of the Wilds, Aspect of the Wilds e Power of the Wilds.
-- Incantesimi rituali di Animal Speaker e Nature Speaker.
-- Personaggio di prova in `src/devSheets.ts`.
 
 ## TE-34 · Step 4: modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
 
@@ -492,9 +481,11 @@ Figlio di TE-34, da fare insieme a TE-99 (Guerriero). Seguito di TE-92, che copr
 id: TE-99
 type: feature
 priority: high
-status: todo
+status: done
 order: 59
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Guerriero" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Battle Master, Champion, Eldritch Knight, Psi Warrior: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Guerriero in `src/devSheets.ts` (vedi TE-82).
@@ -510,9 +501,11 @@ Figlio di TE-34. Sezione "Guerriero" di `docs/classificazione-privilegi-phb2024.
 id: TE-100
 type: feature
 priority: high
-status: todo
+status: done
 order: 60
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Ladro" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Arcane Trickster, Assassin, Soulknife, Thief: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Ladro in `src/devSheets.ts` (vedi TE-82).
@@ -528,9 +521,11 @@ Figlio di TE-34. Sezione "Ladro" di `docs/classificazione-privilegi-phb2024.md`,
 id: TE-101
 type: feature
 priority: high
-status: todo
+status: done
 order: 61
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Monaco" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Warrior of Mercy, Shadow, Elements, Open Hand: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Monaco in `src/devSheets.ts` (vedi TE-82).
@@ -546,9 +541,11 @@ Figlio di TE-34. Sezione "Monaco" di `docs/classificazione-privilegi-phb2024.md`
 id: TE-102
 type: feature
 priority: high
-status: todo
+status: done
 order: 62
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Paladino" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Devotion, Glory, Ancients, Vengeance: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Paladino in `src/devSheets.ts` (vedi TE-82).
@@ -564,9 +561,11 @@ Figlio di TE-34. Sezione "Paladino" di `docs/classificazione-privilegi-phb2024.m
 id: TE-103
 type: feature
 priority: high
-status: todo
+status: done
 order: 63
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Ranger" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Beast Master, Fey Wanderer, Gloom Stalker, Hunter: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Ranger in `src/devSheets.ts` (vedi TE-82).
@@ -582,9 +581,11 @@ Figlio di TE-34. Sezione "Ranger" di `docs/classificazione-privilegi-phb2024.md`
 id: TE-104
 type: feature
 priority: high
-status: todo
+status: done
 order: 64
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Bardo" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Dance, Glamour, Lore, Valor: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Bardo in `src/devSheets.ts` (vedi TE-82).
@@ -600,9 +601,11 @@ Figlio di TE-34. Sezione "Bardo" di `docs/classificazione-privilegi-phb2024.md`,
 id: TE-105
 type: feature
 priority: high
-status: todo
+status: done
 order: 65
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Chierico" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Life, Light, Trickery, War: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Chierico in `src/devSheets.ts` (vedi TE-82).
@@ -618,9 +621,11 @@ Figlio di TE-34. Sezione "Chierico" di `docs/classificazione-privilegi-phb2024.m
 id: TE-106
 type: feature
 priority: high
-status: todo
+status: done
 order: 66
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Druido" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Land, Moon, Sea, Stars: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Druido in `src/devSheets.ts` (vedi TE-82).
@@ -636,9 +641,11 @@ Figlio di TE-34. Sezione "Druido" di `docs/classificazione-privilegi-phb2024.md`
 id: TE-107
 type: feature
 priority: high
-status: todo
+status: done
 order: 67
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Stregone" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Aberrant, Clockwork, Draconic, Wild Magic: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Stregone in `src/devSheets.ts` (vedi TE-82).
@@ -654,9 +661,11 @@ Figlio di TE-34. Sezione "Stregone" di `docs/classificazione-privilegi-phb2024.m
 id: TE-108
 type: feature
 priority: high
-status: todo
+status: done
 order: 68
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Warlock" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Archfey, Celestial, Fiend, Great Old One: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Warlock in `src/devSheets.ts` (vedi TE-82).
@@ -672,9 +681,11 @@ Figlio di TE-34. Sezione "Warlock" di `docs/classificazione-privilegi-phb2024.md
 id: TE-109
 type: feature
 priority: high
-status: todo
+status: done
 order: 69
 ---
+
+**Chiuso (2026-11-23).** Niente catalogo scritto a mano per classe: i privilegi diventano tratti di solo testo da 5e.tools, per tutte le classi (TE-34, piano 2026-11-23).
 
 Figlio di TE-34. Sezione "Mago" di `docs/classificazione-privilegi-phb2024.md`, con le sottoclassi Abjurer, Diviner, Evoker, Illusionist: ogni privilegio come è classificato (Testo, Modificatore, Effetto, Risorsa, Azione, Competenza, Maestria, Opzione, Incantesimo, Scelta, Scala). I privilegi segnati "Manca" diventano Testo finché non c'è lo step 2 che li copre.
 - Personaggio di prova del Mago in `src/devSheets.ts` (vedi TE-82).
