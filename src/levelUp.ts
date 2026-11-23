@@ -1,5 +1,5 @@
 import { classDisplay, classRule } from "./classes";
-import { applyClassChanges, derivedSlots } from "./classSync";
+import { applyClassChanges, derivedSlots, preparedMax } from "./classSync";
 import { ABILITY_SHORT } from "./constants";
 import { effectiveSheet, fixProficiencyChoice } from "./effects";
 import type { ClassProgression, LevelFeature } from "./fivetoolsCharacter";
@@ -15,7 +15,7 @@ export interface LevelChoices {
   hpRoll?: number;
   subclass?: string;
   feat?: FeatChoice;
-  // Privilegi del livello (newFeatures) e valori delle tabelle di classe da riportare a mano (tableChanges).
+  // Privilegi del livello (newFeatures) e cose da sistemare a mano (manualSteps), salvate nell'avviso dei Tratti.
   features?: LevelFeature[];
   reminders?: string[];
 }
@@ -86,6 +86,20 @@ export function tableChanges(progression: ClassProgression, level: number, subcl
   });
 }
 
+// Cosa resta da fare a mano dopo il livello: per il popup, la chat e l'avviso nei Tratti.
+// missing: di chi mancano i privilegi ("Samurai", "Artificer", "Fighter" se 5e.tools non risponde).
+export function manualSteps(before: CharacterSheet, after: CharacterSheet, choices: LevelChoices, changes: string[], missing?: string): string[] {
+  const [a, b] = [preparedMax(before), preparedMax(after)];
+  return [
+    // Il massimo dei preparati è automatico: resta da scegliere gli incantesimi.
+    ...changes.filter((line) => b === undefined || !line.startsWith(`${COLUMN_LABELS["Prepared Spells"]} `)),
+    ...b !== undefined && a !== b ? [`Incantesimi nuovi da scegliere (preparati al massimo ${a ?? 0} → ${b})`] : [],
+    ...choices.features?.length ? [`Privilegi da impostare se hanno modificatori, risorse, azioni o effetti: ${choices.features.map((feature) => feature.name).join(", ")}`] : [],
+    ...missing ? [`Privilegi di ${missing} da aggiungere ai tratti`] : [],
+    ...choices.feat && choices.feat.kind !== "asi" ? [`${choices.feat.name}: descrizione ed effetti del talento`] : [],
+  ];
+}
+
 function featureTrait(className: string, feature: LevelFeature): TraitEntry {
   const sourceType = `${feature.subclass ?? className} ${feature.level}`;
   return { id: crypto.randomUUID(), featureId: [className, feature.subclass, feature.level, feature.name].filter(Boolean).join(":"), name: feature.name, description: feature.description, sourceKind: "Class", sourceType, source: `${sourceType} • Class` };
@@ -119,6 +133,8 @@ export function applyLevel(sheet: CharacterSheet, className: string, level: numb
   const conAfter = effectiveSheet(next).abilities.constitution?.mod ?? 0;
   const gain = hitPointGain(hitDieOf(className), conBefore, choices.hpRoll) + (conAfter - conBefore) * next.identity.level;
   next.combat.hp = { ...next.combat.hp, max: next.combat.hp.max + gain, current: next.combat.hp.current + gain };
+  // Un avviso non ancora chiuso resta, sopra al nuovo.
+  if (choices.reminders?.length) next.levelUpNotes = [...next.levelUpNotes ?? [], { title: `Livello ${next.identity.level} (${className} ${level})`, lines: choices.reminders }];
   return next;
 }
 
@@ -133,6 +149,8 @@ export function levelSummary(before: CharacterSheet, after: CharacterSheet): str
   if (after.options?.autoLevel) {
     const [slotsA, slotsB] = [slotText(derivedSlots(before)), slotText(derivedSlots(after))];
     if (slotsA !== slotsB) lines.push(`Slot ${slotsA} → ${slotsB}`);
+    const [preparedA, preparedB] = [preparedMax(before), preparedMax(after)];
+    if (preparedB !== undefined && preparedA !== preparedB) lines.push(`Preparati al massimo ${preparedA ?? 0} → ${preparedB}`);
   }
   for (const [key, ability] of Object.entries(b.abilities)) {
     const old = a.abilities[key]?.score;

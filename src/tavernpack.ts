@@ -31,6 +31,7 @@ export function parseCharacterSheet(value: unknown): CharacterSheet {
   requireShape(spellcasting?.slotRecovery === undefined || spellcasting.slotRecovery === "short" || spellcasting.slotRecovery === "long", "scheda: recupero slot");
   for (const key of ["actions", "spells", "inventory", "traits", "importWarnings"]) requireShape(Array.isArray(sheet?.[key]), `scheda: ${key}`);
   requireShape(sheet?.counters === undefined || Array.isArray(sheet.counters) && sheet.counters.every(validateCounter), "scheda: contatori");
+  requireShape(sheet?.levelUpNotes === undefined || Array.isArray(sheet.levelUpNotes) && sheet.levelUpNotes.every((note: unknown) => { const entry = record(note); return typeof entry?.title === "string" && Array.isArray(entry.lines) && entry.lines.every((line: unknown) => typeof line === "string"); }), "scheda: avvisi del level up");
   requireShape(!!record(sheet?.currency), "scheda: monete");
   return sheet as unknown as CharacterSheet;
 }

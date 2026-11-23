@@ -33,3 +33,7 @@ button.level-up-open.ready{border-color:hsl(var(--primary) / .7);background:hsl(
 .level-up-summary{border:1px solid hsl(var(--border));border-radius:var(--radius);padding:.6rem .8rem}
 .level-up-summary h3{margin:0 0 .35rem;font-size:.9rem}
 .level-up-summary ul{margin:0;padding-left:1.1rem;display:grid;gap:.2rem;font-size:.85rem}
+.level-up-notes{display:grid;gap:.6rem;justify-items:start;border-color:hsl(var(--primary) / .55)}
+.level-up-notes h3{margin:0;font-size:.95rem}
+.level-up-notes ul{margin:.25rem 0 0;padding-left:1.1rem;display:grid;gap:.2rem}
+.spell-head .over strong{color:hsl(0 80% 62%)}

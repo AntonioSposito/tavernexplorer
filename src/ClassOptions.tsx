@@ -66,6 +66,7 @@ export function ClassOptions({ sheet, onUpdate }: { sheet: CharacterSheet; onUpd
     </div>
     <div className="editor-grid">
       <label><span>Livello da incantatore (0 = dalle classi)</span><Input type="number" min="0" max="20" aria-label="Livello da incantatore" value={options.casterLevel ?? 0} onChange={(event) => setOption("casterLevel", Math.min(20, Math.max(0, Math.trunc(Number(event.target.value)) || 0)))}/></label>
+      <label><span>Modificatore incantesimi preparati</span><Input type="number" aria-label="Modificatore incantesimi preparati" value={options.preparedBonus ?? 0} onChange={(event) => setOption("preparedBonus", Math.trunc(Number(event.target.value)) || 0)}/></label>
     </div>
     <div className="slot-bonus"><span>Modificatori slot</span>{Array.from({ length: 9 }, (_, index) => <label key={index}><span>{index + 1}°</span><Input type="number" aria-label={`Modificatore slot ${index + 1}°`} value={options.slotBonus?.[index] ?? 0} onChange={(event) => { const bonus = [...options.slotBonus ?? Array(9).fill(0)]; bonus[index] = Math.trunc(Number(event.target.value)) || 0; setOption("slotBonus", bonus); }}/></label>)}</div>
     {classes.length > 0 && <p className="muted">{classDisplay(classes)} · livello {classes.reduce((sum, entry) => sum + entry.level, 0)} · livello da incantatore {options.casterLevel || casterLevel(classes, arcane)} · slot {Object.entries(slots).map(([key, total]) => `${key.replace("level_", "")}°: ${total}`).join(", ") || "nessuno"}{!options.autoLevel && " (non applicati: calcolo automatico spento)"}</p>}

@@ -1,4 +1,4 @@
-import { classDisplay, classRule, classSlotTotals } from "./classes";
+import { classDisplay, classRule, classSlotTotals, preparedLimit } from "./classes";
 import { fixProficiencyChoice } from "./effects";
 import type { CharacterSheet } from "./types";
 
@@ -6,6 +6,12 @@ const slotOptions = (sheet: CharacterSheet) => ({ arcane: { fighter: sheet.optio
 
 // Slot calcolati dalle classi e dalle opzioni ("level_N" → totale).
 export const derivedSlots = (sheet: CharacterSheet) => classSlotTotals(sheet.classes ?? [], slotOptions(sheet));
+
+// Massimo di incantesimi preparati; undefined col calcolo automatico spento o se le classi non lo danno.
+export function preparedMax(sheet: CharacterSheet): number | undefined {
+  const limit = sheet.options?.autoLevel ? preparedLimit(sheet.classes ?? [], slotOptions(sheet).arcane) : undefined;
+  return limit === undefined ? undefined : Math.max(0, limit + (sheet.options?.preparedBonus ?? 0));
+}
 
 // Caratteristica da incantatore: quella della classe principale, altrimenti della prima classe che lancia incantesimi.
 function spellAbility(sheet: CharacterSheet): string | undefined {

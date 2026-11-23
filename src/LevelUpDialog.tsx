@@ -5,7 +5,7 @@ import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
 import { loadProgression } from "./fivetoolsApi";
 import type { ClassProgression } from "./fivetoolsCharacter";
-import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, multiclassBlock, newFeatures, sheetClasses, tableChanges, type FeatChoice, type LevelChoices } from "./levelUp";
+import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, manualSteps, multiclassBlock, newFeatures, sheetClasses, tableChanges, type FeatChoice, type LevelChoices } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input, Select } from "./ui";
 
@@ -46,11 +46,15 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
     : mode === "feat" && name ? { kind: "feat", name }
     : mode === "boon" && name && abilities[0] ? { kind: "boon", name, ability: abilities[0] } : undefined;
   const owned = current?.subclass || (needsSubclass ? subclass : "");
-  const manual = ready && !ready.failed && (!progression ? className : owned && !progression.features.some((feature) => feature.subclass === owned) ? owned : "");
-  const choices: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat },
-    ...progression && { features: newFeatures(progression, level, owned), reminders: tableChanges(progression, level, owned) } };
+  // Sottoclasse fuori dal PHB 2024: solo ai livelli in cui le sottoclassi di questa classe danno privilegi.
+  const unknown = owned && !progression?.features.some((feature) => feature.subclass === owned) && progression?.features.some((feature) => feature.subclass && feature.level === level);
+  const manual = ready && !ready.failed && (!progression ? className : unknown ? owned : "");
+  const picked: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat },
+    ...progression && { features: newFeatures(progression, level, owned) } };
+  const after = applyLevel(sheet, className, level, picked);
+  const choices: LevelChoices = { ...picked, reminders: manualSteps(sheet, after, picked, progression ? tableChanges(progression, level, owned) : [], ready?.failed ? className : manual || undefined) };
   const missing = [needsSubclass && !subclass && "la sottoclasse", featKind && !feat && (featKind === "boon" ? "il Dono epico, l'aumento o il talento" : "l'aumento dei punteggi o il talento")].filter(Boolean);
-  const summary = levelSummary(sheet, applyLevel(sheet, className, level, choices));
+  const summary = levelSummary(sheet, after);
 
   const change = (value: string) => { setClassName(value); setRolled(null); setSubclass(""); setMode(""); setAbilities(["", ""]); setFeatName(""); };
   const abilitySelect = (index: number, label: string) => <Select aria-label={label} value={abilities[index]} onChange={(event) => setAbilities(abilities.map((value, position) => position === index ? event.target.value : value))}>
@@ -94,9 +98,8 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
       <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>
       {!ready && <small role="status">Carico i privilegi da 5e.tools…</small>}
       {ready?.failed && <div className="level-up-box"><small role="alert">Privilegi non caricati da 5e.tools. Riprova, oppure conferma e mettili a mano nei tratti.</small><Button type="button" variant="secondary" onClick={() => { setLoaded(null); setAttempt(attempt + 1); }}>Riprova</Button></div>}
-      {manual && <small>I privilegi di {manual} non si aggiungono in automatico: vanno messi a mano nei tratti.</small>}
       {!!choices.reminders?.length && <section className="level-up-summary" aria-label="Da aggiornare a mano"><h3>Da aggiornare a mano</h3><ul>{choices.reminders.map((line) => <li key={line}>{line}</li>)}</ul></section>}
-      <small>I privilegi sono tratti di solo testo: modificatori, risorse, azioni, effetti e incantesimi si aggiungono a mano.</small>
+      <small>I privilegi sono tratti di solo testo. Le cose da aggiornare a mano restano in un avviso nella tab Tratti.</small>
       {missing.length > 0 && <small>Per confermare scegli {missing.join(" e ")}.</small>}
       <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={!ready || missing.length > 0} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
     </div>

@@ -1635,11 +1635,11 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
   expect(confirm().disabled).toBe(true);
   await choose("Sottoclasse", "Samurai");
-  expect(host.querySelector(".ui-dialog")?.textContent).toContain("I privilegi di Samurai non si aggiungono in automatico");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("Privilegi di Samurai da aggiungere ai tratti");
   await choose("Sottoclasse", "Champion");
-  expect(host.querySelector(".ui-dialog")?.textContent).not.toContain("non si aggiungono in automatico");
+  expect(host.querySelector(".ui-dialog")?.textContent).not.toContain("da aggiungere ai tratti");
   const summary = () => [...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent);
-  expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3", "Nuovo tratto: Tactical Shift", "Nuovo tratto: Improved Critical", "Second Wind 2 → 3"]);
+  expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3", "Nuovo tratto: Tactical Shift", "Nuovo tratto: Improved Critical", "Second Wind 2 → 3", "Privilegi da impostare se hanno modificatori, risorse, azioni o effetti: Tactical Shift, Improved Critical"]);
   // Le classi senza 13 nella caratteristica principale non si possono prendere.
   expect(host.querySelector<HTMLOptionElement>('option[value="Wizard"]')?.disabled).toBe(true);
   await act(async () => confirm().click());
@@ -1742,4 +1742,51 @@ it("Magia: conteggio dei preparati e incantesimo segnato come sempre preparato d
   expect(head()).toContain("0Preparati (+1 sempre)");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Modifica Luce"]')!.click());
   expect(host.querySelector(".spell-form")?.textContent).not.toContain("Sempre preparato");
+});
+
+it("Magia: il massimo dei preparati viene dalle classi, col modificatore, e si evidenzia se superato", async () => {
+  const sheet = createBlankSheet("Maga");
+  sheet.classes = [{ name: "Sorcerer", level: 1 }];
+  sheet.options = { ...sheet.options, preparedBonus: -1 };
+  sheet.spells = ["a", "b"].map((id) => ({ id, name: id, level: 1, prepared: true, ritual: false, concentration: false }));
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("Magia");
+  expect(host.querySelector(".spell-head .over strong")?.textContent).toBe("2 / 1");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Preparato a"]')!.click());
+  expect(host.querySelector(".spell-head .over")).toBeNull();
+});
+
+it("Sali di livello: i privilegi di una sottoclasse fuori dal PHB 2024 si ricordano solo ai livelli di sottoclasse", async () => {
+  const sheet = createBlankSheet("Eroe");
+  sheet.classes = [{ name: "Fighter", level: 4, subclass: "Samurai" }];
+  sheet.identity.level = 4;
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  expect(host.querySelector(".level-up")?.textContent).toContain("Livello 4 → 5");
+  expect(host.querySelector(".level-up")?.textContent).not.toContain("Privilegi di Samurai");
+});
+
+it("l'avviso del level up nei Tratti si chiude solo dopo la conferma", async () => {
+  const sheet = createBlankSheet("Eroe");
+  sheet.levelUpNotes = [{ title: "Livello 3 (Fighter 3)", lines: ["Second Wind 2 → 3"] }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  // Avviso nei Tratti: annullando la conferma resta, confermando sparisce.
+  await click("Tratti");
+  expect(host.querySelector(".level-up-notes")?.textContent).toContain("Second Wind 2 → 3");
+  const ask = vi.spyOn(window, "confirm").mockReturnValue(false);
+  await click("Chiudi avviso");
+  expect(ask.mock.calls[0][0]).toContain("non sarà più visualizzabile fino al prossimo level up");
+  expect(host.querySelector(".level-up-notes")).not.toBeNull();
+  ask.mockReturnValue(true);
+  await click("Chiudi avviso");
+  ask.mockRestore();
+  expect(host.querySelector(".level-up-notes")).toBeNull();
+  await settle(1_700);
+  expect(cloudSheet().sheet.levelUpNotes).toBeUndefined();
 });

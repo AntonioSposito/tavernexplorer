@@ -10,6 +10,7 @@ export function mergeReimport(existing: CharacterSheet, imported: CharacterSheet
     counters: existing.counters,
     // Roll20 non le esporta: le ha scritte l'utente.
     defenses: existing.defenses,
+    levelUpNotes: existing.levelUpNotes,
     // Le opzioni della scheda sono dell'utente: il reimport aggiunge solo quelle che mancano (es. la competenza).
     options: { ...imported.options, ...existing.options },
     combat: {

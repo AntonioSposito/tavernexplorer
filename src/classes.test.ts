@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { casterLevel, classSlotTotals, pactSlots } from "./classes";
+import { casterLevel, classSlotTotals, pactSlots, preparedLimit } from "./classes";
 import { applyClassChanges } from "./classSync";
 import { roll } from "./dice";
 import { importRoll20 } from "./importer";
@@ -70,4 +70,12 @@ it("Halfling luck: un 1 sul d20 si ritira una volta", () => {
   const values = [1, 14];
   vi.spyOn(crypto, "getRandomValues").mockImplementation(((array: Uint32Array) => { array[0] = values.shift()! - 1; return array; }) as typeof crypto.getRandomValues);
   expect(roll("1d20ro1+3", "normal")).toMatchObject({ formula: "1d20ro1+3", total: 17, dice: [14], natural: 14 });
+});
+
+it("massimo dei preparati: somma del multiclasse; senza tabella o senza incantesimi non c'è", () => {
+  expect(preparedLimit([{ name: "Cleric", level: 3 }, { name: "Wizard", level: 2 }])).toBe(11);
+  expect(preparedLimit([{ name: "Fighter", level: 5 }, { name: "Wizard", level: 1 }])).toBe(4);
+  expect(preparedLimit([{ name: "Fighter", level: 5 }], { fighter: true })).toBe(4);
+  expect(preparedLimit([{ name: "Barbarian", level: 5 }])).toBeUndefined();
+  expect(preparedLimit([{ name: "Wizard", level: 1 }, { name: "Artificer", level: 1 }])).toBeUndefined();
 });

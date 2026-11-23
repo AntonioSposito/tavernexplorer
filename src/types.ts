@@ -214,6 +214,8 @@ export interface CharacterSheet {
   proficiencies?: ProficiencyEntry[];
   tools?: ToolEntry[];
   defenses?: DefenseEntry[];
+  // Cose da sistemare a mano dopo i level up, mostrate nei Tratti finché non si chiude l'avviso.
+  levelUpNotes?: Array<{ title: string; lines: string[] }>;
   classes?: CharacterClass[];
   // Opzioni della tab Modifica, come la pagina impostazioni di Roll20. Partono da zero: i valori importati non le includono.
   options?: SheetOptions;
@@ -291,6 +293,8 @@ export interface SheetOptions {
   casterLevel?: number;
   // Spell slot modifiers, livelli 1–9.
   slotBonus?: number[];
+  // Si somma al massimo degli incantesimi preparati calcolato dalle classi.
+  preparedBonus?: number;
   trackHitDicePerClass?: boolean;
   // Un 1 naturale su un d20 si ritira una volta.
   halflingLuck?: boolean;

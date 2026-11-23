@@ -116,5 +116,28 @@ export function classSlotTotals(classes: CharacterClass[], options: { arcane?: {
   return Object.fromEntries(Object.entries(totals).filter(([, total]) => total > 0));
 }
 
+// Incantesimi preparati per livello di classe (PHB 2024, colonna Prepared Spells): indice = livello - 1.
+const FULL = [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22];
+const HALF = [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15];
+const THIRD = [0, 0, 3, 4, 4, 4, 5, 6, 6, 7, 8, 8, 9, 10, 10, 11, 11, 11, 12, 13];
+const PREPARED: Record<string, number[]> = {
+  Bard: FULL, Cleric: FULL, Druid: FULL, Paladin: HALF, Ranger: HALF,
+  Sorcerer: [2, 4, 6, ...FULL.slice(3)],
+  Warlock: [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+  Wizard: [...FULL.slice(0, 13), 18, 19, 21, 22, 23, 24, 25],
+};
+// Massimo di incantesimi preparati, somma delle classi. undefined: nessuna classe li prepara, o una non ha la tabella (Artificer, personalizzate).
+export function preparedLimit(classes: CharacterClass[], arcane: { fighter?: boolean; rogue?: boolean } = {}): number | undefined {
+  let total = 0;
+  for (const entry of classes) {
+    const caster = casterOf(entry, arcane);
+    if (caster === "none") { if (!classRule(entry)) return undefined; continue; }
+    const table = entry.custom ? undefined : caster === "third" ? THIRD : PREPARED[entry.name];
+    if (!table) return undefined;
+    total += table[Math.min(20, Math.max(1, entry.level)) - 1];
+  }
+  return total || undefined;
+}
+
 // "Monk 4 / Rogue 1" (con la sottoclasse davanti, come class_display di Roll20).
 export const classDisplay = (classes: CharacterClass[]) => classes.map((entry) => `${entry.subclass ? `${entry.subclass} ` : ""}${entry.name} ${entry.level}`).join(" / ");

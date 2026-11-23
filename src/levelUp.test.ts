@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createBlankSheet } from "./blankSheet";
 import { effectiveSheet } from "./effects";
 import type { ClassProgression } from "./fivetoolsCharacter";
-import { applyLevel, featLevel, levelSummary, multiclassBlock, newFeatures, tableChanges } from "./levelUp";
+import { applyLevel, featLevel, levelSummary, manualSteps, multiclassBlock, newFeatures, tableChanges } from "./levelUp";
 import type { CharacterSheet } from "./types";
 
 function character(className: string, level: number, scores: Record<string, number> = {}): CharacterSheet {
@@ -39,7 +39,7 @@ describe("applyLevel", () => {
     expect(next.combat.hp).toMatchObject({ current: 26, max: 32 });
     expect(effectiveSheet(next).combat.proficiencyBonus).toBe(3);
     expect(next.spellcasting.slots).toEqual({ level_1: { total: 4, used: 0 }, level_2: { total: 3, used: 0 }, level_3: { total: 2, used: 0 } });
-    expect(levelSummary(sheet, next)).toEqual(["Livello 4 → 5: Wizard 5", "PF massimi 26 → 32", "Dadi vita 4 → 5", "Competenza +2 → +3", "Slot 1°: 4, 2°: 3 → 1°: 4, 2°: 3, 3°: 2"]);
+    expect(levelSummary(sheet, next)).toEqual(["Livello 4 → 5: Wizard 5", "PF massimi 26 → 32", "Dadi vita 4 → 5", "Competenza +2 → +3", "Slot 1°: 4, 2°: 3 → 1°: 4, 2°: 3, 3°: 2", "Preparati al massimo 7 → 9"]);
   });
 
   it("almeno 1 PF col tiro più basso e COS negativa", () => {
@@ -142,5 +142,34 @@ describe("privilegi e tabelle da 5e.tools", () => {
     expect(tableChanges(data, 3)).toEqual(["Sneak Attack 1d6 → 2d6"]);
     expect(tableChanges(data, 2)).toEqual([]);
     expect(tableChanges(data, 1)).toEqual(["Sneak Attack 0 → 1d6"]);
+  });
+});
+
+describe("cose da sistemare a mano", () => {
+  it("col massimo dei preparati automatico il promemoria diventa la scelta degli incantesimi", () => {
+    const sheet = { ...character("Cleric", 1), options: { autoLevel: true, preparedBonus: 1 } };
+    const choices = { features: [{ name: "Channel Divinity", level: 2, description: "" }] };
+    const after = applyLevel(sheet, "Cleric", 2, choices);
+    expect(levelSummary(sheet, after)).toContain("Preparati al massimo 5 → 6");
+    expect(manualSteps(sheet, after, choices, ["Channel Divinity 0 → 2", "Incantesimi preparati 4 → 5"])).toEqual([
+      "Channel Divinity 0 → 2", "Incantesimi nuovi da scegliere (preparati al massimo 5 → 6)",
+      "Privilegi da impostare se hanno modificatori, risorse, azioni o effetti: Channel Divinity",
+    ]);
+  });
+
+  it("col calcolo automatico spento resta il promemoria della tabella; talento e privilegi mancanti si ricordano", () => {
+    const sheet = { ...character("Cleric", 3), options: { autoLevel: false } };
+    const choices = { feat: { kind: "feat" as const, name: "War Caster" } };
+    expect(manualSteps(sheet, applyLevel(sheet, "Cleric", 4, choices), choices, ["Incantesimi preparati 6 → 7"], "Forge Domain")).toEqual([
+      "Incantesimi preparati 6 → 7", "Privilegi di Forge Domain da aggiungere ai tratti", "War Caster: descrizione ed effetti del talento",
+    ]);
+  });
+
+  it("l'avviso si salva sulla scheda; senza cose da fare non c'è, e quelli non chiusi si accumulano", () => {
+    let sheet = applyLevel(character("Fighter", 1), "Fighter", 2, { reminders: ["A"] });
+    expect(sheet.levelUpNotes).toEqual([{ title: "Livello 2 (Fighter 2)", lines: ["A"] }]);
+    sheet = applyLevel(sheet, "Fighter", 3, { reminders: [] });
+    sheet = applyLevel(sheet, "Fighter", 4, { reminders: ["B"] });
+    expect(sheet.levelUpNotes?.map((note) => note.lines[0])).toEqual(["A", "B"]);
   });
 });

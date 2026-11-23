@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classSlotTotals, SUBCLASSES } from "./classes";
+import { classSlotTotals, preparedLimit, SUBCLASSES } from "./classes";
 import { hasFiveToolsData, readFiveTools, SKIP_REASON } from "./fivetoolsData";
 import { parseClass, parseProgression } from "./fivetoolsCharacter";
 
@@ -41,6 +41,19 @@ describe.skipIf(!hasFiveToolsData)(`dati veri di 5e.tools${hasFiveToolsData ? ""
     const barbarian = parseProgression(await readFiveTools("class/class-barbarian.json"))!;
     expect(barbarian.features.filter((feature) => feature.level === 3 && (!feature.subclass || feature.subclass === "Path of the Zealot")).map((feature) => feature.name)).toEqual(["Primal Knowledge", "Divine Fury", "Warrior of the Gods"]);
     expect(barbarian.columns.map((column) => [column.label, column.values[8]])).toEqual([["Rages", "4"], ["Rage Damage", "+3"], ["Weapon Mastery", "3"]]);
+  });
+
+  it("il massimo dei preparati segue la colonna Prepared Spells di ogni classe e sottoclasse", async () => {
+    let checked = 0;
+    for (const name of CLASSES) {
+      const data = parseProgression(await readFiveTools(`class/class-${name}.json`))!;
+      const className = name[0].toUpperCase() + name.slice(1);
+      for (const column of data.columns.filter((item) => /Prepared/.test(item.label))) {
+        checked += 1;
+        column.values.forEach((value, index) => expect(preparedLimit([{ name: className, level: index + 1, ...column.subclass && { subclass: column.subclass } }]) ?? 0, `${className} ${index + 1}`).toBe(Number(value)));
+      }
+    }
+    expect(checked).toBe(10);
   });
 
   it("gli slot di Eldritch Knight e Arcane Trickster seguono la loro tabella dal 3° (la sottoclasse) al 20°", async () => {
