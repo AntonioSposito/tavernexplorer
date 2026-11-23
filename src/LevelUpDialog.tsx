@@ -1,16 +1,18 @@
-import { useState } from "react";
-import { CLASSES, SUBCLASSES, SUBCLASS_BOOKS } from "./classes";
+import { useEffect, useState } from "react";
+import { CLASSES, SUBCLASS_BOOKS } from "./classes";
 import { ABILITY_LABELS } from "./constants";
 import { roll } from "./dice";
 import { effectiveSheet } from "./effects";
-import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, multiclassBlock, sheetClasses, type FeatChoice, type LevelChoices } from "./levelUp";
+import { loadProgression } from "./fivetoolsApi";
+import type { ClassProgression } from "./fivetoolsCharacter";
+import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, multiclassBlock, newFeatures, sheetClasses, tableChanges, type FeatChoice, type LevelChoices } from "./levelUp";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input, Select } from "./ui";
 
 type FeatMode = "" | "two" | "split" | "feat" | "boon";
 const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 
-// Popup "Sali di livello" con le regole comuni a tutte le classi: classe, PF, sottoclasse, ASI o talento.
+// Popup "Sali di livello" con le regole comuni a tutte le classi (classe, PF, sottoclasse, ASI o talento) e i privilegi da 5e.tools.
 // Il riepilogo mostra i valori prima → dopo; la scheda cambia solo con Conferma.
 export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterSheet; onClose: () => void; onConfirm: (className: string, level: number, choices: LevelChoices) => void }) {
   const classes = sheetClasses(sheet);
@@ -20,6 +22,16 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const [mode, setMode] = useState<FeatMode>("");
   const [abilities, setAbilities] = useState(["", ""]);
   const [featName, setFeatName] = useState("");
+  // data: undefined = la classe non è nei dati del PHB 2024. Vale solo se className è ancora quella scelta.
+  const [loaded, setLoaded] = useState<{ className: string; data?: ClassProgression; failed?: true } | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let live = true;
+    loadProgression(className).then((data) => { if (live) setLoaded({ className, data }); }, () => { if (live) setLoaded({ className, failed: true }); });
+    return () => { live = false; };
+  }, [className, attempt]);
+  const ready = loaded?.className === className ? loaded : null;
+  const progression = ready?.data;
 
   const current = classes.find((entry) => entry.name === className);
   const level = (current?.level ?? 0) + 1;
@@ -33,7 +45,10 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
     : mode === "split" && abilities[0] && abilities[1] && abilities[0] !== abilities[1] ? { kind: "asi", abilities }
     : mode === "feat" && name ? { kind: "feat", name }
     : mode === "boon" && name && abilities[0] ? { kind: "boon", name, ability: abilities[0] } : undefined;
-  const choices: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat } };
+  const owned = current?.subclass || (needsSubclass ? subclass : "");
+  const manual = ready && !ready.failed && (!progression ? className : owned && !progression.features.some((feature) => feature.subclass === owned) ? owned : "");
+  const choices: LevelChoices = { ...rolled !== null && { hpRoll: rolled }, ...needsSubclass && subclass && { subclass }, ...feat && { feat },
+    ...progression && { features: newFeatures(progression, level, owned), reminders: tableChanges(progression, level, owned) } };
   const missing = [needsSubclass && !subclass && "la sottoclasse", featKind && !feat && (featKind === "boon" ? "il Dono epico, l'aumento o il talento" : "l'aumento dei punteggi o il talento")].filter(Boolean);
   const summary = levelSummary(sheet, applyLevel(sheet, className, level, choices));
 
@@ -63,7 +78,6 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
         <option value="">Scegli…</option>{books.map(([book, names]) => <optgroup key={book} label={book}>{names.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}
       </Select></label>
         {/* shortcut: solo le sottoclassi del PHB 2024 avranno i privilegi automatici; Xanathar e Tasha dopo lo step 4 (TE-115). */}
-        {subclass && !SUBCLASSES[className]?.includes(subclass) && <small>I privilegi di {subclass} non si aggiungono in automatico: vanno messi a mano nei tratti.</small>}
       </div>}
 
       {featKind && <div className="level-up-box form-field"><span>{featKind === "boon" ? "Dono epico o aumento dei punteggi" : "Aumento dei punteggi (massimo 20) o talento"}</span>
@@ -78,9 +92,13 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
       </div>}
 
       <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>
-      <small>Privilegi della classe, trucchetti e incantesimi nuovi non si aggiungono ancora da qui: vanno messi a mano nei tratti e nella tab Magia.</small>
+      {!ready && <small role="status">Carico i privilegi da 5e.tools…</small>}
+      {ready?.failed && <div className="level-up-box"><small role="alert">Privilegi non caricati da 5e.tools. Riprova, oppure conferma e mettili a mano nei tratti.</small><Button type="button" variant="secondary" onClick={() => { setLoaded(null); setAttempt(attempt + 1); }}>Riprova</Button></div>}
+      {manual && <small>I privilegi di {manual} non si aggiungono in automatico: vanno messi a mano nei tratti.</small>}
+      {!!choices.reminders?.length && <section className="level-up-summary" aria-label="Da aggiornare a mano"><h3>Da aggiornare a mano</h3><ul>{choices.reminders.map((line) => <li key={line}>{line}</li>)}</ul></section>}
+      <small>I privilegi sono tratti di solo testo: modificatori, risorse, azioni, effetti e incantesimi si aggiungono a mano.</small>
       {missing.length > 0 && <small>Per confermare scegli {missing.join(" e ")}.</small>}
-      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={missing.length > 0} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
+      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={!ready || missing.length > 0} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
     </div>
   </Dialog>;
 }

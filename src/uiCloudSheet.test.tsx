@@ -13,7 +13,7 @@ import { DEFAULT_RULESET } from "./rulesets";
 
 vi.mock("@upstash/redis", async () => (await import("./fakeRedis")).fakeRedisModule);
 vi.mock("./privateMessages", () => ({ publishGmMessageKey: async () => undefined }));
-vi.mock("./fivetoolsApi", () => ({ listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
+vi.mock("./fivetoolsApi", () => ({ loadProgression: vi.fn(async () => ({ features: [{ name: "Tactical Shift", level: 3, description: "Testo del privilegio" }, { name: "Improved Critical", level: 3, description: "", subclass: "Champion" }], columns: [{ label: "Second Wind", values: ["2", "2", "3", "3"] }] })), listBestiarySources: async () => [], loadSpells: async () => [{ name: "Fireball", level: 3, classes: ["Wizard"], spell: { name: "Fireball", level: 3, school: "Evocation", prepared: false, ritual: false, concentration: false } }, { name: "Sleep", level: 1, classes: ["Wizard"], spell: { name: "Sleep", level: 1, prepared: false, ritual: false, concentration: false } }], loadItems: async () => [
   { id: "Shield|XPHB", name: "Shield", source: "XPHB", detail: "XPHB · Shield · 6 lb", item: { name: "Shield", weight: 6, modifiersText: "Item Type: Shield, AC +2", description: "Uno scudo." } },
 ] }));
 const viewer = vi.hoisted(() => ({ name: "GM", role: "GM" as "GM" | "PLAYER", tokens: [] as unknown[], turns: [] as unknown[] }));
@@ -1635,11 +1635,11 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
   expect(confirm().disabled).toBe(true);
   await choose("Sottoclasse", "Samurai");
-  expect(host.querySelector(".level-up-box small")?.textContent).toBe("I privilegi di Samurai non si aggiungono in automatico: vanno messi a mano nei tratti.");
+  expect(host.querySelector(".ui-dialog")?.textContent).toContain("I privilegi di Samurai non si aggiungono in automatico");
   await choose("Sottoclasse", "Champion");
-  expect(host.querySelector(".level-up-box small")).toBeNull();
+  expect(host.querySelector(".ui-dialog")?.textContent).not.toContain("non si aggiungono in automatico");
   const summary = () => [...host.querySelectorAll(".level-up-summary li")].map((item) => item.textContent);
-  expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3"]);
+  expect(summary()).toEqual(["Livello 2 → 3: Champion Fighter 3", "PF massimi 20 → 26", "Dadi vita 2 → 3", "Nuovo tratto: Tactical Shift", "Nuovo tratto: Improved Critical", "Second Wind 2 → 3"]);
   // Le classi senza 13 nella caratteristica principale non si possono prendere.
   expect(host.querySelector<HTMLOptionElement>('option[value="Wizard"]')?.disabled).toBe(true);
   await act(async () => confirm().click());
@@ -1654,7 +1654,7 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   expect(summary()).toContain("FOR 15 → 17");
   await act(async () => confirm().click());
   await settle(1_700);
-  expect(cloudSheet().sheet.traits).toMatchObject([{ name: "Ability Score Improvement", featureId: "Fighter:4:feat" }]);
+  expect(cloudSheet().sheet.traits).toMatchObject([{ name: "Tactical Shift", description: "Testo del privilegio" }, { name: "Improved Critical" }, { name: "Ability Score Improvement", featureId: "Fighter:4:feat" }]);
 });
 
 it("il GM divide i PE di un incontro tra i PG scelti dalla tab Turni", async () => {
@@ -1702,4 +1702,19 @@ it("nel popup dell'effetto Ira il bonus ai danni mostra il valore calcolato dal 
   await click("Modifica");
   await act(async () => host.querySelector<HTMLButtonElement>('.effects-list [aria-label="Modifica Ira"]')!.click());
   expect(host.querySelector(".ui-dialog .modifier-bonus small")?.textContent).toBe("+ danni d'Ira: +3 (totale +3)");
+});
+
+it("Sali di livello: se 5e.tools non risponde si può riprovare o confermare senza privilegi", async () => {
+  const { loadProgression } = await import("./fivetoolsApi");
+  vi.mocked(loadProgression).mockRejectedValueOnce(new Error("offline"));
+  const sheet = createBlankSheet("Eroe");
+  sheet.classes = [{ name: "Fighter", level: 1 }];
+  await apiFetch("/api/sheets", { method: "PUT", body: JSON.stringify({ room: "r1", rev: 0, entry: { kind: "pc", sheet, acl: { view: [], edit: [] }, updatedBy: "GM" } }) });
+  await act(async () => root.render(<App/>));
+  await settle();
+  await click("↑ Sali di livello");
+  expect(host.querySelector('.ui-dialog [role="alert"]')?.textContent).toContain("Privilegi non caricati");
+  expect([...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.disabled).toBe(false);
+  await click("Riprova");
+  expect(host.querySelector('.ui-dialog [role="alert"]')).toBeNull();
 });

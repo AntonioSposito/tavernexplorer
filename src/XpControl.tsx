@@ -34,7 +34,7 @@ export function XpControl({ sheet, editable, onUpdate, onNotice }: { sheet: Char
     {levelingUp && <LevelUpDialog sheet={sheet} onClose={() => setLevelingUp(false)} onConfirm={(className, level, choices) => {
       const next = applyLevel(sheet, className, level, choices);
       onUpdate((current) => applyLevel(current, className, level, choices));
-      onNotice(`${sheet.name} sale al livello ${next.identity.level}`, levelSummary(sheet, next).join(" · "));
+      onNotice(`${sheet.name} sale al livello ${next.identity.level}`, [...levelSummary(sheet, next), ...choices.reminders ?? []].join(" · "));
       setLevelingUp(false);
     }}/>}
     <Dialog open={open} title="Esperienza" description={`${sheet.name} · ${format(xp)} PE`} onClose={() => setOpen(false)}>

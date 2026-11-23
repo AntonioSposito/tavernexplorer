@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createBlankSheet } from "./blankSheet";
 import { effectiveSheet } from "./effects";
-import { applyLevel, featLevel, levelSummary, multiclassBlock } from "./levelUp";
+import type { ClassProgression } from "./fivetoolsCharacter";
+import { applyLevel, featLevel, levelSummary, multiclassBlock, newFeatures, tableChanges } from "./levelUp";
 import type { CharacterSheet } from "./types";
 
 function character(className: string, level: number, scores: Record<string, number> = {}): CharacterSheet {
@@ -106,5 +107,40 @@ describe("multiclassBlock", () => {
     expect(multiclassBlock(character("Bard", 3, { strength: 14, charisma: 16 }), "Barbarian")).toBeUndefined();
     expect(multiclassBlock(character("Bard", 3, { dexterity: 13, charisma: 13 }), "Fighter")).toBeUndefined();
     expect(multiclassBlock(character("Bard", 3, { dexterity: 13, charisma: 13 }), "Monk")).toBe("serve SAG 13 (Monk)");
+  });
+});
+
+describe("privilegi e tabelle da 5e.tools", () => {
+  const data: ClassProgression = {
+    features: [
+      { name: "Expertise", level: 1, description: "due" }, { name: "Cunning Action", level: 2, description: "Azione bonus" },
+      { name: "Steady Aim", level: 3, description: "" }, { name: "Assassinate", level: 3, description: "", subclass: "Assassin" }, { name: "Fast Hands", level: 3, description: "", subclass: "Thief" },
+      { name: "Expertise", level: 6, description: "altre due" },
+    ],
+    columns: [{ label: "Sneak Attack", values: ["1d6", "1d6", "2d6"] }, { label: "Cantrips", values: ["3", "3", "4"], subclass: "Thief" }],
+  };
+  it("solo i privilegi del livello, della classe e della propria sottoclasse", () => {
+    expect(newFeatures(data, 3, "Thief").map((feature) => feature.name)).toEqual(["Steady Aim", "Fast Hands"]);
+  });
+
+  it("un tratto già presente con lo stesso nome resta com'è e il nuovo si aggiunge accanto", () => {
+    const sheet = character("Rogue", 1);
+    sheet.traits = [{ id: "a", name: "Cunning Action", description: "mio" }];
+    const next = applyLevel(sheet, "Rogue", 2, { features: newFeatures(data, 2) });
+    expect(next.traits).toMatchObject([{ id: "a", description: "mio" }, { name: "Cunning Action", description: "Azione bonus", featureId: "Rogue:2:Cunning Action", sourceType: "Rogue 2" }]);
+    expect(levelSummary(sheet, next)).toContain("Nuovo tratto: Cunning Action");
+  });
+
+  it("rifare lo stesso livello non duplica il privilegio e non tocca quello che c'è", () => {
+    const next = applyLevel(character("Rogue", 1), "Rogue", 2, { features: newFeatures(data, 2) });
+    next.traits[0] = { ...next.traits[0], description: "mio" };
+    expect(applyLevel(next, "Rogue", 2, { features: newFeatures(data, 2) }).traits).toEqual(next.traits);
+  });
+
+  it("promemoria: solo le colonne che cambiano, della propria sottoclasse", () => {
+    expect(tableChanges(data, 3, "Thief")).toEqual(["Sneak Attack 1d6 → 2d6", "Trucchetti 3 → 4"]);
+    expect(tableChanges(data, 3)).toEqual(["Sneak Attack 1d6 → 2d6"]);
+    expect(tableChanges(data, 2)).toEqual([]);
+    expect(tableChanges(data, 1)).toEqual(["Sneak Attack 0 → 1d6"]);
   });
 });

@@ -2,10 +2,11 @@ import { classDisplay, classRule } from "./classes";
 import { applyClassChanges, derivedSlots } from "./classSync";
 import { ABILITY_SHORT } from "./constants";
 import { effectiveSheet, fixProficiencyChoice } from "./effects";
+import type { ClassProgression, LevelFeature } from "./fivetoolsCharacter";
 import type { CharacterClass, CharacterSheet, TraitEntry } from "./types";
 
 // Regole comuni a tutte le classi (PHB 2024, docs/classificazione-privilegi-phb2024.md): PF, dadi vita, competenza,
-// slot, sottoclasse e Ability Score Improvement. I privilegi delle singole classi arrivano negli step successivi.
+// slot, sottoclasse e Ability Score Improvement. I privilegi di classe e sottoclasse (5e.tools) diventano tratti di solo testo.
 
 // Al posto dell'ASI: +1 per voce (la stessa due volte = +2, massimo 20), un talento, o al 19 un Dono epico (+1, massimo 30).
 export type FeatChoice = { kind: "asi"; abilities: string[] } | { kind: "feat"; name: string } | { kind: "boon"; name: string; ability: string };
@@ -14,6 +15,9 @@ export interface LevelChoices {
   hpRoll?: number;
   subclass?: string;
   feat?: FeatChoice;
+  // Privilegi del livello (newFeatures) e valori delle tabelle di classe da riportare a mano (tableChanges).
+  features?: LevelFeature[];
+  reminders?: string[];
 }
 
 export const SUBCLASS_LEVEL = 3;
@@ -68,6 +72,25 @@ function upsertTrait(sheet: CharacterSheet, trait: TraitEntry) {
   else if (!sheet.traits[index].edited) sheet.traits[index] = { ...trait, id: sheet.traits[index].id };
 }
 
+// Privilegi della classe e della sottoclasse a questo livello.
+export const newFeatures = (progression: ClassProgression, level: number, subclass?: string): LevelFeature[] =>
+  progression.features.filter((feature) => feature.level === level && (!feature.subclass || feature.subclass === subclass));
+
+const COLUMN_LABELS: Record<string, string> = { Cantrips: "Trucchetti", "Prepared Spells": "Incantesimi preparati", "Spells Prepared": "Incantesimi preparati", "Die Size": "Dado di Psionic Energy", Number: "Dadi di Psionic Energy" };
+// Colonne delle tabelle che cambiano a questo livello: "Trucchetti 3 → 4", "Sneak Attack 1d6 → 2d6".
+export function tableChanges(progression: ClassProgression, level: number, subclass?: string): string[] {
+  return progression.columns.filter((column) => !column.subclass || column.subclass === subclass).flatMap(({ label, values }) => {
+    const before = level > 1 ? values[level - 2] : "0";
+    const after = values[level - 1];
+    return after && after !== before ? `${COLUMN_LABELS[label] ?? label} ${before} → ${after}` : [];
+  });
+}
+
+function featureTrait(className: string, feature: LevelFeature): TraitEntry {
+  const sourceType = `${feature.subclass ?? className} ${feature.level}`;
+  return { id: crypto.randomUUID(), featureId: [className, feature.subclass, feature.level, feature.name].filter(Boolean).join(":"), name: feature.name, description: feature.description, sourceKind: "Class", sourceType, source: `${sourceType} • Class` };
+}
+
 // className sale al livello di classe level (1 = nuova classe). Funzione pura: restituisce una scheda nuova.
 export function applyLevel(sheet: CharacterSheet, className: string, level: number, choices: LevelChoices): CharacterSheet {
   const previous = structuredClone(sheet);
@@ -89,6 +112,8 @@ export function applyLevel(sheet: CharacterSheet, className: string, level: numb
     next.combat.hitDice = { ...next.combat.hitDice, max: next.combat.hitDice.max + 1, current: next.combat.hitDice.current + 1 };
   }
   if (choices.feat) upsertTrait(next, featTrait(className, level, choices.feat));
+  // I tratti già sulla scheda non si toccano, nemmeno con lo stesso nome; si salta solo lo stesso privilegio, se si rifà il livello.
+  for (const trait of (choices.features ?? []).map((feature) => featureTrait(className, feature))) if (!next.traits.some((item) => item.featureId === trait.featureId)) next.traits.push(trait);
   // PF del livello con la COS di prima; se l'ASI alza il modificatore di COS, +1 PF per livello anche per quelli passati.
   const conBefore = effectiveSheet(sheet).abilities.constitution?.mod ?? 0;
   const conAfter = effectiveSheet(next).abilities.constitution?.mod ?? 0;

@@ -1,5 +1,5 @@
 import { import5eToolsItems, import5eToolsMonsters, type FiveToolsItem } from "./import5etools";
-import { parseBackgrounds, parseClass, parseOriginFeats, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type SpellOption } from "./fivetoolsCharacter";
+import { parseBackgrounds, parseClass, parseOriginFeats, parseProgression, parseSpecies, parseSpellCatalog, parseSpells, type CharacterOptions, type ClassProgression, type SpellOption } from "./fivetoolsCharacter";
 import { resolveCopies, type FindMonster } from "./fivetoolsCopy";
 import type { MonsterSheet } from "./types";
 
@@ -68,6 +68,15 @@ export function loadCharacterOptions(): Promise<CharacterOptions> {
   }));
   optionsCache.catch(() => { optionsCache = null; });
   return optionsCache;
+}
+
+const progressions = new Map<string, Promise<ClassProgression | undefined>>();
+// Privilegi e tabelle di una classe per il level up; undefined se non è del PHB 2024. Un errore permette di riprovare.
+export function loadProgression(className: string): Promise<ClassProgression | undefined> {
+  const file = className.toLowerCase();
+  if (!CLASS_FILES.includes(file)) return Promise.resolve(undefined);
+  if (!progressions.has(file)) progressions.set(file, request(`class/class-${file}.json`).then(parseProgression).catch((error) => { progressions.delete(file); throw error; }));
+  return progressions.get(file)!;
 }
 
 let spellsCache: Promise<SpellOption[]> | null = null;

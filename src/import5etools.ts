@@ -18,7 +18,7 @@ const ATTACKS: Record<string, string> = {
 const SAVES: Record<string, string> = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
 const LABELS: Record<string, string> = { h: "Hit:", m: "Miss:", hom: "Hit or Miss:", actSaveFail: "Failure:", actSaveSuccess: "Success:", actSaveSuccessOrFail: "Failure or Success:", actTrigger: "Trigger:", actResponse: "Response:" };
 
-function stripTags(value: string): string {
+export function stripTags(value: string): string {
   return value
     .replace(/\{@atkr? ([^}|]+)}/g, (_, kind: string) => ATTACKS[kind.replace(/\s/g, "")] ?? "Attack:")
     .replace(/\{@hit ([+-]?\d+)(?:\|[^}]*)?}/g, (_, bonus: string) => `${Number(bonus) < 0 ? "" : "+"}${Number(bonus)}`)
@@ -42,7 +42,7 @@ export function renderEntries(entries: unknown): string {
   if (!Object.keys(entry).length) return "";
   if (entry.type === "list") return array(entry.items).map((item) => `• ${renderEntries(item)}`).join("\n");
   if (entry.type === "table") {
-    const header = array(entry.colLabels).map(text).join(" | ");
+    const header = array(entry.colLabels).map((label) => stripTags(text(label))).join(" | ");
     const rows = array(entry.rows).map((row) => array(row).map(renderEntries).join(" | ")).join("\n");
     return [header, rows].filter(Boolean).join("\n");
   }

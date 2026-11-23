@@ -1,4 +1,4 @@
-import { renderEntries } from "./import5etools";
+import { renderEntries, stripTags } from "./import5etools";
 import type { ActionAbility, SpellEntry } from "./types";
 
 // Dati 5e.tools del PHB 2024 (sorgente XPHB) ridotti a quanto serve alla creazione guidata di livello 1.
@@ -130,6 +130,67 @@ export function parseClass(file: unknown): ClassOption | undefined {
     spells: Number(fixedSpells) || prepared, prepared,
     features: featureNames.flatMap((featureName) => featureRows.filter((feature) => feature.name === featureName).map((feature) => ({ name: featureName, description: renderEntries(feature.entries) }))),
   };
+}
+
+// Privilegi e tabelle di una classe del PHB 2024 (con le sue sottoclassi), per il level up.
+export interface LevelFeature extends Feature { level: number; subclass?: string }
+// values[livello - 1], es. "2d6" per Sneak Attack.
+export interface LevelColumn { label: string; subclass?: string; values: string[] }
+export interface ClassProgression { features: LevelFeature[]; columns: LevelColumn[] }
+
+// Cella di una tabella: numero, testo, dado, bonus ai danni o alla velocità (10 ft = 3 m).
+function cellText(value: unknown): string {
+  const cell = obj(value);
+  if (cell.type === "dice") return array(cell.toRoll).map(obj).map((dice) => `${text(dice.number)}d${text(dice.faces)}`).join(" + ");
+  if (cell.type === "bonus") return `+${text(cell.value)}`;
+  if (cell.type === "bonusSpeed") return `+${Number(cell.value) * 3 / 10} m`;
+  return stripTags(text(value));
+}
+
+export function parseProgression(file: unknown): ClassProgression | undefined {
+  const data = obj(file);
+  const row = array(data.class).map(obj).find((item) => item.source === SOURCE);
+  if (!row) return undefined;
+  const xphb = (value: unknown) => array(value).map(obj).filter((item) => item.source === SOURCE);
+  const classRows = xphb(data.classFeature);
+  const subclassRows = xphb(data.subclassFeature);
+  // Riferimenti "Nome|Classe|XPHB|livello" e "Nome|Classe|XPHB|Sottoclasse|XPHB|livello"; con un'altra fonte in fondo (Totems|WoW) si saltano.
+  const find = (ref: string): Obj | undefined => {
+    const parts = ref.split("|");
+    return parts.length > 5
+      ? subclassRows.find((item) => item.name === parts[0] && item.subclassShortName === parts[3] && item.level === Number(parts[5]))
+      : parts[4] && parts[4] !== SOURCE ? undefined : classRows.find((item) => item.name === parts[0] && item.level === Number(parts[3]));
+  };
+  const rowsOf = (ref: string): Obj[] => { const found = find(ref); return found ? [found] : []; };
+  const refOf = (entry: Obj) => text(entry.classFeature ?? entry.subclassFeature);
+  // I privilegi richiamati nel testo (Channel Divinity → Turn Undead) si mettono al loro posto; talenti e opzioni solo col nome.
+  const inline = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(inline);
+    const entry = obj(value);
+    if (entry.type === "refClassFeature" || entry.type === "refSubclassFeature") { const target = find(refOf(entry)); return target ? { name: target.name, entries: inline(target.entries) } : ""; }
+    if (entry.type === "refOptionalfeature" || entry.type === "refFeat") return `• ${text(entry.optionalfeature ?? entry.feat).split("|")[0]}`;
+    return value && typeof value === "object" ? Object.fromEntries(Object.entries(entry).map(([key, item]) => [key, inline(item)])) : value;
+  };
+  const feature = (item: Obj, subclass?: string): LevelFeature => ({ name: text(item.name), description: renderEntries(inline(item.entries)), level: Number(item.level), ...subclass && { subclass } });
+  const columns = (groups: unknown, subclass?: string): LevelColumn[] => array(groups).map(obj).filter((group) => group.rows).flatMap((group) => array(group.colLabels).map((label, index) => ({
+    label: stripTags(text(label)), values: array(group.rows).map((cells) => cellText(array(cells)[index])), ...subclass && { subclass },
+  })));
+
+  // Fuori i segnaposto della sottoclasse (oggetti) e le voci che gestisce il popup.
+  const handled = ["Ability Score Improvement", "Epic Boon"];
+  const result: ClassProgression = {
+    features: array(row.classFeatures).filter((ref): ref is string => typeof ref === "string").flatMap(rowsOf).filter((item) => !handled.includes(text(item.name))).map((item) => feature(item)),
+    columns: columns(row.classTableGroups),
+  };
+  for (const sub of xphb(data.subclass).filter((item) => item.classSource === SOURCE)) {
+    const name = text(sub.name);
+    // Il primo privilegio ha il nome della sottoclasse: è solo l'introduzione, contano quelli che richiama.
+    const rows = array(sub.subclassFeatures).map(text).flatMap(rowsOf).flatMap((item) => item.name !== name ? [item]
+      : array(item.entries).map(obj).filter((entry) => entry.type === "refSubclassFeature").flatMap((entry) => rowsOf(refOf(entry))));
+    result.features.push(...rows.map((item) => feature(item, name)));
+    result.columns.push(...columns(sub.subclassTableGroups, name));
+  }
+  return result;
 }
 
 // "magic initiate; wizard|xphb" → "Magic Initiate (Wizard)".
