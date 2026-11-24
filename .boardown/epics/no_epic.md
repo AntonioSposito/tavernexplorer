@@ -1667,11 +1667,11 @@ Richiesta dell'utente (2026-11-23): "aggiungere alla cache dati che cambiano rar
 id: TE-118
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7800
 ---
 
-**Stato (2026-11-24).** Fatto: pagine in file separati (`src/main.tsx`), parser 5e.tools, creazione guidata, level up e import Roll20 caricati al primo uso; app da 617 a 549 kB, popover dei token a circa 330 kB. Manca: "Riprova" anche per cataloghi e import (oggi un messaggio), `loading="lazy"` in `TurnOrder`, prova in Owlbear.
+**Chiuso (2026-11-24).** Fatto: pagine in file separati (`src/main.tsx`), parser 5e.tools, creazione guidata, level up e import Roll20 caricati al primo uso; app da 617 a 549 kB, popover dei token a circa 330 kB. Non fatto: "Riprova" per cataloghi e import, dove resta un messaggio che chiede di ricaricare (deciso dall'utente); Journal, Bestiario e Permessi restano nel file dell'app e `loading="lazy"` in `TurnOrder` non c'è (guadagno piccolo).
 
 Richiesta dell'utente (2026-11-23): "lazy-load delle cose (se possibile)".
 
