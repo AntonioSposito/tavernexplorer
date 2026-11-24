@@ -9,10 +9,34 @@ const DEFAULT_BASE = "https://raw.githubusercontent.com/5etools-mirror-3/5etools
 
 export interface FiveToolsSource { id: string; file: string; label: string }
 
+// I file restano nel browser per una settimana. Cache API assente, bloccata o piena: si scarica come senza cache.
+const CACHE_NAME = "te-5etools";
+const CACHE_MS = 7 * 24 * 60 * 60 * 1000;
+const SAVED_AT = "x-saved-at";
+
+async function readCache(url: string): Promise<Record<string, unknown> | undefined> {
+  try {
+    const saved = await (await caches.open(CACHE_NAME)).match(url);
+    if (!saved || !(Date.now() - Number(saved.headers.get(SAVED_AT)) < CACHE_MS)) return undefined;
+    return await saved.json();
+  } catch { return undefined; }
+}
+
+async function writeCache(url: string, data: unknown): Promise<void> {
+  try {
+    await (await caches.open(CACHE_NAME)).put(url, new Response(JSON.stringify(data), { headers: { [SAVED_AT]: String(Date.now()) } }));
+  } catch { /* Senza cache si riscarica alla prossima apertura. */ }
+}
+
 async function request(path: string, base = DEFAULT_BASE): Promise<Record<string, unknown>> {
-  const response = await fetch(`${base.replace(/\/$/, "")}/${path}`, { headers: { Accept: "application/json" } });
+  const url = `${base.replace(/\/$/, "")}/${path}`;
+  const cached = await readCache(url);
+  if (cached) return cached;
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`5e.tools ha risposto ${response.status}`);
-  return response.json() as Promise<Record<string, unknown>>;
+  const data = await response.json() as Record<string, unknown>;
+  void writeCache(url, data);
+  return data;
 }
 
 export async function listBestiarySources(): Promise<FiveToolsSource[]> {
@@ -45,7 +69,7 @@ export async function importMonsters(data: Record<string, unknown>): Promise<Mon
 
 let bestiaryIndex: Promise<Record<string, unknown>> | null = null;
 const bestiaryFiles = new Map<string, Promise<Array<Record<string, unknown>>>>();
-// Un manuale si scarica una volta per sessione; se fallisce si riprova alla prossima importazione.
+// Un manuale si legge una volta per sessione; se fallisce si riprova alla prossima importazione.
 const findMonster: FindMonster = async (name, source) => {
   const index = await (bestiaryIndex ??= request("bestiary/index.json").catch((error) => { bestiaryIndex = null; throw error; }));
   const file = Object.entries(index).find(([id]) => id.toLowerCase() === source.toLowerCase())?.[1];

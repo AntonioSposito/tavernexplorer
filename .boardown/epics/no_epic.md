@@ -1624,9 +1624,11 @@ Figlio di TE-81. Magical Secrets, Magical Discoveries, Mystic Arcanum (11°, 13�
 id: TE-116
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7600
 ---
+
+**Chiuso senza farlo (2026-11-24), deciso dall'utente.** La ricerca filtra liste già in memoria nel client: un indice sul server non la accelera. Il peso delle letture passa a TE-120.
 
 Richiesta dell'utente (2026-11-23): "aggiungere indici alle colonne per una ricerca più veloce".
 
@@ -1642,9 +1644,11 @@ Richiesta dell'utente (2026-11-23): "aggiungere indici alle colonne per una rice
 id: TE-117
 type: feature
 priority: medium
-status: todo
+status: done
 order: 7700
 ---
+
+**Chiuso (2026-11-24).** File 5e.tools nella Cache API del browser per 7 giorni (`request` in `src/fivetoolsApi.ts`, test in `src/fivetoolsCache.test.ts`); `Cache-Control` per `assets`, `icons` e `tab-icons` in `vercel.json`. Gli header vanno controllati dopo il deploy.
 
 Richiesta dell'utente (2026-11-23): "aggiungere alla cache dati che cambiano raramente".
 
@@ -1694,3 +1698,33 @@ Richiesta dell'utente (2026-11-23): "optimistic ui ad ogni clic".
 **Attenzione.** Eliminazioni e conflitti di revisione: il ritorno indietro non deve perdere modifiche di altri.
 
 **Accettazione.** Con la rete rallentata ogni clic dà subito il risultato; con la rete assente l'azione si annulla e l'errore si vede. Un test di ritorno indietro per tipo di azione.
+
+## Letture incrementali di schede e bestiario
+
+---
+id: TE-120
+type: tech
+priority: medium
+status: todo
+order: 8000
+---
+
+Sostituisce TE-116 (2026-11-24).
+
+**Contesto.** `GET` di `api/bestiary.ts` e `api/sheets.ts` restituisce tutta la stanza (`hvals`) a ogni lettura, anche se non è cambiato nulla, e comprende le lapidi. Il bestiario si rilegge ogni 60 s (`BESTIARY_POLL_MS`), le schede ogni 90 s (15 s dal telefono) e a ogni avviso di modifica. Massimo teorico: 3000 mostri da 40 kB, 500 schede da 200 kB.
+
+**Prima misurare.** Peso e durata delle due `GET` in una stanza reale. Se sono piccoli, chiudere il ticket.
+
+**Da fare.**
+- Prima lettura completa, poi solo le voci cambiate dall'ultima lettura (modificate, create, eliminate). Filtrare anche la lettura da Redis, non solo la risposta.
+- Il segno dell'ultima lettura lo assegna il server (es. contatore per stanza, aggiornato insieme alla scrittura): non l'orologio del client. `updatedAt` del mostro arriva dal client e non basta.
+- Le eliminazioni arrivano come lapidi. Se il segno del client è più vecchio delle lapidi tolte (`dropOldTombstones`, 30 giorni), lettura completa.
+
+**Attenzione.** `mergeBestiary` ricarica nel cloud i mostri locali assenti dalla risposta (`upload`): con una risposta parziale li ricaricherebbe tutti. Controllare anche `refresh` in `src/cloudSheets.ts`. Le voci già salvate non hanno il segno: servono una migrazione o una lettura completa.
+
+**Accettazione.**
+- Senza modifiche, la seconda lettura non restituisce voci; con un mostro modificato restituisce solo quello.
+- Creazioni, modifiche ed eliminazioni arrivano agli altri client come oggi; nessun mostro ricaricato per errore.
+- Pesi misurati prima e dopo.
+
+**Test.** API: nessuna modifica, modifica, eliminazione, segno troppo vecchio, voci senza segno, due scritture contemporanee. Client: una risposta parziale non toglie né ricarica voci.
