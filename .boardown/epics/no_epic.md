@@ -46,30 +46,6 @@ Rilievi documentati: room metadata <16 kB complessivi e scrittura parziale senza
 
 Fonti: https://docs.owlbear.rodeo/extensions/apis/room/ ; https://docs.owlbear.rodeo/extensions/apis/scene/ ; https://docs.owlbear.rodeo/extensions/apis/player/ ; https://docs.owlbear.rodeo/extensions/apis/assets/ ; https://docs.owlbear.rodeo/docs/migration/migrate-from-1-to-2/#cloud-storage
 
-## Incontri pronti da avviare
-
----
-id: TE-18
-type: feature
-priority: medium
-status: todo
-order: 1000
----
-
-Salvare gruppi di mostri e iniziative come incontro riutilizzabile, collegarli ai token della scena e avviare o chiudere il combattimento con controllo prima di sovrascrivere il tracker.
-
-## Ricerca rapida durante la sessione
-
----
-id: TE-19
-type: feature
-priority: medium
-status: todo
-order: 1100
----
-
-Cercare personaggi, mostri, avventure e note accessibili senza riaprire cataloghi; filtrare per nome, fonte e GS dove applicabile.
-
 ## Storage condiviso con ACL reali
 
 ---
@@ -473,27 +449,6 @@ Figlio di TE-34. Difese temporanee negli effetti (resistenze dell'Ira, Mindless 
 **Verifica (utente).** Dal personaggio di prova, livello 1 → 20 per ogni sottoclasse, confrontando la scheda con la tabella del documento. Punti principali: Ira 2→6 usi e danni +2/+3/+4; Danger Sense e Feral Instinct come vantaggi; Primal Champion FOR e COS +4 al 20.
 
 **Test.** Copertura: ogni `classFeature` e `subclassFeature` XPHB del Barbaro ha una voce nel catalogo; usi e dadi uguali alle colonne di `classTableGroups` / `subclassTableGroups` per ogni livello.
-
-## Modificatori condizionali sulle armi (Archery, Dueling, Thrown Weapon Fighting)
-
----
-id: TE-114
-type: feature
-priority: high
-status: todo
-order: 59
----
-
-**Stato (2026-11-23).** Staccato da TE-34 e TE-99 (chiusi): è un miglioramento dei modificatori, non del level up.
-
-Figlio di TE-34, da fare insieme a TE-99 (Guerriero). Seguito di TE-92, che copre solo le condizioni sull'armatura.
-- Oggi il bonus ad attacco e danno è un unico numero per tutte le azioni (`attackModifier` / `damageModifier` di `EntryList`), e l'azione non sa se l'arma è a distanza, da lancio, a una o due mani.
-- Proprietà dell'arma nell'azione (dal tipo d'arma `weapon` o dai dati 5e.tools), nuove condizioni (`ranged`, `thrown`, `meleeOneHanded`) e bonus calcolato azione per azione.
-- Archery: `attack +2` solo a distanza. Dueling: `damage +2` in mischia a una mano, senza altre armi. Thrown Weapon Fighting: `damage +2` con le armi da lancio.
-
-**Verifica (utente).** Guerriero con Archery: l'arco lungo ha +2 al tiro per colpire, la spada lunga no. Con Dueling la spada lunga ha +2 ai danni, lo spadone no.
-
-**Test.** Un caso per condizione; azioni importate senza tipo d'arma: nessun bonus condizionale.
 
 ## TE-34 · Step 4: privilegi del Guerriero
 
@@ -1272,11 +1227,11 @@ Da audit ponytail (2026-11-20), punto 2. L'uso dell'Ira si scala solo in `Effect
 id: TE-69
 type: bug
 priority: high
-status: todo
+status: done
 order: 6000
 ---
 
-**Rimandato (2026-11-21).** Per scelta dell'utente gli import da Roll20 non si correggono per ora; il level up (TE-97) non ne dipende.
+**Chiuso (2026-11-24).** Corretto in `src/importer.ts`, con test in `src/classes.test.ts`.
 
 Da audit ponytail (2026-11-20), punto 3. In `src/importer.ts` (~riga 73) `num(attr("base_level"), level)` restituisce 0 quando l'attributo manca, perché `Number("")` è 0: la classe principale diventa "Fighter 0" e il level up mostra "Fighter 0 → 1" con dadi vita e slot calcolati da 0.
 

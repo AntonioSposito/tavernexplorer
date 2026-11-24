@@ -36,6 +36,11 @@ it("all'import le classi Roll20 accendono il calcolo automatico solo se gli slot
   expect(custom.classes).toEqual([{ name: "Monk 24", level: 4, custom: { hitDie: 8, caster: "none", saves: ["strength", "dexterity"] } }]);
 });
 
+it("import Roll20 senza base_level: la classe ha il livello del personaggio", () => {
+  const sheet = importRoll20({ character: { name: "Bruto" }, normalized: { identity: { class: "Fighter", level: 5 } }, raw: { attributes: {} } });
+  expect(sheet.classes).toEqual([{ name: "Fighter", level: 5 }]);
+});
+
 it("multiclasse: livello, dadi vita, slot, TS e caratteristica da incantatore si aggiornano", () => {
   const sheet = wizard();
   const previous = structuredClone(sheet);

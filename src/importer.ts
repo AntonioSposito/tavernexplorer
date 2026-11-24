@@ -70,7 +70,7 @@ function importClasses(raw: unknown, className: string, level: number, subclass:
   const attributes = obj(obj(raw).attributes);
   const attr = (name: string) => text(obj(attributes[name]).current).trim();
   const classes: CharacterClass[] = [];
-  const baseLevel = num(attr("base_level"), level);
+  const baseLevel = num(attr("base_level") || level, level);
   if (attr("custom_class") === "1") {
     const saves = Object.keys(ABILITY_SHORT).filter((ability) => attr(`cust_${ability}_save_prof`));
     classes.push({ name: attr("cust_classname") || "Classe personalizzata", level: baseLevel, custom: { hitDie: num(attr("cust_hitdietype"), 8), spellAbility: abilityFromFormula(attr("cust_spellcasting_ability")) || undefined, caster: CASTER_TYPES[attr("cust_spellslots").toLowerCase()] ?? "none", saves } });
