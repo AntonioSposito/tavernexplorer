@@ -1671,6 +1671,8 @@ status: todo
 order: 7800
 ---
 
+**Stato (2026-11-24).** Fatto: pagine in file separati (`src/main.tsx`), parser 5e.tools, creazione guidata, level up e import Roll20 caricati al primo uso; app da 617 a 549 kB, popover dei token a circa 330 kB. Manca: "Riprova" anche per cataloghi e import (oggi un messaggio), `loading="lazy"` in `TurnOrder`, prova in Owlbear.
+
 Richiesta dell'utente (2026-11-23): "lazy-load delle cose (se possibile)".
 
 **Stato.** Un solo bundle principale da circa 480 kB (non compresso), senza `React.lazy`. I dati 5e.tools si caricano già solo quando servono.

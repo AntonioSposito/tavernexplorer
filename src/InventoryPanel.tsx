@@ -2,9 +2,9 @@ import { useState } from "react";
 import { EntryIcon } from "./EntryIcon";
 import { CatalogDialog } from "./CatalogDialog";
 import { COIN_LABELS, COINS, coinsText, coinsValue, earnCoins, spendCoins, type Coins } from "./coins";
-import { loadItems } from "./fivetoolsApi";
 import type { FiveToolsItem } from "./import5etools";
 import { ChatIcon, EditIcon, ImportIcon } from "./icons";
+import { fivetools } from "./loadPart";
 import { ModifierEditor } from "./ModifierEditor";
 import { storage } from "./storage";
 import { modifierTags } from "./effects";
@@ -37,7 +37,7 @@ export function InventoryPanel({ sheet, onUpdate, onShare, onCreateAction, onOpe
   // Ricerca 5e.tools aperta sopra il form "Nuovo oggetto" (il form resta in draft, nascosto).
   const [picking, setPicking] = useState(false);
   const [catalog, setCatalog] = useState<FiveToolsItem[] | string | null>(null);
-  const openCatalog = () => { setPicking(true); if (!Array.isArray(catalog)) { setCatalog(null); loadItems().then(setCatalog, (error: unknown) => setCatalog(error instanceof Error ? error.message : "Catalogo non disponibile")); } };
+  const openCatalog = () => { setPicking(true); if (!Array.isArray(catalog)) { setCatalog(null); fivetools().then((api) => api.loadItems()).then(setCatalog, (error: unknown) => setCatalog(error instanceof Error ? error.message : "Catalogo non disponibile")); } };
   const pick = (id: string) => {
     const found = Array.isArray(catalog) ? catalog.find((entry) => entry.id === id) : undefined;
     if (found && draft) setDraft({ ...draft, name: found.item.name, weight: found.item.weight == null ? "" : String(toKg(found.item.weight)), properties: found.item.properties ?? "", modifiers: modifiersFromText(found.item.modifiersText), unknown: parseItemModifiers(found.item.modifiersText).unknown.join(", "), description: found.item.description ?? "" });

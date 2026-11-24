@@ -37,6 +37,8 @@ vi.mock("./obr", () => ({
 }));
 
 const { default: App } = await import("./App");
+// Già caricato: nei test il popup lazy si apre senza attese variabili.
+await import("./LevelUpDialog");
 let host: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 beforeEach(() => {
@@ -1635,6 +1637,7 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   await act(async () => root.render(<App/>));
   await settle();
   await click("↑ Sali di livello");
+  await settle();
   const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
   expect(confirm().disabled).toBe(true);
   await choose("Sottoclasse", "Samurai");
@@ -1651,6 +1654,7 @@ it("Sali di livello: sottoclasse al 3 e ASI al 4, con riepilogo prima della conf
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES) ?? "[]").at(-1)).toMatchObject({ title: "Eroe sale al livello 3", visibility: "everyone" });
 
   await click("↑ Sali di livello");
+  await settle();
   expect(confirm().disabled).toBe(true);
   await act(async () => host.querySelector<HTMLInputElement>('input[name="level-up-feat"]')!.click());
   await choose("Caratteristica +2", "strength");
@@ -1716,6 +1720,7 @@ it("Sali di livello: se 5e.tools non risponde si può riprovare o confermare sen
   await act(async () => root.render(<App/>));
   await settle();
   await click("↑ Sali di livello");
+  await settle();
   expect(host.querySelector('.ui-dialog [role="alert"]')?.textContent).toContain("Privilegi non caricati");
   expect([...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!.disabled).toBe(false);
   await click("Riprova");
@@ -1769,6 +1774,7 @@ it("Sali di livello: i privilegi di una sottoclasse fuori dal PHB 2024 si ricord
   await act(async () => root.render(<App/>));
   await settle();
   await click("↑ Sali di livello");
+  await settle();
   expect(host.querySelector(".level-up")?.textContent).toContain("Livello 4 → 5");
   expect(host.querySelector(".level-up")?.textContent).not.toContain("Privilegi di Samurai");
 });
@@ -1805,6 +1811,7 @@ it("Sali di livello: talento dalla lista, scritto a mano, e Dono epico con le su
   const mode = async (index: number) => act(async () => host.querySelectorAll<HTMLInputElement>('input[name="level-up-feat"]')[index].click());
   const confirm = () => [...host.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Conferma")!;
   await click("↑ Sali di livello");
+  await settle();
   await mode(0);
   await choose("Dono epico", "Boon of Offense");
   expect([...[...host.querySelectorAll("select")].find((item) => item.getAttribute("aria-label") === "Caratteristica +1")!.options].map((item) => item.value)).toEqual(["", "strength", "dexterity"]);
@@ -1832,6 +1839,7 @@ it("Sali di livello: senza la lista dei talenti il nome si scrive a mano", async
   await act(async () => root.render(<App/>));
   await settle();
   await click("↑ Sali di livello");
+  await settle();
   await act(async () => host.querySelectorAll<HTMLInputElement>('input[name="level-up-feat"]')[2].click());
   expect(host.querySelector('select[aria-label="Talento"]')).toBeNull();
   expect(host.querySelector('input[aria-label="Talento: nome"]')).not.toBeNull();

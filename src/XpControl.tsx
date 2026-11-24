@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { lazy, useState } from "react";
 import { parseXp, xpProgress } from "./experience";
-import { LevelUpDialog } from "./LevelUpDialog";
-import { applyLevel, levelSummary } from "./levelUp";
+import { LazyBoundary } from "./LazyBoundary";
 import type { CharacterSheet } from "./types";
 import { Button, Dialog, Input } from "./ui";
 
+const LevelUpForm = lazy(() => import("./LevelUpDialog").then((module) => ({ default: module.LevelUpForm })));
 const format = (value: number) => value.toLocaleString("it-IT");
 
 // PE sotto il nome: barra fino alla soglia del livello dopo; chi può modificare la scheda apre il popup per cambiarli.
@@ -31,12 +31,11 @@ export function XpControl({ sheet, editable, onUpdate, onNotice }: { sheet: Char
       ? <button type="button" className="xp-control" aria-label={`Modifica esperienza di ${sheet.name}`} title="Modifica esperienza" onClick={() => { setAmount(""); setTotal(String(xp)); setOpen(true); }}>{bar}</button>
       : <div className="xp-control">{bar}</div>}
     {editable && sheet.identity.level < 20 && <button type="button" className={`level-up-open${readyFor != null ? " ready" : ""}`} onClick={() => setLevelingUp(true)}>↑ Sali di livello</button>}
-    {levelingUp && <LevelUpDialog sheet={sheet} onClose={() => setLevelingUp(false)} onConfirm={(className, level, choices) => {
-      const next = applyLevel(sheet, className, level, choices);
-      onUpdate((current) => applyLevel(current, className, level, choices));
-      onNotice(`${sheet.name} sale al livello ${next.identity.level}`, [...levelSummary(sheet, next), ...choices.reminders ?? []].join(" · "));
+    <Dialog open={levelingUp} title={`Sali al livello ${sheet.identity.level + 1}`} description={sheet.name} onClose={() => setLevelingUp(false)}>{levelingUp && <LazyBoundary><LevelUpForm sheet={sheet} onClose={() => setLevelingUp(false)} onConfirm={(apply, next, notice) => {
+      onUpdate(apply);
+      onNotice(`${sheet.name} sale al livello ${next.identity.level}`, notice);
       setLevelingUp(false);
-    }}/>}
+    }}/></LazyBoundary>}</Dialog>
     <Dialog open={open} title="Esperienza" description={`${sheet.name} · ${format(xp)} PE`} onClose={() => setOpen(false)}>
       <div className="action-form">
         <label><span>PE da aggiungere o togliere</span><Input type="number" min="0" aria-label="PE da aggiungere o togliere" value={amount} autoFocus onChange={(event) => setAmount(event.target.value)}/></label>

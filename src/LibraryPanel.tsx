@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { lazy, useState } from "react";
 import { createBlankSheet } from "./blankSheet";
 import { CatalogDialog } from "./CatalogDialog";
-import { CharacterWizard } from "./CharacterWizard";
 import { aclCandidates, canEditCloudSheet, EVERYONE } from "./cloudSheets";
+import { LazyBoundary } from "./LazyBoundary";
 import { getRuleset } from "./rulesets";
 import { storage } from "./storage";
 import type { CharacterSheet, CloudSheet } from "./types";
 import { Button, Dialog, Input, Select } from "./ui";
+
+const CharacterWizard = lazy(() => import("./CharacterWizard").then((module) => ({ default: module.CharacterWizard })));
 
 type Member = { id: string; name: string; role: "GM" | "PLAYER" };
 type Acl = CloudSheet["acl"];
@@ -65,7 +67,7 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onI
       <label><span>Nome</span><Input aria-label="Nome del personaggio" autoFocus required value={newName} onChange={(event) => setNewName(event.target.value)}/></label>
       <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={() => setNewName(null)}>Annulla</Button><Button type="button" variant="outline" disabled={!newName.trim()} onClick={() => { onCreate(createBlankSheet(newName.trim())); setNewName(null); }}>Scheda vuota</Button><Button type="submit">Creazione guidata</Button></div>
     </form>}</Dialog>
-    <Dialog open={guided !== null} title="Creazione guidata" description="Livello 1 · PHB 2024 (dati 5e.tools)" onClose={() => setGuided(null)}>{guided !== null && <CharacterWizard name={guided} onCreate={(sheet) => { onCreate(sheet); setGuided(null); }} onCancel={() => setGuided(null)}/>}</Dialog>
+    <Dialog open={guided !== null} title="Creazione guidata" description="Livello 1 · PHB 2024 (dati 5e.tools)" onClose={() => setGuided(null)}>{guided !== null && <LazyBoundary><CharacterWizard name={guided} onCreate={(sheet) => { onCreate(sheet); setGuided(null); }} onCancel={() => setGuided(null)}/></LazyBoundary>}</Dialog>
     {shown.length === 0 && <p className="assign-empty">{isGm ? "Nessuna scheda: crea un personaggio o importa un export Roll20 o un TavernPack." : "Crea il tuo personaggio, oppure chiedi al GM di renderti visibile una scheda."}</p>}
   </div>;
 }

@@ -7,15 +7,15 @@ import { loadFeats, loadProgression } from "./fivetoolsApi";
 import { abilityChoice, type ClassProgression, type FeatCategory, type FeatOption } from "./fivetoolsCharacter";
 import { SUBCLASS_LEVEL, applyLevel, featLevel, hitDieOf, levelSummary, manualSteps, multiclassBlock, newFeatures, sheetClasses, tableChanges, type FeatChoice, type LevelChoices } from "./levelUp";
 import type { CharacterSheet } from "./types";
-import { Button, Dialog, Input, Select } from "./ui";
+import { Button, Input, Select } from "./ui";
 
 const FEAT_GROUPS: Array<[FeatCategory, string]> = [["G", "Generali"], ["O", "D'origine"], ["FS", "Stile di combattimento"]];
 type FeatMode = "" | "two" | "split" | "feat" | "boon";
 const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 
-// Popup "Sali di livello" con le regole comuni a tutte le classi (classe, PF, sottoclasse, ASI o talento) e i privilegi da 5e.tools.
+// Contenuto del popup "Sali di livello" (il popup è in XpControl) con le regole comuni a tutte le classi (classe, PF, sottoclasse, ASI o talento) e i privilegi da 5e.tools.
 // Il riepilogo mostra i valori prima → dopo; la scheda cambia solo con Conferma.
-export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterSheet; onClose: () => void; onConfirm: (className: string, level: number, choices: LevelChoices) => void }) {
+export function LevelUpForm({ sheet, onClose, onConfirm }: { sheet: CharacterSheet; onClose: () => void; onConfirm: (apply: (sheet: CharacterSheet) => CharacterSheet, next: CharacterSheet, notice: string) => void }) {
   const classes = sheetClasses(sheet);
   const [className, setClassName] = useState(classes[0].name);
   const [rolled, setRolled] = useState<number | null>(null);
@@ -68,6 +68,10 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
   const missing = [needsSubclass && !subclass && "la sottoclasse", featKind && !feat && (featKind === "boon" ? "il Dono epico, l'aumento o il talento" : "l'aumento dei punteggi o il talento")].filter(Boolean);
   const summary = levelSummary(sheet, after);
 
+  const confirm = () => {
+    const next = applyLevel(sheet, className, level, choices);
+    onConfirm((target) => applyLevel(target, className, level, choices), next, [...levelSummary(sheet, next), ...choices.reminders ?? []].join(" · "));
+  };
   const resetFeat = () => { setAbilities(["", ""]); setFeatName(""); setFeatPick(""); };
   const change = (value: string) => { setClassName(value); setRolled(null); setSubclass(""); setMode(""); resetFeat(); };
   const abilitySelect = (index: number, label: string, allowed?: string[]) => <Select aria-label={label} value={abilities[index]} onChange={(event) => setAbilities(abilities.map((value, position) => position === index ? event.target.value : value))}>
@@ -88,45 +92,43 @@ export function LevelUpDialog({ sheet, onClose, onConfirm }: { sheet: CharacterS
     {option && <p className="level-up-feat">{option.description}</p>}
   </>;
 
-  return <Dialog open title={`Sali al livello ${sheet.identity.level + 1}`} description={sheet.name} onClose={onClose}>
-    <div className="action-form level-up">
-      <div className="level-up-box"><label><span>Classe</span><Select aria-label="Classe che sale di livello" value={className} onChange={(event) => change(event.target.value)}>
-        <optgroup label="Le tue classi">{classes.map((entry) => <option key={entry.name} value={entry.name}>{entry.name} {entry.level} → {entry.level + 1}</option>)}</optgroup>
-        <optgroup label="Nuova classe (multiclasse)">{Object.keys(CLASSES).filter((key) => key !== "Artificer" && !classes.some((entry) => entry.name === key)).map((key) => {
-          const block = multiclassBlock(sheet, key);
-          return <option key={key} value={key} disabled={!!block}>{key} 1{block ? ` — ${block}` : ""}</option>;
-        })}</optgroup>
-      </Select></label></div>
+  return <div className="action-form level-up">
+    <div className="level-up-box"><label><span>Classe</span><Select aria-label="Classe che sale di livello" value={className} onChange={(event) => change(event.target.value)}>
+      <optgroup label="Le tue classi">{classes.map((entry) => <option key={entry.name} value={entry.name}>{entry.name} {entry.level} → {entry.level + 1}</option>)}</optgroup>
+      <optgroup label="Nuova classe (multiclasse)">{Object.keys(CLASSES).filter((key) => key !== "Artificer" && !classes.some((entry) => entry.name === key)).map((key) => {
+        const block = multiclassBlock(sheet, key);
+        return <option key={key} value={key} disabled={!!block}>{key} 1{block ? ` — ${block}` : ""}</option>;
+      })}</optgroup>
+    </Select></label></div>
 
-      <div className="level-up-box form-field"><span>Punti ferita (d{die} {signed(conMod)} COS)</span>
-        <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled === null} onChange={() => setRolled(null)}/> Valore fisso: {die / 2 + 1} {signed(conMod)}</label>
-        <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled !== null} onChange={() => setRolled(roll(`1d${die}`).total)}/> Tira d{die}{rolled !== null && `: ${rolled} ${signed(conMod)}`}</label>
-      </div>
-
-      {needsSubclass && <div className="level-up-box"><label><span>Sottoclasse</span><Select aria-label="Sottoclasse" value={subclass} onChange={(event) => setSubclass(event.target.value)}>
-        <option value="">Scegli…</option>{books.map(([book, names]) => <optgroup key={book} label={book}>{names.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}
-      </Select></label>
-        {/* shortcut: solo le sottoclassi del PHB 2024 avranno i privilegi automatici; Xanathar e Tasha dopo lo step 4 (TE-115). */}
-      </div>}
-
-      {featKind && <div className="level-up-box form-field"><span>{featKind === "boon" ? "Dono epico o aumento dei punteggi" : "Aumento dei punteggi (massimo 20) o talento"}</span>
-        {featKind === "boon" && radio("boon", "Dono epico (+1 a una caratteristica, massimo 30)")}
-        {mode === "boon" && <>{featSelect("Dono epico", [["EB", "Doni epici"]])}{abilitySelect(0, "Caratteristica +1", option?.abilities)}</>}
-        {radio("two", "+2 a una caratteristica")}
-        {mode === "two" && abilitySelect(0, "Caratteristica +2")}
-        {radio("split", "+1 a due caratteristiche")}
-        {mode === "split" && <div className="action-form-row">{abilitySelect(0, "Prima caratteristica +1")}{abilitySelect(1, "Seconda caratteristica +1")}</div>}
-        {radio("feat", "Talento")}
-        {mode === "feat" && featSelect("Talento", FEAT_GROUPS)}
-      </div>}
-
-      <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>
-      {!ready && <small role="status">Carico i privilegi da 5e.tools…</small>}
-      {ready?.failed && <div className="level-up-box"><small role="alert">Privilegi non caricati da 5e.tools. Riprova, oppure conferma e mettili a mano nei tratti.</small><Button type="button" variant="secondary" onClick={() => { setLoaded(null); setAttempt(attempt + 1); }}>Riprova</Button></div>}
-      {!!choices.reminders?.length && <section className="level-up-summary" aria-label="Da aggiornare a mano"><h3>Da aggiornare a mano</h3><ul>{choices.reminders.map((line) => <li key={line}>{line}</li>)}</ul></section>}
-      <small>I privilegi sono tratti di solo testo. Le cose da aggiornare a mano restano in un avviso nella tab Tratti.</small>
-      {missing.length > 0 && <small>Per confermare scegli {missing.join(" e ")}.</small>}
-      <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={!ready || missing.length > 0} onClick={() => onConfirm(className, level, choices)}>Conferma</Button></div>
+    <div className="level-up-box form-field"><span>Punti ferita (d{die} {signed(conMod)} COS)</span>
+      <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled === null} onChange={() => setRolled(null)}/> Valore fisso: {die / 2 + 1} {signed(conMod)}</label>
+      <label className="action-form-check"><input type="radio" name="level-up-hp" checked={rolled !== null} onChange={() => setRolled(roll(`1d${die}`).total)}/> Tira d{die}{rolled !== null && `: ${rolled} ${signed(conMod)}`}</label>
     </div>
-  </Dialog>;
+
+    {needsSubclass && <div className="level-up-box"><label><span>Sottoclasse</span><Select aria-label="Sottoclasse" value={subclass} onChange={(event) => setSubclass(event.target.value)}>
+      <option value="">Scegli…</option>{books.map(([book, names]) => <optgroup key={book} label={book}>{names.map((item) => <option key={item} value={item}>{item}</option>)}</optgroup>)}
+    </Select></label>
+      {/* shortcut: solo le sottoclassi del PHB 2024 avranno i privilegi automatici; Xanathar e Tasha dopo lo step 4 (TE-115). */}
+    </div>}
+
+    {featKind && <div className="level-up-box form-field"><span>{featKind === "boon" ? "Dono epico o aumento dei punteggi" : "Aumento dei punteggi (massimo 20) o talento"}</span>
+      {featKind === "boon" && radio("boon", "Dono epico (+1 a una caratteristica, massimo 30)")}
+      {mode === "boon" && <>{featSelect("Dono epico", [["EB", "Doni epici"]])}{abilitySelect(0, "Caratteristica +1", option?.abilities)}</>}
+      {radio("two", "+2 a una caratteristica")}
+      {mode === "two" && abilitySelect(0, "Caratteristica +2")}
+      {radio("split", "+1 a due caratteristiche")}
+      {mode === "split" && <div className="action-form-row">{abilitySelect(0, "Prima caratteristica +1")}{abilitySelect(1, "Seconda caratteristica +1")}</div>}
+      {radio("feat", "Talento")}
+      {mode === "feat" && featSelect("Talento", FEAT_GROUPS)}
+    </div>}
+
+    <section className="level-up-summary" aria-label="Riepilogo"><h3>Riepilogo</h3><ul>{summary.map((line) => <li key={line}>{line}</li>)}</ul></section>
+    {!ready && <small role="status">Carico i privilegi da 5e.tools…</small>}
+    {ready?.failed && <div className="level-up-box"><small role="alert">Privilegi non caricati da 5e.tools. Riprova, oppure conferma e mettili a mano nei tratti.</small><Button type="button" variant="secondary" onClick={() => { setLoaded(null); setAttempt(attempt + 1); }}>Riprova</Button></div>}
+    {!!choices.reminders?.length && <section className="level-up-summary" aria-label="Da aggiornare a mano"><h3>Da aggiornare a mano</h3><ul>{choices.reminders.map((line) => <li key={line}>{line}</li>)}</ul></section>}
+    <small>I privilegi sono tratti di solo testo. Le cose da aggiornare a mano restano in un avviso nella tab Tratti.</small>
+    {missing.length > 0 && <small>Per confermare scegli {missing.join(" e ")}.</small>}
+    <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={onClose}>Annulla</Button><Button type="button" disabled={!ready || missing.length > 0} onClick={confirm}>Conferma</Button></div>
+  </div>;
 }

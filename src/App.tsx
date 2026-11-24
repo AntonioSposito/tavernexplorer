@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseE
 import { ABILITY_LABELS, ABILITY_SHORT, ABILITY_TAGS, SKILL_ABILITIES, SKILL_LABELS, TOKEN_META_KEY } from "./constants";
 import { conditionRoll, isConcentration, rollSources, startConcentration, type D20Roll } from "./conditions";
 import { combineModes, roll, type RollResult } from "./dice";
-import { decodeLegacy, importRoll20 } from "./importer";
+import { decodeLegacy } from "./roll20Text";
 import { mergeMonsters } from "./monsterImport";
 import { canViewMessage, messageTime } from "./messageVisibility";
 import { publishGmMessageKey } from "./privateMessages";
@@ -45,7 +45,8 @@ import { SpellForm } from "./SpellForm";
 import { higherLevelBonus, preparedCount } from "./spells";
 import { TurnOrder } from "./TurnOrder";
 import { stepTurn, tickSheetEffects } from "./turns";
-import { importMonsters, listBestiarySources, loadBestiarySource, loadSpells, type FiveToolsSource } from "./fivetoolsApi";
+import type { FiveToolsSource } from "./fivetoolsApi";
+import { fivetools, roll20Importer } from "./loadPart";
 import type { SpellOption } from "./fivetoolsCharacter";
 import { fetchCloudMessages, mergeMessages, postCloudMessage } from "./cloudMessages";
 import { GmChatLink } from "./GmChatLink";
@@ -361,7 +362,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
         setActiveId(pack.data.characters[0]?.id ?? null); setTab("library"); return;
       }
       if (!parsed || typeof parsed !== "object") throw new Error("JSON non valido: attesa una scheda o un TavernPack");
-      const sheet = "schemaVersion" in parsed ? parseCharacterSheet(parsed) : importRoll20(parsed as Roll20Export);
+      const sheet = "schemaVersion" in parsed ? parseCharacterSheet(parsed) : (await roll20Importer()).importRoll20(parsed as Roll20Export);
       if (!sheet.ruleset) sheet.ruleset = { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version };
       if (player.role !== "GM") throw new Error("Solo il GM può importare schede nella libreria");
       const existing = characters.find((item) => isSameCharacter(item, sheet));
@@ -454,7 +455,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
       const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
       if (Array.isArray(parsed.monster)) {
         if (player.role !== "GM") throw new Error("Il bestiario è riservato al GM");
-        setPendingMonsters(await importMonsters(parsed)); setSelectedMonsterId(null); setTab("compendium");
+        setPendingMonsters(await (await fivetools()).importMonsters(parsed)); setSelectedMonsterId(null); setTab("compendium");
       } else throw new Error("JSON 5e.tools non riconosciuto: atteso `monster`");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Importazione 5e.tools fallita";
@@ -805,7 +806,7 @@ function Spells({ sheet, base, editable, compact, onNotice, onRoll, onShare, onU
   });
   const [importing, setImporting] = useState(false);
   const [spellCatalog, setSpellCatalog] = useState<SpellOption[] | string | null>(null);
-  const openSpellCatalog = () => { setImporting(true); if (!Array.isArray(spellCatalog)) { setSpellCatalog(null); loadSpells().then(setSpellCatalog, (error: unknown) => setSpellCatalog(error instanceof Error ? error.message : "Catalogo non disponibile")); } };
+  const openSpellCatalog = () => { setImporting(true); if (!Array.isArray(spellCatalog)) { setSpellCatalog(null); fivetools().then((api) => api.loadSpells()).then(setSpellCatalog, (error: unknown) => setSpellCatalog(error instanceof Error ? error.message : "Catalogo non disponibile")); } };
   // Niente doppioni: gli incantesimi già nella scheda restano nel catalogo, ma importarli mostra un avviso.
   const inSheet = (name: string) => sheet.spells.some((spell) => spell.name.toLowerCase() === name.toLowerCase());
   const importSpell = (name: string) => {
@@ -897,8 +898,8 @@ function Bestiary({ effectsOf, monsterRoll, onMonsterRollChange, folders, onMove
     onDelete={entryDraft.isNew ? undefined : () => { if (window.confirm(`Eliminare ${entryDraft.entry.name}?`)) saveEntries(entryDraft.section, (entries) => entries.filter((item) => item.id !== entryDraft.entry.id)); }}/>}</Dialog>;
   const monsterDialog = <Dialog open={!!monsterDraft} title={monsterDraft?.title ?? ""} onClose={() => setMonsterDraft(null)}>{monsterDraft && <MonsterForm key={monsterDraft.monster.id} monster={monsterDraft.monster} onCancel={() => setMonsterDraft(null)} onSave={(monster) => { onSaveMonster(monster); onSelect(monster.id); setMonsterDraft(null); }}/>}</Dialog>;
   const [sources, setSources] = useState<FiveToolsSource[]>([]); const [sourceId, setSourceId] = useState(""); const [pickerOpen, setPickerOpen] = useState(false); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
-  useEffect(() => { if (!canManage) return; listBestiarySources().then((rows) => { setSources(rows); setSourceId(rows.find((row) => row.id === "XMM")?.id ?? rows[0]?.id ?? ""); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Catalogo non disponibile")); }, [canManage]);
-  async function remoteImport() { const source = sources.find((row) => row.id === sourceId); if (!source) return; setLoading(true); setError(""); try { onPending(await loadBestiarySource(source)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Importazione fallita"); } finally { setLoading(false); } }
+  useEffect(() => { if (!canManage) return; fivetools().then((api) => api.listBestiarySources()).then((rows) => { setSources(rows); setSourceId(rows.find((row) => row.id === "XMM")?.id ?? rows[0]?.id ?? ""); }).catch((reason) => setError(reason instanceof Error ? reason.message : "Catalogo non disponibile")); }, [canManage]);
+  async function remoteImport() { const source = sources.find((row) => row.id === sourceId); if (!source) return; setLoading(true); setError(""); try { onPending(await (await fivetools()).loadBestiarySource(source)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Importazione fallita"); } finally { setLoading(false); } }
   async function importSelected(selected: MonsterSheet[]) {
     if (!canManage || !selected.length) return;
     const next = mergeMonsters(monsters, selected);

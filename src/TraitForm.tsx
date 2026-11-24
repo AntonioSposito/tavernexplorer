@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { traitSource, traitSourceText } from "./importer";
+import { traitSource, traitSourceText } from "./roll20Text";
 import { ModifierEditor } from "./ModifierEditor";
 import type { TraitEntry, TraitSource } from "./types";
 import { Button, Input, Select, Textarea } from "./ui";
