@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { ATTACK_TYPES, attackReach } from "./attackReach";
 import { ABILITY_LABELS, ABILITY_SHORT, SKILL_ABILITIES } from "./constants";
-import { MONSTER_ABILITIES, monsterDamages, MONSTER_DETAILS, MONSTER_SKILLS, monsterProficiency, monsterSkillLabel, monsterSlots, monsterSpellStats, monsterTokenSize, monsterXp, type MonsterSection } from "./monsterSheet";
-import type { ActionEntry, MonsterSheet, MonsterSpellcasting } from "./types";
+import { MONSTER_ABILITIES, monsterDamages, monsterHasReactions, monsterLegendaryUses, MONSTER_DETAILS, MONSTER_SKILLS, monsterProficiency, monsterSkillLabel, monsterSlots, monsterSpellStats, monsterTokenSize, monsterXp, type MonsterSection } from "./monsterSheet";
+import type { ActionEntry, AttackType, MonsterSheet, MonsterSpellcasting } from "./types";
 import { Button, Input, Select, Textarea } from "./ui";
 
 const whole = (value: string) => Math.trunc(Number(value)) || 0;
@@ -56,6 +57,11 @@ export function MonsterForm({ monster, onSave, onCancel }: { monster: MonsterShe
     <fieldset className="action-form-row"><legend>Difese, sensi e linguaggi</legend>
       {MONSTER_DETAILS.map(([key, label]) => <label key={key}><span>{label}</span><Input aria-label={label} value={draft[key] ?? ""} onChange={(event) => set({ [key]: event.target.value })}/></label>)}
     </fieldset>
+    <label className="action-form-check"><input type="checkbox" checked={monsterHasReactions(draft)} onChange={(event) => set({ hasReactions: event.target.checked })}/> Ha reazioni</label>
+    <div className="action-form-row">
+      {monsterHasReactions(draft) && <label><span>Reazioni per round</span><Input aria-label="Reazioni per round" type="number" min="0" value={draft.reactionUses ?? ""} onChange={(event) => set({ hasReactions: true, reactionUses: optionalNumber(event.target.value) })}/></label>}
+      <label><span>Usi azioni leggendarie</span><Input aria-label="Usi azioni leggendarie" type="number" min="0" placeholder={String(monsterLegendaryUses({ ...draft, legendaryUses: undefined }))} value={draft.legendaryUses ?? ""} onChange={(event) => set({ legendaryUses: optionalNumber(event.target.value) })}/></label>
+    </div>
     <fieldset className="action-form-row"><legend><label><input type="checkbox" checked={!!cast} onChange={(event) => set({ spellcasting: event.target.checked ? { ability: "intelligence", attackModifier: 0, dcModifier: 0, casterLevel: 0, slots: {} } : undefined })}/> Incantatore (Spellcasting NPC)</label></legend>
       {cast && <>
         <label><span>Caratteristica da incantatore</span><Select aria-label="Caratteristica da incantatore" value={cast.ability} onChange={(event) => setCast({ ability: event.target.value })}>{MONSTER_ABILITIES.map(([, long]) => <option key={long} value={long}>{ABILITY_LABELS[long]}</option>)}</Select></label>
@@ -72,6 +78,7 @@ export function MonsterForm({ monster, onSave, onCancel }: { monster: MonsterShe
 // Popup di un tratto o di un'azione del mostro: valori fissi come nello statblock (i tratti hanno solo nome e testo).
 export function MonsterEntryForm({ entry, section, onSave, onCancel, onDelete }: { entry: ActionEntry; section: MonsterSection; onSave: (entry: ActionEntry) => void; onCancel: () => void; onDelete?: () => void }) {
   const [draft, setDraft] = useState(entry);
+  const auto = attackReach({ ...draft, attackType: undefined });
   const set = (patch: Partial<ActionEntry>) => setDraft({ ...draft, ...patch });
   // Una riga per danno ("Danno", "Danno 2"… come Roll20) più una vuota per aggiungerne un altro.
   const [damages, setDamages] = useState(() => entry.damages?.length
@@ -83,6 +90,11 @@ export function MonsterEntryForm({ entry, section, onSave, onCancel, onDelete }:
     <label><span>Nome</span><Input aria-label="Nome voce" autoFocus required value={draft.name} onChange={(event) => set({ name: event.target.value })}/></label>
     {section !== "traits" && <div className="action-form-row">
       <label><span>Bonus attacco</span><Input aria-label="Bonus attacco" type="number" value={draft.attackBonus ?? ""} onChange={(event) => set({ attackBonus: optionalNumber(event.target.value) })}/></label>
+      <label><span>Tipo di attacco</span><Select aria-label="Tipo di attacco" value={draft.attackType ?? ""} onChange={(event) => set({ attackType: (event.target.value || undefined) as AttackType | undefined })}>
+        <option value="">{auto.type ? `Automatico (${ATTACK_TYPES[auto.type]})` : "Automatico"}</option>
+        {Object.entries(ATTACK_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+      </Select></label>
+      <label><span>Portata o gittata</span><Input aria-label="Portata o gittata" placeholder={auto.range ?? "5 ft / 30/120 ft"} value={draft.range ?? ""} onChange={(event) => set({ range: event.target.value || undefined })}/></label>
       <label><span>CD TS</span><Input aria-label="CD TS" type="number" value={draft.saveDc ?? ""} onChange={(event) => set({ saveDc: optionalNumber(event.target.value) })}/></label>
     </div>}
     {section !== "traits" && rows.map((row, index) => { const suffix = index ? ` ${index + 1}` : ""; return <div className="action-form-row" key={index}>

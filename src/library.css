@@ -202,6 +202,7 @@ input.inventory-qty::-webkit-inner-spin-button, input.inventory-qty::-webkit-out
 .statblock-section>summary::before{content:"▸";color:hsl(var(--primary));transition:transform .15s}
 .statblock-section[open]>summary::before{transform:rotate(90deg)}
 .statblock-section>summary h2{margin:0}
+.statblock-section>.form-note{margin:0;font-size:.85rem;color:hsl(var(--muted-foreground))}
 .statblock-section>summary .ui-button{margin-left:auto;min-height:1.8rem;padding:.1rem .6rem}
 @media(max-width:480px){.statblock-abilities{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* Dettagli veloci del mostro (menu del token): etichetta a sinistra, valore a destra. */

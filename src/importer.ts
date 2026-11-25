@@ -118,6 +118,7 @@ function importActions(value: unknown, spellSaveDc: number): ActionEntry[] {
     attackBonus: /^[-+]?\d+$/.test(text(entry.attack_bonus)) ? num(entry.attack_bonus) : undefined,
     damage: cleanDamage(entry.damage),
     damageType: text(entry.damage_type).trim() || undefined,
+    range: text(entry.range).trim() || undefined,
     saveDc: text(entry.save_dc).trim() ? spellSaveDc : undefined,
     description: text(entry.description).trim() || undefined,
     source: text(entry.from_spell).trim() ? "spell" : "attack",
@@ -154,7 +155,7 @@ const filled = (value: unknown) => { const trimmed = text(value).trim(); return 
 const filledLabels = (source: Obj, labels: Record<string, string>) => Object.entries(labels).filter(([key]) => filled(source[key])).map(([, label]) => label);
 const ROLEPLAY = { personality_traits: "tratti caratteriali", ideals: "ideali", bonds: "legami", flaws: "difetti", backstory: "storia" };
 const APPEARANCE = { size: "taglia", age: "età", height: "altezza", weight: "peso", eyes: "occhi", skin: "pelle", hair: "capelli", appearance: "aspetto" };
-const ATTACK_FIELDS = { range: "gittata", damage2: "secondo danno", save_effect: "effetto del TS" };
+const ATTACK_FIELDS = { damage2: "secondo danno", save_effect: "effetto del TS" };
 const SPELL_FIELDS = { casting_time: "tempo di lancio", range: "gittata", target: "bersaglio", duration: "durata", components: "componenti", materials: "materiali", attack: "attacco", save: "TS", save_success: "effetto del TS", damage2: "secondo danno", at_higher_levels: "livelli superiori" };
 
 // Dati presenti nell'export che la scheda non conserva: finiscono nelle note d'importazione invece di sparire in silenzio.

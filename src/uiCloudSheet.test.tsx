@@ -402,6 +402,20 @@ it("il GM aggiunge, modifica ed elimina tratti e azioni del mostro nei popup", a
   await settle();
   await click("Bestiario");
   await click("Lupo");
+  // Senza la spunta il riquadro Reazioni non c'è; la frase compare solo con un numero > 0.
+  const button = (label: string) => host.querySelector(`button[aria-label="${label}"]`);
+  expect(button("Nuova reazione")).toBeNull();
+  await click("Modifica");
+  await act(async () => [...host.querySelectorAll<HTMLLabelElement>("label.action-form-check")].find((label) => label.textContent?.includes("Ha reazioni"))!.querySelector("input")!.click());
+  await click("Salva");
+  expect(button("Nuova reazione")).not.toBeNull();
+  expect(host.textContent).not.toContain("reactions per round");
+  await click("Modifica");
+  await type('input[aria-label="Reazioni per round"]', "2");
+  await type('input[aria-label="Usi azioni leggendarie"]', "1");
+  await click("Salva");
+  expect(host.textContent).toContain("Lupo can take up to two reactions per round");
+  expect(host.textContent).toContain("Legendary Action Uses: 1.");
   await click("Nuova reazione");
   await type('input[aria-label="Nome voce"]', "Schivata");
   await click("Salva");

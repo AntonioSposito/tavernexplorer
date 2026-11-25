@@ -21,7 +21,7 @@ import { AclPicker, LibraryPanel } from "./LibraryPanel";
 import { FolderDialog, FolderPick, FolderTree, type FolderDraft } from "./FolderTree";
 import { metersText, SQUARE_METERS, speedMeters, speedSquares } from "./speed";
 import { MonsterEntryForm, MonsterForm } from "./MonsterForm";
-import { blankMonster, MONSTER_ABILITIES, monsterCasterSheet, MONSTER_DETAILS, MONSTER_SECTIONS, MONSTER_SKILLS, monsterProficiency, monsterSkillLabel, monsterXp, type MonsterSection } from "./monsterSheet";
+import { blankMonster, MONSTER_ABILITIES, monsterCasterSheet, monsterHasReactions, monsterSectionNote, MONSTER_DETAILS, MONSTER_SECTIONS, MONSTER_SKILLS, monsterProficiency, monsterSkillLabel, monsterXp, type MonsterSection } from "./monsterSheet";
 import { canMoveFolder, folderTargets, visibleFolders } from "./journalTree";
 import { isSameCharacter, mergeReimport } from "./reimport";
 import { ArmorClassControl } from "./ArmorClassControl";
@@ -39,6 +39,7 @@ import { counterCurrent, counterForTrait, counterFromTrait, spendCounter, unlink
 import { armorClass, asEffect, effectiveSheet, effectsTotal, explainCheck, explainValue, fixProficiencyChoice, modifierSources, modifierTags, modifierTotal } from "./effects";
 import { setHitPointTotal } from "./hitPoints";
 import { resolveAction, type ResolvedAction } from "./actions";
+import { reachLabel } from "./attackReach";
 import { buildRollCard, describeRoll, DESCRIPTION_LIMIT, labeledBonus, type AttackRoll } from "./rollCards";
 import { ActionForm } from "./ActionForm";
 import { SpellForm } from "./SpellForm";
@@ -344,7 +345,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   // `card` arriva dalle liste della scheda con attacco, danno e TS già calcolati; senza, solo nome e descrizione.
   async function shareEntry(entry: ActionEntry | SpellEntry, card?: RollCard, as?: RollAs) {
     try {
-      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: { ...card ?? { name: entry.name, subtitle: entry.range ? `Gittata ${entry.range}` : undefined, rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, ...as && { monster: true } }, visibility: as?.visibility ?? visibility }));
+      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: { ...card ?? { name: entry.name, subtitle: reachLabel(entry), rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, ...as && { monster: true } }, visibility: as?.visibility ?? visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }
   }
 
@@ -716,9 +717,10 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onConcentr
     const attack = resolved.attackBonus == null ? null : resolved.attackBonus + attackModifier;
     const save = resolved.saveDc == null ? undefined : { ability: resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : undefined, dc: resolved.saveDc, effect: resolved.saveEffect };
     const spell = "level" in entry ? entry as SpellEntry : null;
+    const reach = reachLabel(entry);
     const resource = entry.resourceId ? sheet?.counters?.find((counter) => counter.id === entry.resourceId) : undefined;
     const left = resource && sheet ? counterCurrent(sheet, resource) : 0;
-    const subtitle = [spell && [spell.level === 0 ? "Trucchetto" : `Livello ${spell.level}`, spell.school, spell.concentration && "concentrazione", spell.ritual && "rituale", spell.alwaysPrepared && "sempre preparato", spell.innate && `innato ${spell.innate}`].filter(Boolean).join(" · "), entry.range && `Gittata ${entry.range}`].filter(Boolean).join(" · ") || undefined;
+    const subtitle = [spell && [spell.level === 0 ? "Trucchetto" : `Livello ${spell.level}`, spell.school, spell.concentration && "concentrazione", spell.ritual && "rituale", spell.alwaysPrepared && "sempre preparato", spell.innate && `innato ${spell.innate}`].filter(Boolean).join(" · "), reach].filter(Boolean).join(" · ") || undefined;
     // Gli incantesimi del form includono la descrizione nei tiri solo se richiesto, come in Roll20.
     const extras = { critRange: resolved.critRange, damageType: resolved.damageType, subtitle, save, description: spell?.includeDescription === false ? undefined : entry.description };
     const higher = spell?.higherLevel && `${spell.higherLevel.die ? `+${spell.higherLevel.count}${spell.higherLevel.die}` : ""}${spell.higherLevel.bonus ? signed(spell.higherLevel.bonus) : ""} per livello di slot superiore`;
@@ -731,7 +733,7 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onConcentr
     ];
     const shareCard: RollCard = { name: entry.name, subtitle, rolls: [], stats: [...spellStats, ...stats], save, mastery: resolved.mastery, description: [entry.description, spell?.higherLevelText && `Ai livelli superiori. ${spell.higherLevelText}`].filter(Boolean).join("\n\n").slice(0, DESCRIPTION_LIMIT) || undefined };
     const details = [
-      entry.range && `Gittata ${entry.range}`,
+      reach,
       resolved.damageType,
       resolved.saveDc != null && `TS ${resolved.saveAbility ? ABILITY_LABELS[resolved.saveAbility] ?? resolved.saveAbility : ""} CD ${resolved.saveDc}${resolved.saveEffect ? ` (${resolved.saveEffect})` : ""}`.replace("TS  CD", "CD"),
       attack != null && resolved.critRange < 20 && `Critico ${resolved.critRange}-20`,
@@ -766,7 +768,7 @@ function EntryList({ entries, sheet, onRoll, onShare, onEdit, onCast, onConcentr
     const stop = (action: () => void) => (event: ReactMouseEvent) => { event.preventDefault(); action(); };
     // I trucchetti sono sempre pronti: l'interruttore vale dal 1° livello.
     const preparable = spell && spell.level > 0 ? spell : null;
-    return <details key={entry.id} className={`entry${preparable && !preparable.prepared ? " unprepared" : ""}`}><summary><span className={spell ? "entry-with-icon" : undefined}>{spell && <EntryIcon name={entry.name}/>}<span>{use ? <button className="entry-use" title={useTitle} onClick={stop(use)}>{entry.name}</button> : <strong>{entry.name}</strong>}<small>{entry.source}</small>{"modifiers" in entry && modifierTags(entry.modifiers as StatModifier[] ?? []).length > 0 && <small className="inventory-mods">{modifierTags(entry.modifiers as StatModifier[]).map((tag) => <span key={tag}>{tag}</span>)}</small>}</span></span><span className={valuesTitle ? "entry-values value-explained" : "entry-values"} title={valuesTitle}>{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span><span className="entry-icons">{preparable && <button className={`prepared-toggle${preparable.prepared ? " on" : ""}${preparable.alwaysPrepared ? " always" : ""}`} aria-label={`${preparable.alwaysPrepared ? "Sempre preparato" : "Preparato"} ${entry.name}`} aria-pressed={preparable.prepared} title={preparable.alwaysPrepared ? "Sempre preparato" : preparable.prepared ? "Preparato" : "Non preparato"} disabled={!onTogglePrepared || preparable.alwaysPrepared} onClick={stop(() => onTogglePrepared?.(preparable))}><span className="dot"/></button>}<button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={stop(() => onShare(entry, shareCard))}><ChatIcon/></button>{onEdit && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={stop(() => onEdit(entry))}><EditIcon/></button>}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p>{onCreateAction && <div className="entry-actions"><Button variant="outline" onClick={() => onCreateAction(entry)}>Crea azione</Button>{onOpenResource && <CreateResource counter={resourceOf?.(entry)} onOpen={(counter) => onOpenResource(entry, counter)}/>}</div>}</details>;
+    return <details key={entry.id} className={`entry${preparable && !preparable.prepared ? " unprepared" : ""}`}><summary><span className={spell ? "entry-with-icon" : undefined}>{spell && <EntryIcon name={entry.name}/>}<span>{use ? <button className="entry-use" title={useTitle} onClick={stop(use)}>{entry.name}</button> : <strong>{entry.name}</strong>}<small>{[entry.source, reach].filter(Boolean).join(" · ")}</small>{"modifiers" in entry && modifierTags(entry.modifiers as StatModifier[] ?? []).length > 0 && <small className="inventory-mods">{modifierTags(entry.modifiers as StatModifier[]).map((tag) => <span key={tag}>{tag}</span>)}</small>}</span></span><span className={valuesTitle ? "entry-values value-explained" : "entry-values"} title={valuesTitle}>{attack != null && signed(attack)} {resolved.damage}{resolved.damage && extra}</span><span className="entry-icons">{preparable && <button className={`prepared-toggle${preparable.prepared ? " on" : ""}${preparable.alwaysPrepared ? " always" : ""}`} aria-label={`${preparable.alwaysPrepared ? "Sempre preparato" : "Preparato"} ${entry.name}`} aria-pressed={preparable.prepared} title={preparable.alwaysPrepared ? "Sempre preparato" : preparable.prepared ? "Preparato" : "Non preparato"} disabled={!onTogglePrepared || preparable.alwaysPrepared} onClick={stop(() => onTogglePrepared?.(preparable))}><span className="dot"/></button>}<button aria-label={`Mostra in chat ${entry.name}`} title="Mostra in chat" onClick={stop(() => onShare(entry, shareCard))}><ChatIcon/></button>{onEdit && <button aria-label={`Modifica ${entry.name}`} title="Modifica" onClick={stop(() => onEdit(entry))}><EditIcon/></button>}</span></summary>{details && <p className="entry-meta">{details}</p>}<p>{entry.description || "Nessuna descrizione."}</p>{onCreateAction && <div className="entry-actions"><Button variant="outline" onClick={() => onCreateAction(entry)}>Crea azione</Button>{onOpenResource && <CreateResource counter={resourceOf?.(entry)} onOpen={(counter) => onOpenResource(entry, counter)}/>}</div>}</details>;
   })}</section>;
 }
 
@@ -1023,7 +1025,7 @@ function MonsterStatblock({ monster, effects, section, readOnly, onEditEntry, on
     <details className="statblock-more"><summary>{trained.length ? "Altre abilità" : "Abilità"}</summary><p className="statblock-line">{MONSTER_SKILLS.filter((key) => monster.skills[key] == null).map(skill)}</p></details>
     {MONSTER_DETAILS.some(([key]) => monster[key]) && <p className="statblock-details">{MONSTER_DETAILS.map(([key, label]) => monster[key] && <span key={key}><b>{label}</b> {monster[key]}</span>)}</p>}
   </section>}
-    {children}{MONSTER_SECTIONS.filter(([key]) => !section || key !== "traits").map(([key, title, add]) => [key, title, add, monster[key] ?? []] as const).map(([key, title, add, entries]) => (key === "actions" || entries.length > 0 || onEditEntry) && <details key={key} className="paper statblock-section" {...box(key)}><summary><h2>{title}</h2>{onEditEntry && <Button variant="outline" aria-label={add} title={add} onClick={(event) => { event.preventDefault(); onEditEntry(key, null); }}>+</Button>}</summary>{(key === "actions" || entries.length > 0) && <EntryList entries={entries} sheet={view} attackModifier={modifierTotal(caster, "attack")} damageModifier={modifierTotal(caster, "damage")} onRoll={onRoll} onShare={onShare} onEdit={onEditEntry ? (entry) => onEditEntry(key, entry) : undefined}/>}</details>)}
+    {children}{MONSTER_SECTIONS.filter(([key]) => !section || key !== "traits").map(([key, title, add]) => [key, title, add, monster[key] ?? [], monsterSectionNote(monster, key)] as const).map(([key, title, add, entries, note]) => (key === "reactions" ? monsterHasReactions(monster) : key === "actions" || entries.length > 0 || note || onEditEntry) && <details key={key} className="paper statblock-section" {...box(key)}><summary><h2>{title}</h2>{onEditEntry && <Button variant="outline" aria-label={add} title={add} onClick={(event) => { event.preventDefault(); onEditEntry(key, null); }}>+</Button>}</summary>{note && <p className="form-note">{note}</p>}{(key === "actions" || entries.length > 0) && <EntryList entries={entries} sheet={view} attackModifier={modifierTotal(caster, "attack")} damageModifier={modifierTotal(caster, "damage")} onRoll={onRoll} onShare={onShare} onEdit={onEditEntry ? (entry) => onEditEntry(key, entry) : undefined}/>}</details>)}
     {cast && !section && <details className="paper statblock-section" {...box("spells")}><summary><h2>Incantesimi</h2></summary>{spells}</details>}</div>;
 }
 

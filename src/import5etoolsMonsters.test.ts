@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { import5eToolsMonsters } from "./import5etools";
-import { monsterProficiency, monsterTokenSize, monsterXp } from "./monsterSheet";
+import { monsterHasReactions, monsterProficiency, monsterSectionNote, monsterTokenSize, monsterXp } from "./monsterSheet";
 
 const describe = (entries: string[], section = "action") => import5eToolsMonsters({ monster: [{ name: "Noble", source: "MM", [section]: [{ name: "Voce", entries }] }] })[0];
 
@@ -61,4 +61,23 @@ it("somma i danni uniti da \"plus\" con i loro tipi; le alternative \"or\" resta
   expect(sword).toMatchObject({ damage: "1d8+3", damageType: "Slashing" });
   expect(describe(["{@atk mw} {@hit 6} to hit. {@h}15 ({@damage 1d12 + 4} plus {@damage 1d8}) slashing damage."]).actions[0]).toMatchObject({ damage: "1d12+4+1d8", damageType: "slashing" });
   expect(describe(["{@actSave dex} {@dc 13}. {@actSaveFail} 14 ({@damage 4d6}) Fire damage. {@actSaveSuccess} Half damage."]).actions[0]).toMatchObject({ damage: "4d6", damageType: "Fire" });
+});
+
+it("importa reazioni per round e usi delle azioni leggendarie; la frase c'è solo con numero > 0", () => {
+  const entry = [{ name: "Voce", entries: ["Testo."] }];
+  const [archon, noted, dragon, orcus, wolf] = import5eToolsMonsters({ monster: [
+    { name: "Archon", reaction: entry, reactionHeader: ["The archon can take up to three reactions per round but only one per turn."] },
+    { name: "Charmayne", reaction: entry, reactionNote: "Charmayne can take up to two reactions per round but only one per turn." },
+    { name: "Dragon", reaction: entry, legendary: entry },
+    { name: "Orcus", legendary: entry, legendaryActions: 2 },
+    { name: "Wolf" },
+  ] });
+  expect([archon, noted, dragon, orcus, wolf].map((monster) => [monster.reactionUses, monster.legendaryUses])).toEqual([[3, undefined], [2, undefined], [undefined, 3], [undefined, 2], [undefined, undefined]]);
+  expect([archon, dragon, orcus].map(monsterHasReactions)).toEqual([true, true, false]);
+  expect(monsterHasReactions({ ...archon, hasReactions: false })).toBe(false);
+  expect(monsterSectionNote(archon, "reactions")).toBe("Archon can take up to three reactions per round, but only one per turn. If an effect or condition would prevent him from taking reactions, he loses one reaction instead.");
+  expect(monsterSectionNote(dragon, "reactions")).toBeUndefined();
+  expect(monsterSectionNote(orcus, "legendaryActions")).toBe("Legendary Action Uses: 2. Immediately after another creature's turn, Orcus can expend a use to take one of the following actions. Orcus regains all expended uses at the start of each of their turns.");
+  expect(monsterSectionNote({ ...orcus, legendaryUses: undefined }, "legendaryActions")).toContain("Uses: 3.");
+  expect(monsterSectionNote({ ...orcus, legendaryUses: 0 }, "legendaryActions")).toBeUndefined();
 });

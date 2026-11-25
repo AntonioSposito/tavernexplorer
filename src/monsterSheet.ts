@@ -34,6 +34,18 @@ export function blankMonster(): MonsterSheet {
 export type MonsterSection = "traits" | "actions" | "bonusActions" | "reactions" | "legendaryActions";
 export const MONSTER_SECTIONS: Array<[MonsterSection, string, string]> = [["traits", "Tratti", "Nuovo tratto"], ["actions", "Azioni", "Nuova azione"], ["bonusActions", "Azioni bonus", "Nuova azione bonus"],["reactions", "Reazioni", "Nuova reazione"], ["legendaryActions", "Azioni leggendarie", "Nuova azione leggendaria"]];
 
+export const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+export const monsterHasReactions = (monster: MonsterSheet) => monster.hasReactions ?? (monster.reactions.length > 0 || (monster.reactionUses ?? 0) > 0);
+export const monsterLegendaryUses = (monster: MonsterSheet) => monster.legendaryUses ?? (monster.legendaryActions.length ? 3 : 0);
+
+// Frase in cima ai riquadri Reazioni e Azioni leggendarie, solo con il rispettivo numero > 0.
+export function monsterSectionNote(monster: MonsterSheet, section: MonsterSection): string | undefined {
+  const reactions = monster.reactionUses ?? 0; const legendary = monsterLegendaryUses(monster);
+  if (section === "reactions" && reactions > 0) return `${monster.name} can take up to ${NUMBER_WORDS[reactions] ?? reactions} reaction${reactions === 1 ? "" : "s"} per round, but only one per turn. If an effect or condition would prevent him from taking reactions, he loses one reaction instead.`;
+  if (section === "legendaryActions" && legendary > 0) return `Legendary Action Uses: ${legendary}. Immediately after another creature's turn, ${monster.name} can expend a use to take one of the following actions. ${monster.name} regains all expended uses at the start of each of their turns.`;
+  return undefined;
+}
+
 // Mostro incantatore: CD e attacco come il "Spellcasting NPC" di Roll20.
 export function monsterSpellStats(monster: MonsterSheet, cast: MonsterSpellcasting) {
   const short = MONSTER_ABILITIES.find(([, long]) => long === cast.ability)?.[0];

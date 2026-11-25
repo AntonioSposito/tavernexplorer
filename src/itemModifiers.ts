@@ -1,4 +1,4 @@
-import { MASTERY_WEAPONS } from "./constants";
+import { weaponFromName } from "./attackReach";
 import type { ActionEntry, CharacterSheet, InventoryEntry, StatModifier } from "./types";
 
 const ABILITIES: Record<string, string> = {
@@ -83,12 +83,16 @@ export function actionFromItem(item: InventoryEntry, sheet: CharacterSheet): Act
   const mod = (ability: string) => sheet.abilities[ability]?.mod ?? 0;
   const ability = has("ammunition") ? "dexterity" : has("finesse") && mod("dexterity") > mod("strength") ? "dexterity" : "strength";
   const range = properties.find((part) => /^gittata /i.test(part))?.replace(/^gittata /i, "");
-  const weapon = Object.keys(MASTERY_WEAPONS).sort((a, b) => b.length - a.length).find((name) => new RegExp(`\\b${name}\\b`, "i").test(item.name));
+  const weapon = weaponFromName(item.name);
+  // Le armi del PHB hanno tipo e portata dal nome (attackReach); per le altre valgono le proprietà.
+  const attackType = has("ammunition") || range && !has("thrown") ? "ranged" : has("thrown") ? "both" : "melee";
+  const reach = { attackType, range: attackType === "melee" ? has("reach") ? "10 ft" : "5 ft" : range } as const;
   return {
     id: crypto.randomUUID(), name: item.name, description: item.description, range,
+    ...!weapon && damage && reach,
     attack: { ability, bonus: 0, proficient: true }, critRange: 20,
     damages: damage ? [{ dice: damage[1], ability, bonus: 0, type: damage[2], critDice: damage[1] }] : [],
-    // Tipo d'arma dal nome (es. "Flame Tongue Shortsword" → Shortsword, il nome più lungo vince): la maestria segue Weapon Mastery.
+    // La maestria segue Weapon Mastery.
     ...weapon && { weapon },
   };
 }

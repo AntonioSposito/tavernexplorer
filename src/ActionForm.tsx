@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { actionMastery, resolveAction } from "./actions";
+import { ATTACK_TYPES, attackReach } from "./attackReach";
 import { ABILITY_LABELS, MASTERY_WEAPONS, WEAPON_MASTERIES } from "./constants";
 import { sanitizeFormula } from "./dice";
-import type { ActionAbility, ActionDamage, ActionEntry, CharacterSheet } from "./types";
+import type { ActionAbility, ActionDamage, ActionEntry, AttackType, CharacterSheet } from "./types";
 import { Alert, Button, Input, Select, Textarea } from "./ui";
 
 type SaveAbility = NonNullable<ActionEntry["save"]>["ability"];
@@ -58,6 +59,7 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
   const [error, setError] = useState("");
   const patch = (next: Partial<ActionEntry>) => setDraft((current) => ({ ...current, ...next }));
   const patchDamage = (index: number, next: Partial<ActionDamage>) => setDraft((current) => ({ ...current, damages: current.damages!.map((part, i) => i === index ? { ...part, ...next } : part) }));
+  const auto = attackReach({ ...draft, attackType: undefined });
   const preview = validate(draft) ? null : resolveAction(sheet, toEntry(draft));
   const save = () => { const problem = validate(draft); setError(problem); if (!problem) onSave(toEntry(draft)); };
 
@@ -74,7 +76,11 @@ export function ActionForm({ action, sheet, onSave, onCancel, onDelete }: { acti
     </fieldset>
 
     <div className="action-form-row">
-      <label><span>Gittata</span><Input value={draft.range ?? ""} placeholder="1,5 m / 24/96 m / Se stesso (cono 18 m)" onChange={(event) => patch({ range: event.target.value || undefined })}/></label>
+      <label><span>Tipo di attacco</span><Select aria-label="Tipo di attacco" value={draft.attackType ?? ""} onChange={(event) => patch({ attackType: (event.target.value || undefined) as AttackType | undefined })}>
+        <option value="">{auto.type ? `Automatico (${ATTACK_TYPES[auto.type]})` : "Automatico"}</option>
+        {Object.entries(ATTACK_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+      </Select></label>
+      <label><span>Portata o gittata</span><Input value={draft.range ?? ""} placeholder={auto.range ?? "1,5 m / 24/96 m / Se stesso (cono 18 m)"} onChange={(event) => patch({ range: event.target.value || undefined })}/></label>
       <label><span>Bonus magico</span><Input type="number" value={draft.magicBonus ?? 0} onChange={(event) => patch({ magicBonus: numberValue(event.target.value) || undefined })}/></label>
       <label><span>Critico da</span><Input type="number" min={2} max={20} value={draft.critRange ?? 20} onChange={(event) => patch({ critRange: numberValue(event.target.value) })}/></label>
       <label><span>Arma</span><Select aria-label="Arma" value={draft.weapon ?? ""} onChange={(event) => patch({ weapon: event.target.value || undefined })}>

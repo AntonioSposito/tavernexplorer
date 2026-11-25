@@ -29,6 +29,8 @@ export interface ActionDamage {
   critDice: string;
 }
 
+export type AttackType = "melee" | "ranged" | "both";
+
 export interface ActionEntry {
   id: string;
   name: string;
@@ -41,6 +43,8 @@ export interface ActionEntry {
   // Campi del form attacchi (come Roll20): se presenti, attacco, danno e CD si calcolano dalla scheda
   // e prevalgono sui valori fissi sopra, che restano per le azioni importate.
   attack?: { ability: ActionAbility; bonus: number; proficient: boolean };
+  // Tipo scelto a mano; se manca si ricava (attackReach).
+  attackType?: AttackType;
   range?: string;
   magicBonus?: number;
   critRange?: number;
@@ -417,6 +421,12 @@ export interface MonsterSheet {
   bonusActions?: ActionEntry[];
   reactions: ActionEntry[];
   legendaryActions: ActionEntry[];
+  // Spunta "Ha reazioni"; assente = sì se ci sono reazioni o un numero.
+  hasReactions?: boolean;
+  // Reazioni per round e usi delle azioni leggendarie: numeri dello statblock, non contatori.
+  reactionUses?: number;
+  // Assente con azioni leggendarie = 3, il valore standard.
+  legendaryUses?: number;
   image?: string;
   importWarnings: string[];
   // Cartella del Bestiario (voce "folder" con area "bestiary" della libreria).

@@ -1,5 +1,5 @@
 import { DEFAULT_RULESET } from "./rulesets";
-import { monsterDamages, monsterSpellStats } from "./monsterSheet";
+import { monsterDamages, monsterSpellStats, NUMBER_WORDS } from "./monsterSheet";
 import { resolveCopies } from "./fivetoolsCopy";
 import type { ActionEntry, MonsterSheet, MonsterSpellcasting, SpellEntry, TraitEntry } from "./types";
 
@@ -190,6 +190,14 @@ function imageUrl(monster: Obj): string | undefined {
   return undefined;
 }
 
+// "The archon can take up to three reactions per round but only one per turn." (reactionHeader o reactionNote)
+function readReactionUses(monster: Record<string, unknown>): number | undefined {
+  const uses = /up to (\w+) reactions? per round/i.exec(stripTags([...array(monster.reactionHeader), monster.reactionNote].map(text).join(" ")))?.[1].toLowerCase();
+  if (!uses) return undefined;
+  const word = NUMBER_WORDS.indexOf(uses);
+  return (word >= 0 ? word : Number(uses)) || undefined;
+}
+
 export function import5eToolsMonsters(source: unknown): MonsterSheet[] {
   const root = obj(source);
   const monsters = array(root.monster);
@@ -198,6 +206,7 @@ export function import5eToolsMonsters(source: unknown): MonsterSheet[] {
     const monster = obj(raw); const hp = obj(monster.hp);
     const abilities = Object.fromEntries(["str", "dex", "con", "int", "wis", "cha"].map((key) => [key, number(monster[key])]));
     const casting = spellcasting(monster.spellcasting);
+    const reactionUses = readReactionUses(monster);
     const withCasting = (entries: unknown, displayAs: string) => [...array(entries), ...casting.filter((cast) => cast.displayAs === displayAs)];
     return importSpellcasting({
       schemaVersion: 1, id: uid(), ruleset: { id: DEFAULT_RULESET.id, version: DEFAULT_RULESET.version },
@@ -213,7 +222,10 @@ export function import5eToolsMonsters(source: unknown): MonsterSheet[] {
       xp: number(obj(monster.cr).xp) || undefined,
       traits: importTraits(withCasting(monster.trait, "trait")), actions: importEntries(withCasting(monster.action, "action"), "action"),
       bonusActions: importEntries(withCasting(monster.bonus, "bonus"), "bonus"), reactions: importEntries(withCasting(monster.reaction, "reaction"), "reaction"),
-      legendaryActions: importEntries(withCasting(monster.legendary, "legendary"), "legendary"), image: imageUrl(monster), importWarnings: array(monster._teWarnings).map(text),
+      legendaryActions: importEntries(withCasting(monster.legendary, "legendary"), "legendary"),
+      ...(reactionUses ? { reactionUses } : {}),
+      // 5e.tools scrive legendaryActions solo quando gli usi non sono 3.
+      ...(array(monster.legendary).length ? { legendaryUses: number(monster.legendaryActions) || 3 } : {}), image: imageUrl(monster), importWarnings: array(monster._teWarnings).map(text),
     }, monster.spellcasting);
   });
 }

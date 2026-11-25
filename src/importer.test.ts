@@ -85,7 +85,6 @@ describe("import Roll20 ogl5e", () => {
       "Bonus globali di attacco e danno non importati.",
       "Note del GM non importate.",
       "Macro Roll20 non importate: Attacco-Ascia.",
-      "Campi degli attacchi non importati: gittata (in 1 attacchi).",
       "Campi degli incantesimi non importati: tempo di lancio, durata (in 2 incantesimi).",
       "Bastone: modificatori non riconosciuti, non applicati: Damage: 1d6.",
     ]));
