@@ -35,7 +35,8 @@ export type MonsterSection = "traits" | "actions" | "bonusActions" | "reactions"
 export const MONSTER_SECTIONS: Array<[MonsterSection, string, string]> = [["traits", "Tratti", "Nuovo tratto"], ["actions", "Azioni", "Nuova azione"], ["bonusActions", "Azioni bonus", "Nuova azione bonus"],["reactions", "Reazioni", "Nuova reazione"], ["legendaryActions", "Azioni leggendarie", "Nuova azione leggendaria"]];
 
 export const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-export const monsterHasReactions = (monster: MonsterSheet) => monster.hasReactions ?? (monster.reactions.length > 0 || (monster.reactionUses ?? 0) > 0);
+export const monsterHasBonusActions = (monster: MonsterSheet) => monster.hasBonusActions ?? !!monster.bonusActions?.length;
+export const monsterReactionUses = (monster: MonsterSheet) => monster.reactionUses ?? (monster.reactions.length ? 1 : 0);
 export const monsterLegendaryUses = (monster: MonsterSheet) => monster.legendaryUses ?? (monster.legendaryActions.length ? 3 : 0);
 
 // Frase in cima ai riquadri Reazioni e Azioni leggendarie, solo con il rispettivo numero > 0.

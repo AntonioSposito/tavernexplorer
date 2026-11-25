@@ -421,11 +421,11 @@ export interface MonsterSheet {
   bonusActions?: ActionEntry[];
   reactions: ActionEntry[];
   legendaryActions: ActionEntry[];
-  // Spunta "Ha reazioni"; assente = sì se ci sono reazioni o un numero.
-  hasReactions?: boolean;
+  // Spunta "Ha azioni bonus"; assente = sì se ce ne sono.
+  hasBonusActions?: boolean;
   // Reazioni per round e usi delle azioni leggendarie: numeri dello statblock, non contatori.
   reactionUses?: number;
-  // Assente con azioni leggendarie = 3, il valore standard.
+  // Assenti: 1 reazione se ci sono reazioni (la regola normale, senza frase), 3 usi se ci sono azioni leggendarie.
   legendaryUses?: number;
   image?: string;
   importWarnings: string[];

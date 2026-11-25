@@ -402,14 +402,15 @@ it("il GM aggiunge, modifica ed elimina tratti e azioni del mostro nei popup", a
   await settle();
   await click("Bestiario");
   await click("Lupo");
-  // Senza la spunta il riquadro Reazioni non c'è; la frase compare solo con un numero > 0.
+  // Azioni bonus solo con la spunta; Reazioni, con la loro frase, solo con un numero > 0.
   const button = (label: string) => host.querySelector(`button[aria-label="${label}"]`);
   expect(button("Nuova reazione")).toBeNull();
+  expect(button("Nuova azione bonus")).toBeNull();
   await click("Modifica");
-  await act(async () => [...host.querySelectorAll<HTMLLabelElement>("label.action-form-check")].find((label) => label.textContent?.includes("Ha reazioni"))!.querySelector("input")!.click());
+  await act(async () => [...host.querySelectorAll<HTMLLabelElement>("label.action-form-check")].find((label) => label.textContent?.includes("Ha azioni bonus"))!.querySelector("input")!.click());
   await click("Salva");
-  expect(button("Nuova reazione")).not.toBeNull();
-  expect(host.textContent).not.toContain("reactions per round");
+  expect(button("Nuova azione bonus")).not.toBeNull();
+  expect(button("Nuova reazione")).toBeNull();
   await click("Modifica");
   await type('input[aria-label="Reazioni per round"]', "2");
   await type('input[aria-label="Usi azioni leggendarie"]', "1");

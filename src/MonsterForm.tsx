@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ATTACK_TYPES, attackReach } from "./attackReach";
 import { ABILITY_LABELS, ABILITY_SHORT, SKILL_ABILITIES } from "./constants";
-import { MONSTER_ABILITIES, monsterDamages, monsterHasReactions, monsterLegendaryUses, MONSTER_DETAILS, MONSTER_SKILLS, monsterProficiency, monsterSkillLabel, monsterSlots, monsterSpellStats, monsterTokenSize, monsterXp, type MonsterSection } from "./monsterSheet";
+import { MONSTER_ABILITIES, monsterDamages, monsterHasBonusActions, monsterLegendaryUses, MONSTER_DETAILS, MONSTER_SKILLS, monsterProficiency, monsterReactionUses, monsterSkillLabel, monsterSlots, monsterSpellStats, monsterTokenSize, monsterXp, type MonsterSection } from "./monsterSheet";
 import type { ActionEntry, AttackType, MonsterSheet, MonsterSpellcasting } from "./types";
 import { Button, Input, Select, Textarea } from "./ui";
 
@@ -57,9 +57,9 @@ export function MonsterForm({ monster, onSave, onCancel }: { monster: MonsterShe
     <fieldset className="action-form-row"><legend>Difese, sensi e linguaggi</legend>
       {MONSTER_DETAILS.map(([key, label]) => <label key={key}><span>{label}</span><Input aria-label={label} value={draft[key] ?? ""} onChange={(event) => set({ [key]: event.target.value })}/></label>)}
     </fieldset>
-    <label className="action-form-check"><input type="checkbox" checked={monsterHasReactions(draft)} onChange={(event) => set({ hasReactions: event.target.checked })}/> Ha reazioni</label>
+    <label className="action-form-check"><input type="checkbox" checked={monsterHasBonusActions(draft)} onChange={(event) => set({ hasBonusActions: event.target.checked })}/> Ha azioni bonus</label>
     <div className="action-form-row">
-      {monsterHasReactions(draft) && <label><span>Reazioni per round</span><Input aria-label="Reazioni per round" type="number" min="0" value={draft.reactionUses ?? ""} onChange={(event) => set({ hasReactions: true, reactionUses: optionalNumber(event.target.value) })}/></label>}
+      <label><span>Reazioni per round</span><Input aria-label="Reazioni per round" type="number" min="0" placeholder={String(monsterReactionUses({ ...draft, reactionUses: undefined }))} value={draft.reactionUses ?? ""} onChange={(event) => set({ reactionUses: optionalNumber(event.target.value) })}/></label>
       <label><span>Usi azioni leggendarie</span><Input aria-label="Usi azioni leggendarie" type="number" min="0" placeholder={String(monsterLegendaryUses({ ...draft, legendaryUses: undefined }))} value={draft.legendaryUses ?? ""} onChange={(event) => set({ legendaryUses: optionalNumber(event.target.value) })}/></label>
     </div>
     <fieldset className="action-form-row"><legend><label><input type="checkbox" checked={!!cast} onChange={(event) => set({ spellcasting: event.target.checked ? { ability: "intelligence", attackModifier: 0, dcModifier: 0, casterLevel: 0, slots: {} } : undefined })}/> Incantatore (Spellcasting NPC)</label></legend>

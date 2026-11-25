@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { import5eToolsMonsters } from "./import5etools";
-import { monsterHasReactions, monsterProficiency, monsterSectionNote, monsterTokenSize, monsterXp } from "./monsterSheet";
+import { monsterHasBonusActions, monsterProficiency, monsterReactionUses, monsterSectionNote, monsterTokenSize, monsterXp } from "./monsterSheet";
 
 const describe = (entries: string[], section = "action") => import5eToolsMonsters({ monster: [{ name: "Noble", source: "MM", [section]: [{ name: "Voce", entries }] }] })[0];
 
@@ -73,8 +73,10 @@ it("importa reazioni per round e usi delle azioni leggendarie; la frase c'è sol
     { name: "Wolf" },
   ] });
   expect([archon, noted, dragon, orcus, wolf].map((monster) => [monster.reactionUses, monster.legendaryUses])).toEqual([[3, undefined], [2, undefined], [undefined, 3], [undefined, 2], [undefined, undefined]]);
-  expect([archon, dragon, orcus].map(monsterHasReactions)).toEqual([true, true, false]);
-  expect(monsterHasReactions({ ...archon, hasReactions: false })).toBe(false);
+  // Una reazione normale senza numero vale 1: il riquadro si vede, la frase no.
+  expect([archon, dragon, orcus, { ...dragon, reactionUses: 0 }].map(monsterReactionUses)).toEqual([3, 1, 0, 0]);
+  const [mage] = import5eToolsMonsters({ monster: [{ name: "Mage", bonus: entry }] });
+  expect([mage, wolf, { ...mage, hasBonusActions: false }, { ...wolf, hasBonusActions: true }].map(monsterHasBonusActions)).toEqual([true, false, false, true]);
   expect(monsterSectionNote(archon, "reactions")).toBe("Archon can take up to three reactions per round, but only one per turn. If an effect or condition would prevent him from taking reactions, he loses one reaction instead.");
   expect(monsterSectionNote(dragon, "reactions")).toBeUndefined();
   expect(monsterSectionNote(orcus, "legendaryActions")).toBe("Legendary Action Uses: 2. Immediately after another creature's turn, Orcus can expend a use to take one of the following actions. Orcus regains all expended uses at the start of each of their turns.");
