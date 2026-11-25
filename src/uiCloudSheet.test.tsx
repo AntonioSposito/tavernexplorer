@@ -406,6 +406,7 @@ it("il GM aggiunge, modifica ed elimina tratti e azioni del mostro nei popup", a
   const button = (label: string) => host.querySelector(`button[aria-label="${label}"]`);
   expect(button("Nuova reazione")).toBeNull();
   expect(button("Nuova azione bonus")).toBeNull();
+  expect(button("Nuova azione leggendaria")).toBeNull();
   await click("Modifica");
   await act(async () => [...host.querySelectorAll<HTMLLabelElement>("label.action-form-check")].find((label) => label.textContent?.includes("Ha azioni bonus"))!.querySelector("input")!.click());
   await click("Salva");
@@ -417,6 +418,7 @@ it("il GM aggiunge, modifica ed elimina tratti e azioni del mostro nei popup", a
   await click("Salva");
   expect(host.textContent).toContain("Lupo can take up to two reactions per round");
   expect(host.textContent).toContain("Legendary Action Uses: 1.");
+  expect(button("Nuova azione leggendaria")).not.toBeNull();
   await click("Nuova reazione");
   await type('input[aria-label="Nome voce"]', "Schivata");
   await click("Salva");
