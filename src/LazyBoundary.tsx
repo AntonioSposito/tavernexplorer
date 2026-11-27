@@ -1,5 +1,5 @@
 import { Component, Suspense, type ReactNode } from "react";
-import { Alert, Button, Spinner } from "./ui";
+import { Alert, Button, Skeleton } from "./ui";
 
 // Parti caricate all'apertura. "Riprova" ricarica la pagina: dopo un deploy i vecchi file non ci sono più e ripetere l'import non basta.
 export function LoadError() { return <Alert tone="danger">Questa parte non si è caricata: controlla la connessione. <Button variant="outline" onClick={() => window.location.reload()}>Riprova</Button></Alert>; }
@@ -14,6 +14,6 @@ export class LazyBoundary extends Component<{ children: ReactNode }, { error: un
     const { error } = this.state;
     if (error !== null && !isLoadError(error)) throw error;
     if (error !== null) return <LoadError/>;
-    return <Suspense fallback={<Spinner/>}>{this.props.children}</Suspense>;
+    return <Suspense fallback={<Skeleton/>}>{this.props.children}</Suspense>;
   }
 }

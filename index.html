@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#17120f" />
     <title>TavernExplorer</title>
+    <!-- Prima del JavaScript: le tendine del token restano trasparenti, le finestre mostrano subito righe di caricamento. -->
+    <script>if (/[?&](token-menu|token-hp)/.test(location.search)) document.documentElement.classList.add("token-menu-page");</script>
+    <style>
+      html:not(.token-menu-page) body { margin: 0; background: #17120f; }
+      .token-menu-page .boot-skeleton { display: none; }
+      .boot-skeleton { display: grid; gap: .5rem; padding: 1rem; }
+      .boot-skeleton span { display: block; height: 2.75rem; border-radius: .7rem; background: linear-gradient(90deg, #2e2927 25%, #352f2d 50%, #2e2927 75%) 0 0 / 200% 100%; animation: boot-shimmer 1.2s linear infinite; }
+      @keyframes boot-shimmer { to { background-position: -200% 0; } }
+      @media (prefers-reduced-motion: reduce) { .boot-skeleton span { animation: none; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-skeleton" role="status" aria-label="Caricamento"><span></span><span></span><span></span><span></span></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

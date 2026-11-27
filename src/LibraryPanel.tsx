@@ -6,7 +6,7 @@ import { LazyBoundary } from "./LazyBoundary";
 import { getRuleset } from "./rulesets";
 import { storage } from "./storage";
 import type { CharacterSheet, CloudSheet } from "./types";
-import { Button, Dialog, Input, Select } from "./ui";
+import { Button, Dialog, Input, Select, Skeleton } from "./ui";
 
 const CharacterWizard = lazy(() => import("./CharacterWizard").then((module) => ({ default: module.CharacterWizard })));
 
@@ -16,6 +16,7 @@ const key = (name: string) => name.trim().toLocaleLowerCase("it");
 const label = (name: string) => name === EVERYONE ? "Tutti" : name;
 
 interface LibraryPanelProps {
+  loading?: boolean;
   entries: CloudSheet[];
   activeId: string | null;
   members: Member[];
@@ -29,7 +30,7 @@ interface LibraryPanelProps {
   onDelete: (id: string) => void;
 }
 
-export function LibraryPanel({ entries, activeId, members, player, onSelect, onImport, onCreate, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
+export function LibraryPanel({ loading = false, entries, activeId, members, player, onSelect, onImport, onCreate, onExport, onExportPack, onAclChange, onDelete }: LibraryPanelProps) {
   const [newName, setNewName] = useState<string | null>(null);
   const [guided, setGuided] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
@@ -68,7 +69,8 @@ export function LibraryPanel({ entries, activeId, members, player, onSelect, onI
       <div className="action-form-buttons"><Button type="button" variant="secondary" onClick={() => setNewName(null)}>Annulla</Button><Button type="button" variant="outline" disabled={!newName.trim()} onClick={() => { onCreate(createBlankSheet(newName.trim())); setNewName(null); }}>Scheda vuota</Button><Button type="submit">Creazione guidata</Button></div>
     </form>}</Dialog>
     <Dialog open={guided !== null} title="Creazione guidata" description="Livello 1 · PHB 2024 (dati 5e.tools)" onClose={() => setGuided(null)}>{guided !== null && <LazyBoundary><CharacterWizard name={guided} onCreate={(sheet) => { onCreate(sheet); setGuided(null); }} onCancel={() => setGuided(null)}/></LazyBoundary>}</Dialog>
-    {shown.length === 0 && <p className="assign-empty">{isGm ? "Nessuna scheda: crea un personaggio o importa un export Roll20 o un TavernPack." : "Crea il tuo personaggio, oppure chiedi al GM di renderti visibile una scheda."}</p>}
+    {loading && shown.length === 0 && <Skeleton/>}
+    {!loading && shown.length === 0 && <p className="assign-empty">{isGm ? "Nessuna scheda: crea un personaggio o importa un export Roll20 o un TavernPack." : "Crea il tuo personaggio, oppure chiedi al GM di renderti visibile una scheda."}</p>}
   </div>;
 }
 

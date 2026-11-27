@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { STORAGE_CAMPAIGNS } from "./constants";
 import { LoadError } from "./LazyBoundary";
 import { OBR } from "./obr";
-import { Spinner } from "./ui";
+import { Skeleton, Spinner } from "./ui";
 import "./styles.css";
 import "./extended.css";
 import "./theme.css";
@@ -33,8 +33,6 @@ try { localStorage.removeItem(STORAGE_CAMPAIGNS); } catch { /* storage bloccato:
 // Il popover del turn order per i token senza scheda e le tendine del menu del token caricano solo il loro modulo, non l'app intera.
 // In locale resta l'anteprima: ?phone prova l'accesso da telefono.
 const params = new URLSearchParams(window.location.search);
-// Subito, non a file caricato: la tendina non deve lampeggiare con lo sfondo dell'app.
-if (params.has("token-menu") || params.has("token-hp")) document.documentElement.classList.add("token-menu-page");
 const preview = OBR.isAvailable || (import.meta.env.DEV && !params.has("phone"));
 // Ogni pagina è un file a parte: i popover dei token non scaricano l'app intera.
 // Senza Suspense: React terrebbe il caricamento a schermo almeno 300 ms, troppi per la tendina del tasto destro.
@@ -47,5 +45,7 @@ const loadPage = async (): Promise<ReactNode> => {
   return <PhoneApp/>;
 };
 const root = createRoot(document.getElementById("root")!);
-root.render(<Spinner/>);
+// Le tendine del token sono piccole: lì basta lo spinner.
+const tokenMenu = params.has("token-menu") || params.has("token-hp");
+root.render(tokenMenu ? <Spinner/> : <div className="ui-skeleton-page"><Skeleton rows={4}/></div>);
 loadPage().then((page) => root.render(<StrictMode>{page}</StrictMode>), (error: unknown) => { console.error(error); root.render(<LoadError/>); });

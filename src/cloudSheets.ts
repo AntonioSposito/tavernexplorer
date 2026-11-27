@@ -2,7 +2,8 @@ import { storage } from "./storage";
 import type { CloudSheet } from "./types";
 
 export interface Viewer { name: string; role: "GM" | "PLAYER" }
-export interface LibraryState { entries: CloudSheet[]; offline: boolean; conflict: string | null }
+// loading: solo nello stato iniziale dell'app, prima della prima risposta del server.
+export interface LibraryState { entries: CloudSheet[]; offline: boolean; conflict: string | null; loading?: boolean }
 
 // Permessi applicati solo dall'estensione: chi conosce la stanza può aggirarli via API.
 // EVERYONE nelle liste ACL vale per tutti i giocatori della stanza.

@@ -5,7 +5,7 @@ import { ChatIcon, EditIcon, NoteIcon } from "./icons";
 import { canMoveFolder, folderTargets, visibleFolders } from "./journalTree";
 import { AclPicker } from "./LibraryPanel";
 import type { CloudSheet } from "./types";
-import { Button, Dialog, Input, Textarea } from "./ui";
+import { Button, Dialog, Input, Skeleton, Textarea } from "./ui";
 
 // Journal come su Roll20: il GM crea e organizza note e cartelle e sceglie chi vede e chi modifica ogni nota.
 type NoteEntry = Extract<CloudSheet, { kind: "note" }>;
@@ -14,6 +14,7 @@ type Viewer = { name: string; role: "GM" | "PLAYER" };
 type NoteDraft = { id: string | null; name: string; body: string; folderId: string; acl: CloudSheet["acl"] };
 
 interface JournalProps {
+  loading?: boolean;
   entries: CloudSheet[];
   members: Member[];
   player: Viewer;
@@ -23,7 +24,7 @@ interface JournalProps {
   onShare: (title: string, body: string) => void;
 }
 
-export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, onShare }: JournalProps) {
+export function Journal({ loading = false, entries, members, player, onAdd, onUpdate, onRemove, onShare }: JournalProps) {
   const isGm = player.role === "GM";
   const notes = entries.filter((entry): entry is NoteEntry => entry.kind === "note");
   // Le cartelle del Bestiario stanno nella stessa libreria ma non sono del Journal.
@@ -78,7 +79,7 @@ export function Journal({ entries, members, player, onAdd, onUpdate, onRemove, o
           {canEditCloudSheet(entry, player) && <button aria-label={`Modifica ${note.name}`} title="Modifica" onClick={() => editNote(entry)}><EditIcon/></button>}
         </span>
       </>; }}
-      empty={<p className="assign-empty">{isGm ? "Nessuna nota: crea una nota o una cartella." : "Il GM non ha ancora condiviso nessuna nota con te."}</p>}/>
+      empty={loading ? <Skeleton/> : <p className="assign-empty">{isGm ? "Nessuna nota: crea una nota o una cartella." : "Il GM non ha ancora condiviso nessuna nota con te."}</p>}/>
 
     <Dialog open={!!reading} title={reading?.sheet.name ?? ""} onClose={() => setReadingId(null)}>{reading && <div className="action-form">
       <p className="prose">{reading.sheet.body || "Nessun testo."}</p>

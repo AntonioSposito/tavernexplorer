@@ -7,7 +7,7 @@ import { loadCharacterOptions, loadItems } from "./fivetoolsApi";
 import { STANDARD_LANGUAGES, type CharacterOptions, type EquipmentOption, type ToolGrant, type ToolKind } from "./fivetoolsCharacter";
 import type { FiveToolsItem } from "./import5etools";
 import type { CharacterSheet } from "./types";
-import { Alert, Button, Input, Select, Spinner } from "./ui";
+import { Alert, Button, Input, Select, Skeleton } from "./ui";
 
 // Creazione guidata di livello 1 con le regole del PHB 2024 e i dati 5e.tools (XPHB).
 const ABILITIES = Object.keys(ABILITY_LABELS);
@@ -21,7 +21,7 @@ const blankChoices = (name: string): CharacterChoices => ({ name, className: "",
 export function CharacterWizard({ name, onCreate, onCancel }: { name: string; onCreate: (sheet: CharacterSheet) => void; onCancel: () => void }) {
   const [data, setData] = useState<{ options: CharacterOptions; items: FiveToolsItem[] } | string | null>(null);
   useEffect(() => { Promise.all([loadCharacterOptions(), loadItems()]).then(([options, items]) => setData({ options, items }), (error: unknown) => setData(error instanceof Error ? error.message : "Dati 5e.tools non disponibili")); }, []);
-  if (data === null) return <div className="action-form"><p><Spinner/> Caricamento delle regole da 5e.tools…</p></div>;
+  if (data === null) return <div className="action-form"><p>Caricamento delle regole da 5e.tools…</p><Skeleton rows={4}/></div>;
   if (typeof data === "string") return <div className="action-form"><Alert tone="danger">{data}</Alert><div className="action-form-buttons"><Button variant="secondary" onClick={onCancel}>Chiudi</Button></div></div>;
   return <Steps name={name} options={data.options} items={data.items} onCreate={onCreate} onCancel={onCancel}/>;
 }
