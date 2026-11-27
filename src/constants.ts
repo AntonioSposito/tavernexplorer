@@ -92,3 +92,5 @@ export const SKILL_ABILITIES: Record<string, string> = {
 };
 // Sangue disegnato in locale sui token feriti di mostri e NPC.
 export const TOKEN_BLOOD_META_KEY = `${EXTENSION_ID}/token-blood`;
+// Tema scelto da chi usa questo browser (anche index.html lo legge, prima del CSS).
+export const STORAGE_THEME = `${EXTENSION_ID}/theme/v1`;

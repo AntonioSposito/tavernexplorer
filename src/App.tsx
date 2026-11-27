@@ -58,6 +58,7 @@ import { devSheetsFetch } from "./devSheets";
 import { storage, type PhoneSession } from "./storage";
 import { createTavernPack, parseCharacterSheet, parseTavernPack } from "./tavernpack";
 import { Alert, Button, Card, Dialog, Input, Select, Skeleton, Spinner } from "./ui";
+import { ThemePicker } from "./ThemePicker";
 import {
   DEFAULT_PERMISSIONS, OBR, setCharacterTokensInitiative, addSelectedTokenToTurns, broadcastMessage, getPermissions, getPlayerInfo, getTurnState,
   getSharedInventory, highlightToken, notifySheetsChanged, onSheetsChanged, getPartyMembers, onBroadcastMessage, onPermissionsChange, onSharedInventoryChange, onTurnStateChange, getFloatingPanelPosition, getFloatingPanelSize, getTokenImages, openFloatingPanel, pickOwlbearImage, openPanelForPlayers, resizeFloatingPanel, type PanelSize, setActiveCharacter, setPermissions, setSharedInventory, setTurnState, showRollOnMap, uploadMonsterTokens,
@@ -66,11 +67,10 @@ import { initiativeRoll } from "./initiative";
 import { TOKEN_ACTIONS_ID, TOKEN_SHEET_SECTIONS, type TokenSheetSection } from "./tokenMenuActions";
 import type { ActionEntry, ResourceCounter, StatModifier, TraitEntry, AppTab, CharacterEffect, CharacterSheet, ChatMessage, JournalFolder, MonsterSheet, PermissionSettings, CloudSheet, Roll20Export, RollCard, RollMode, SharedInventoryItem, SpellEntry, TavernPack, TurnState, Visibility } from "./types";
 
-const GM_TABS: AppTab[] = ["settings"];
 // Senza gli avvisi broadcast di Owlbear il telefono rilegge le schede più spesso.
 const PHONE_POLL_MS = 15_000;
 const CHAT_POLL_MS = 15_000;
-const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", shared: "Inventario comune", library: "Libreria", settings: "Permessi" };
+const TAB_LABELS: Record<AppTab, string> = { sheet: "Scheda", turns: "Turni", messages: "Messaggi", notes: "Note", compendium: "Bestiario", shared: "Inventario comune", library: "Libreria", settings: "Impostazioni" };
 type SheetTab = "main" | "actions" | "spells" | "inventory" | "traits" | "bio" | "options";
 const SHEET_TAB_LABELS: Record<SheetTab, string> = { main: "Base", actions: "Azioni", spells: "Magia", inventory: "Zaino", traits: "Tratti", bio: "Bio", options: "Modifica" };
 
@@ -302,7 +302,6 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   }, [sortedCharacters, activeId, library.entries, player]);
   useEffect(() => { if (activeId && !floatingView) storage.lastSheet.set(activeId); }, [activeId, floatingView]);
   // Bestiario e permessi sono riservati al GM: chi non lo è torna alla scheda.
-  useEffect(() => { if (player.role !== "GM" && GM_TABS.includes(tab) && !floatingView) setTab(characters.length ? "sheet" : "library"); }, [player.role, tab, floatingView, characters.length]);
   const turnTokenIds = turns.entries.flatMap((entry) => entry.tokenId ? [entry.tokenId] : []).join(",");
   useEffect(() => { void getTokenImages(turnTokenIds ? turnTokenIds.split(",") : []).then(setTokenImages).catch(() => setTokenImages({})); }, [turnTokenIds]);
   // Solo la finestra principale decide il personaggio attivo del giocatore.
@@ -560,8 +559,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     {!floatingView && <nav className="app-tabs">
       {([
         ["sheet", null], ["turns", turns.entries.length || null], ["messages", unreadMessages || null], ["notes", null], ["shared", null], ["library", null], ["compendium", null],
-        // Tab solo GM in fondo, dopo un separatore.
-        ...(player.role === "GM" ? [["gm-separator", null], ["settings", null]] as const : []),
+        // Impostazioni in fondo, dopo un separatore: il tema per tutti, i permessi solo per il GM.
+        ["gm-separator", null], ["settings", null],
       ] as const).map(([id, count]) => id === "gm-separator" ? <span key={id} className="tab-separator" role="separator"/> : <button key={id} className={tab === id ? "active" : ""} aria-label={TAB_LABELS[id]} title={TAB_LABELS[id]} onClick={() => setTab(id)}>
         <span className="tab-icon-wrap"><span className="tab-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${id}.png)`, maskImage: `url(/tab-icons/${id}.png)` }}/>
         {id === "messages" ? count != null && <span className="tab-badge unread" aria-label={`${count} non letti`}>{count}</span> : count != null && <span className="tab-badge">{count}</span>}</span>
@@ -592,8 +591,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
         const next = storage.monsters.get().filter((item) => item.id !== id); storeMonsters(next); setSelectedMonsterId(null); syncMonsters((room, token) => deleteCloudMonster(room, token, id));
       })} onRoll={performRoll} onShare={shareEntry} onShareContent={(title, body, target) => { void publish(makeMessage({ kind: "share", author: player.name, title, body, visibility: target })).catch((error) => { if (OBR.isAvailable) void OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }); }} onAddTurn={(monster) => void addMonsterToTurns(monster)} aclOf={(id) => library.entries.find((entry) => entry.kind === "npc" && entry.sheet.id === id)?.acl ?? { view: [], edit: [] }} aclCandidates={aclCandidates(library.entries, partyMembers)} onAclChange={setMonsterAcl}/>}
       {tab === "shared" && <SharedInventory editable={player.role === "GM" || permissions.playersEditInventory} items={sharedInventory} characters={characters} onChange={saveSharedInventory}/>}
-      {tab === "settings" && player.role === "GM" && <div className="stack">{OBR.isAvailable && <Card><h2>Accesso senza Owlbear</h2><p>Da telefono o da PC si entra nell'app con la password dei giocatori o con quella del GM. Questa è la stanza a cui dà accesso.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/><GmChatLink room={OBR.room.id} linked={!!gmToken} onLink={(token) => { storage.gmToken.set(token); setGmToken(token); }}/></Card>}
-      <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await (phone ? putRoomState(phone.room, "permissions", next) : setPermissions(next)); setPermissionState(next); }); }}/></div>}
+      {tab === "settings" && <div className="stack"><ThemePicker/>{player.role === "GM" && OBR.isAvailable && <Card><h2>Accesso senza Owlbear</h2><p>Da telefono o da PC si entra nell'app con la password dei giocatori o con quella del GM. Questa è la stanza a cui dà accesso.</p><Input readOnly aria-label="ID stanza" value={OBR.room.id}/><GmChatLink room={OBR.room.id} linked={!!gmToken} onLink={(token) => { storage.gmToken.set(token); setGmToken(token); }}/></Card>}
+      {player.role === "GM" && <Permissions value={permissions} onChange={async (next) => { await runAction(async () => { await (phone ? putRoomState(phone.room, "permissions", next) : setPermissions(next)); setPermissionState(next); }); }}/>}</div>}
     </main>
     </div>
     <input ref={fileRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) importFile(file); event.target.value = ""; }}/>
@@ -611,7 +610,7 @@ function FloatingHandle({ view }: { view: AppTab }) {
   const current = () => ({ width: window.innerWidth, height: window.innerHeight });
   // Doppio clic sul nome: riduce la finestra alla sola barra o la riporta alle dimensioni salvate.
   const toggleCollapsed = (bar: HTMLElement) => void resizeFloatingPanel(view, window.innerHeight > bar.offsetHeight + 4 ? { width: window.innerWidth, height: bar.offsetHeight } : getFloatingPanelSize(view));
-  return <div className="floating-handle" title="Doppio clic per ridurre o espandere" onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest("button")) toggleCollapsed(event.currentTarget); }} onPointerDown={(event) => { if ((event.target as HTMLElement).closest("button")) return; drag.current = { x: event.screenX, y: event.screenY, ...getFloatingPanelPosition(view) }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = position(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => void openFloatingPanel(view, next, token, current())); }} onPointerUp={(event) => { const next = position(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); void openFloatingPanel(view, next, token, current()); }}><span>⠿ {TAB_LABELS[view]}</span><Button variant="ghost" aria-label="Chiudi pannello" onClick={() => void OBR.popover.close(`it.tavernexplorer/${view}-panel`)}>×</Button></div>;
+  return <div className="floating-handle" title="Doppio clic per ridurre o espandere" onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest("button")) toggleCollapsed(event.currentTarget); }} onPointerDown={(event) => { if ((event.target as HTMLElement).closest("button")) return; drag.current = { x: event.screenX, y: event.screenY, ...getFloatingPanelPosition(view) }; event.currentTarget.setPointerCapture(event.pointerId); }} onPointerMove={(event) => { const next = position(event); if (!next) return; cancelAnimationFrame(frame.current); frame.current = requestAnimationFrame(() => void openFloatingPanel(view, next, token, current())); }} onPointerUp={(event) => { const next = position(event); if (!next) return; event.currentTarget.releasePointerCapture(event.pointerId); drag.current = null; cancelAnimationFrame(frame.current); void openFloatingPanel(view, next, token, current()); }}><span>⠿ {TAB_LABELS[view]}{import.meta.env.DEV && <span className="dev-badge">DEV</span>}</span><Button variant="ghost" aria-label="Chiudi pannello" onClick={() => void OBR.popover.close(`it.tavernexplorer/${view}-panel`)}>×</Button></div>;
 }
 
 const ACTION_SIZE_KEY = "it.tavernexplorer/action-size";

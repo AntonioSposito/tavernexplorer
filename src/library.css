@@ -37,7 +37,7 @@
 /* Riga azione: il nome tira, le icone condividono e modificano senza aprire il dettaglio. */
 .entry summary .entry-use, .proficiencies .entry-use, .resource-row .entry-use { padding: 0; border: 0; background: none; color: hsl(var(--primary)); font-weight: 700; text-align: left; text-decoration: underline dotted; text-underline-offset: 3px; }
 .entry summary .entry-use:hover, .proficiencies .entry-use:hover, .resource-row .entry-use:hover { text-decoration-style: solid; }
-.entry summary .entry-values { margin-left: auto; color: #e7b467; }
+.entry summary .entry-values { margin-left: auto; color: hsl(var(--primary)); }
 .entry summary .entry-icons { display: flex; gap: .25rem; }
 /* Su schermo stretto valori e icone vanno a capo invece di schiacciare il nome. */
 .entry summary { flex-wrap: wrap; }

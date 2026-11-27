@@ -1,28 +1,33 @@
 :root {
-  --background: 222 31% 9%;
-  --foreground: 210 28% 94%;
-  --card: 222 25% 14%;
-  --card-foreground: 210 28% 94%;
-  --popover: 222 25% 14%;
-  --popover-foreground: 210 28% 94%;
-  --primary: 174 72% 58%;
-  --primary-foreground: 220 32% 8%;
-  --secondary: 222 20% 21%;
-  --secondary-foreground: 210 25% 93%;
-  --muted: 222 20% 18%;
-  --muted-foreground: 215 16% 69%;
-  --accent: 221 22% 25%;
-  --accent-foreground: 210 25% 95%;
-  --destructive: 0 63% 53%;
-  --border: 219 20% 28%;
-  --input: 219 20% 32%;
-  --ring: 174 72% 58%;
-  --radius: .8rem;
+  /* Tema Scuro (default), sobrio come Roll20: grigi neutri e l'accento viola. Il Chiaro è in themes.css. */
+  --background: 0 0% 12%;
+  --foreground: 0 0% 93%;
+  --card: 0 0% 16%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 16%;
+  --popover-foreground: 0 0% 93%;
+  --primary: 274 52% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 21%;
+  --secondary-foreground: 0 0% 93%;
+  --muted: 0 0% 19%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 0 0% 24%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 4 70% 58%;
+  --border: 0 0% 27%;
+  --input: 0 0% 34%;
+  --ring: 274 52% 62%;
+  --radius: .5rem;
+  /* Colori con un significato: critico, 1 naturale, mostri. */
+  --crit: 116 50% 62%;
+  --fumble: 9 75% 66%;
+  --monster: 210 60% 72%;
 }
 
 body {
   color: hsl(var(--foreground));
-  background: radial-gradient(circle at 85% -15%, hsl(189 62% 38% / .16), transparent 43%), hsl(var(--background));
+  background: hsl(var(--background));
 }
 
 .topbar, .app-tabs, .sheet-tabs, .composer { background: hsl(var(--background) / .96); border-color: hsl(var(--border)); }

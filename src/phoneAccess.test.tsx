@@ -97,7 +97,7 @@ it("con la password GM entra come GM senza scegliere il nome e legge i messaggi 
   const chat = await openChat();
   expect(chat).toEqual([expect.stringContaining("per tutti"), expect.stringContaining("solo per te")]);
   expect(host.querySelector('[aria-label="Bestiario"]')).toBeTruthy();
-  expect(host.querySelector('[aria-label="Permessi"]')).toBeTruthy();
+  expect(host.querySelector('[aria-label="Impostazioni"]')).toBeTruthy();
   expect(JSON.parse(localStorage.getItem(STORAGE_PHONE_SESSION)!)).toMatchObject({ room: "r1", name: "GM", gmToken: expect.stringMatching(/^[0-9a-f]{64}$/) });
 });
 
@@ -170,7 +170,9 @@ it("il giocatore vede turni e inventario comune dal cloud e, se autorizzato, ava
   await act(async () => root.render(<PhoneApp/>));
   await settle();
   expect(tabs()).toEqual(expect.arrayContaining(["Turni", "Inventario comune", "Bestiario"]));
-  expect(tabs()).not.toContain("Permessi");
+  await openTab("Impostazioni");
+  expect(host.textContent).toContain("Tema");
+  expect(host.querySelector(".permission-row")).toBeNull();
   await openTab("Inventario comune");
   expect(host.textContent).toContain("Corda");
   await openTab("Turni");
@@ -190,7 +192,7 @@ it("senza permesso il giocatore non può avanzare il turno", async () => {
   expect(host.querySelector<HTMLButtonElement>('button[aria-label="Turno successivo"]')!.disabled).toBe(true);
 });
 
-it("il GM ha Bestiario e Permessi ma non Avventure, e il token non valido non legge il bestiario", async () => {
+it("il GM ha Bestiario e Impostazioni con i permessi ma non Avventure, e il token non valido non legge il bestiario", async () => {
   vi.stubEnv("PHONE_GM_PASSWORD", "segreta");
   const { gmToken } = await import("../api/_gmToken");
   const token = await gmToken("r1", "segreta");
@@ -198,12 +200,12 @@ it("il GM ha Bestiario e Permessi ma non Avventure, e il token non valido non le
   localStorage.setItem(STORAGE_PHONE_SESSION, JSON.stringify({ room: "r1", name: "GM", gmToken: token }));
   await act(async () => root.render(<PhoneApp/>));
   await settle();
-  expect(tabs()).toEqual(expect.arrayContaining(["Turni", "Inventario comune", "Bestiario", "Permessi"]));
+  expect(tabs()).toEqual(expect.arrayContaining(["Turni", "Inventario comune", "Bestiario", "Impostazioni"]));
   expect(tabs()).not.toContain("Avventure");
   await openTab("Bestiario");
   await settle();
   expect(host.textContent).toContain("Lupo Mannaro");
-  await openTab("Permessi");
+  await openTab("Impostazioni");
   await act(async () => host.querySelector<HTMLInputElement>('.permission-row input[type="checkbox"]')!.click());
   await settle();
   expect((await roomState()).permissions.value.playersEditInventory).toBe(false);

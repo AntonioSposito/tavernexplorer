@@ -1,2 +1,0 @@
-/* Skin della versione di sviluppo: caricata solo con `pnpm dev`. */
-:root[data-env="dev"]{--background:285 18% 9%;--card:285 16% 12%;--popover:285 16% 12%;--secondary:290 12% 20%;--muted:290 12% 17%;--accent:290 12% 20%;--border:290 12% 25%;--input:290 12% 25%;--primary:335 85% 62%;--primary-foreground:335 70% 12%;--ring:335 85% 62%}

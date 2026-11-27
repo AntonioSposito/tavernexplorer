@@ -21,11 +21,13 @@ import "./turns.css";
 import "./library.css";
 import "./rollCards.css";
 import "./core.css";
+import "./themes.css";
+import { setupTheme } from "./themes";
 
 if (import.meta.env.DEV) {
   document.documentElement.dataset.env = "dev";
-  void import("./dev.css");
 }
+setupTheme();
 
 // Le Avventure non ci sono più: i libri importati occupavano MB nella memoria del browser.
 try { localStorage.removeItem(STORAGE_CAMPAIGNS); } catch { /* storage bloccato: niente da liberare */ }

@@ -1,0 +1,17 @@
+/* Tema Chiaro, come le schede di Roll20: bianco, grigi e accento viola. Lo Scuro (default) è in refresh.css. */
+:root[data-theme="chiaro"] {
+  --background: 0 0% 96%; --foreground: 0 0% 13%; --card: 0 0% 100%; --card-foreground: 0 0% 13%;
+  --popover: 0 0% 100%; --popover-foreground: 0 0% 13%; --primary: 274 55% 40%; --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 92%; --secondary-foreground: 0 0% 13%; --muted: 0 0% 94%; --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 89%; --accent-foreground: 0 0% 10%; --destructive: 0 65% 42%; --border: 0 0% 83%; --input: 0 0% 70%; --ring: 274 55% 40%;
+  --crit: 130 55% 28%; --fumble: 6 70% 40%; --monster: 210 55% 34%;
+  color-scheme: light;
+}
+
+/* Scelta del tema: due voci con un campione di sfondo e accento. */
+.theme-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .5rem; }
+.theme-option { padding: .5rem .6rem; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 2px); cursor: pointer; }
+.theme-option:has(input:checked) { border-color: hsl(var(--primary)); }
+.theme-option > span:last-child { display: grid; }
+.theme-option small { color: hsl(var(--muted-foreground)); }
+.theme-swatch { flex: none; width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid hsl(var(--border)); }

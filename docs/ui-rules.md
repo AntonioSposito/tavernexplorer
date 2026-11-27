@@ -20,7 +20,8 @@ Preferenze decise con l'utente. Valgono per ogni modifica futura.
 ## Barra delle tab principali
 
 - Solo icone (`public/tab-icons/<tab>.png`), colorate con `mask` e `currentColor`. Il nome della tab va in `aria-label` e `title`.
-- Prima le tab che vedono tutti; poi, dopo una linea separatrice, le tab solo GM (Avventure, Permessi). Il Bestiario lo vedono tutti: i giocatori solo i mostri condivisi con loro.
+- Prima le tab di gioco; poi, dopo una linea separatrice, Impostazioni. Impostazioni la vedono tutti: il tema per ognuno, accesso e permessi solo per il GM. Il Bestiario lo vedono tutti: i giocatori solo i mostri condivisi con loro.
+- **Colori solo dai token del tema** (`hsl(var(--primary))`, `--foreground`, `--border`…), mai esadecimali fissi: i due temi (Scuro e Chiaro, grigi e viola come Roll20) cambiano solo i token. Fissi solo i colori con un significato (critico verde, 1 naturale rosso, mostri blu).
 - I contatori sono badge sovrapposti all'icona, in alto a destra, e spariscono quando valgono 0.
 - La tab Messaggi mostra i non letti, contando tutto ciò che compare in chat. Il contatore non sale se la chat è già aperta, anche in una finestra separata.
 - La barra non deve mai avere scroll orizzontale.

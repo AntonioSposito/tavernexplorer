@@ -1,8 +1,8 @@
 /* Card dei tiri come il conto di una taverna: etichetta, puntini, numero. Il numero è l'unico elemento forte
    (Georgia ottone, come i numeri della scheda); il resto si fonde con il messaggio scuro che la contiene. */
-.r20-card { --card-ink: #f7ead2; --card-muted: #b9a384; --card-brass: #ffd18a; --card-title: #ffd99c; --card-leader: #6b5240;
+.r20-card { --card-ink: hsl(var(--foreground)); --card-muted: hsl(var(--muted-foreground)); --card-brass: hsl(var(--primary)); --card-title: hsl(var(--primary)); --card-leader: hsl(var(--input));
   max-width: 28rem; margin-top: .4rem; color: var(--card-ink); font-size: .85rem; }
-.r20-card header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; padding-bottom: .4rem; border-bottom: 1px solid #533a29; }
+.r20-card header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; padding-bottom: .4rem; border-bottom: 1px solid hsl(var(--border)); }
 .r20-card header > div { display: flex; flex-direction: column; min-width: 0; }
 .r20-card header strong { font-family: Georgia, serif; font-size: 1.05rem; color: var(--card-title); }
 .r20-card header small { color: var(--card-muted); font-style: italic; }
@@ -15,8 +15,8 @@
 .r20-values em { color: var(--card-muted); }
 .r20-values strong { font-family: Georgia, serif; font-size: 1.1rem; color: var(--card-brass); }
 .r20-roll { font-family: Georgia, serif; font-size: 1.45rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--card-brass); cursor: help; }
-.r20-roll.crit { color: #8fdc8a; }
-.r20-roll.fumble { color: #ec8a78; }
+.r20-roll.crit { color: hsl(var(--crit)); }
+.r20-roll.fumble { color: hsl(var(--fumble)); }
 .r20-roll.crit::after, .r20-roll.fumble::after { margin-left: .25rem; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .68rem; font-weight: 600; }
 .r20-roll.crit::after { content: "critico"; }
 .r20-roll.fumble::after { content: "1 naturale"; }
@@ -24,17 +24,17 @@
 .r20-roll.dropped { font-size: .95rem; color: var(--card-muted); text-decoration: line-through; }
 .r20-roll.dropped::after { content: none; }
 .r20-effect { flex-basis: 100%; color: var(--card-muted); }
-.r20-note { margin: .2rem 0 0; color: #ec8a78; font-weight: 600; }
-.r20-description { margin: .2rem 0 0; padding-top: .35rem; border-top: 1px solid #533a29; color: #d8c8af; white-space: pre-wrap; line-height: 1.45; }
-.r20-description summary { cursor: pointer; color: #e8b769; font-weight: 600; }
+.r20-note { margin: .2rem 0 0; color: hsl(var(--fumble)); font-weight: 600; }
+.r20-description { margin: .2rem 0 0; padding-top: .35rem; border-top: 1px solid hsl(var(--border)); color: hsl(var(--foreground) / .85); white-space: pre-wrap; line-height: 1.45; }
+.r20-description summary { cursor: pointer; color: hsl(var(--primary)); font-weight: 600; }
 .r20-description p { margin: .3rem 0 0; }
-.r20-alert { margin: .4rem 0 0; padding: .35rem .5rem; border-radius: 6px; background: hsl(38 92% 50% / .14); color: var(--card-brass); font-weight: 700; }
+.r20-alert { margin: .4rem 0 0; padding: .35rem .5rem; border-radius: 6px; background: hsl(var(--primary) / .14); color: var(--card-brass); font-weight: 700; }
 .message-player { font-weight: 400; color: hsl(var(--muted-foreground)); }
 /* Mostri: nome in blu acciaio, per distinguerli a colpo d'occhio dai PG. */
-.r20-card.monster header strong, .r20-card.monster .r20-description summary { color: #9cc3e6; }
+.r20-card.monster header strong, .r20-card.monster .r20-description summary { color: hsl(var(--monster)); }
 /* Immagine di chi parla, prima del nome. */
 /* Finestre strette: l'orario scende sotto il nome invece di accavallarsi. */
 .message > header { flex-wrap: wrap; align-items: center; gap: .15rem .6rem; }
 .message > header small { margin-left: auto; white-space: nowrap; }
 .message-author { display: inline-flex; align-items: center; min-width: 0; }
-.message-avatar { flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 1px solid #533a29; margin-right: .45rem; }
+.message-avatar { flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 1px solid hsl(var(--border)); margin-right: .45rem; }

@@ -22,3 +22,6 @@ html.token-menu-page body { color: var(--menu-text, #fff); font-family: Roboto, 
 html.token-menu-page[data-mode="light"] .token-menu button:hover:not(:disabled) { background: rgba(0, 0, 0, .04); }
 .token-menu button:disabled { color: var(--menu-text-disabled, rgba(255, 255, 255, .5)); cursor: default; }
 .token-menu-icon { flex: none; width: 24px; height: 24px; background: currentColor; mask-size: contain; mask-repeat: no-repeat; mask-position: center; -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; }
+/* Sviluppo: stesso tema della versione pubblicata, riconoscibile dalla striscia rossa in cima e dal badge DEV. */
+:root[data-env="dev"]:not(.token-menu-page) body::before{content:"";position:fixed;top:0;left:0;right:0;z-index:1000;height:3px;background:repeating-linear-gradient(-45deg,hsl(var(--destructive)) 0 8px,transparent 8px 14px);pointer-events:none}
+.floating-handle .dev-badge{color:hsl(var(--destructive-foreground))}

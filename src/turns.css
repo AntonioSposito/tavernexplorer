@@ -2,18 +2,18 @@
 
 .turn-tracker{display:flex;flex-direction:column;gap:.6rem;min-height:0}
 .floating-handle~main .turn-tracker{height:calc(100vh - 4.15rem)}
-.turn-tracker-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 .15rem;font-size:.75rem;color:#b9a384}
-.turn-tracker-head span:first-child{font-family:Georgia,serif;font-size:1.05rem;color:#ffd99c}
-.turn-rows{flex:1;min-height:0;overflow:auto;border-top:1px solid #533a29;border-bottom:1px solid #533a29}
-.turn-row{position:relative;border-bottom:1px solid #3a2a20;padding:.5rem .6rem .5rem .75rem}
+.turn-tracker-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 .15rem;font-size:.75rem;color:hsl(var(--muted-foreground))}
+.turn-tracker-head span:first-child{font-family:Georgia,serif;font-size:1.05rem;color:hsl(var(--primary))}
+.turn-rows{flex:1;min-height:0;overflow:auto;border-top:1px solid hsl(var(--border));border-bottom:1px solid hsl(var(--border))}
+.turn-row{position:relative;border-bottom:1px solid hsl(var(--border) / .6);padding:.5rem .6rem .5rem .75rem}
 .turn-row:last-child{border-bottom:0}
 /* Turno attuale: banda ottone a sinistra e sfondo appena caldo, così PF ed effetti restano leggibili. */
-.turn-row.current{background:linear-gradient(90deg,hsl(38 92% 50% / .16),hsl(38 92% 50% / .04))}
-.turn-row.current::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#ffd18a}
-.turn-row.current .turn-name strong,.turn-row.current .turn-name button{font-family:Georgia,serif;font-size:1.08rem;color:#ffd99c}
+.turn-row.current{background:linear-gradient(90deg,hsl(var(--primary) / .16),hsl(var(--primary) / .04))}
+.turn-row.current::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:hsl(var(--primary))}
+.turn-row.current .turn-name strong,.turn-row.current .turn-name button{font-family:Georgia,serif;font-size:1.08rem;color:hsl(var(--primary))}
 .turn-row-main{display:grid;grid-template-columns:2.4rem minmax(0,1fr) auto auto;align-items:center;gap:.6rem}
-.turn-avatar{position:relative;display:grid;place-items:center;width:2.4rem;height:2.4rem;border:1px solid #533a29;border-radius:50%;background:hsl(var(--secondary));overflow:hidden;font-size:.8rem;font-weight:700;color:hsl(var(--foreground))}
-.turn-row.current .turn-avatar{border:2px solid #ffd18a}
+.turn-avatar{position:relative;display:grid;place-items:center;width:2.4rem;height:2.4rem;border:1px solid hsl(var(--border));border-radius:50%;background:hsl(var(--secondary));overflow:hidden;font-size:.8rem;font-weight:700;color:hsl(var(--foreground))}
+.turn-row.current .turn-avatar{border:2px solid hsl(var(--primary))}
 .turn-avatar img{width:100%;height:100%;object-fit:cover}
 .turn-remove{position:absolute;inset:0;display:grid;place-items:center;border:0;border-radius:50%;background:hsl(var(--destructive) / .85);opacity:0;transition:opacity .12s}
 .turn-remove span{width:55%;height:3px;border-radius:2px;background:hsl(var(--destructive-foreground))}
@@ -22,23 +22,23 @@
 .turn-name strong,.turn-name button{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem;font-weight:600;text-align:left}
 .turn-name button{border:0;background:transparent;color:inherit;padding:0}
 .turn-name button:hover{text-decoration:underline}
-.turn-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem;color:#b9a384}
+.turn-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem;color:hsl(var(--muted-foreground))}
 /* PF modificabili dalla riga: campo grande quanto basta per cliccarlo e scriverci al volo. */
 .turn-name small.turn-stats{font-size:.78rem;line-height:1.9rem}
-.turn-stats input{width:3.4rem;height:1.7rem;margin:0 .2rem;padding:0 .35rem;vertical-align:middle;border:1px solid #6b5240;border-radius:.35rem;background:hsl(var(--background));color:#f7ead2;font-family:Georgia,serif;font-size:.95rem;font-weight:700;text-align:right}
-.turn-stats input:focus{border-color:#ffd18a}
-.turn-initiative{font-family:Georgia,serif;font-size:1.6rem;font-weight:700;line-height:1;min-width:2ch;text-align:right;color:#ffd18a}
+.turn-stats input{width:3.4rem;height:1.7rem;margin:0 .2rem;padding:0 .35rem;vertical-align:middle;border:1px solid hsl(var(--input));border-radius:.35rem;background:hsl(var(--background));color:hsl(var(--foreground));font-family:Georgia,serif;font-size:.95rem;font-weight:700;text-align:right}
+.turn-stats input:focus{border-color:hsl(var(--primary))}
+.turn-initiative{font-family:Georgia,serif;font-size:1.6rem;font-weight:700;line-height:1;min-width:2ch;text-align:right;color:hsl(var(--primary))}
 
 /* Il GM la modifica dalla riga: stesso numero grande, il bordo compare solo al passaggio o al focus. */
-.turn-initiative-input{width:3.2rem;border:1px solid transparent;border-radius:.4rem;background:transparent;color:#ffd18a;padding:.1rem .2rem;font-family:Georgia,serif;font-size:1.45rem;font-weight:700;text-align:right;-moz-appearance:textfield}
+.turn-initiative-input{width:3.2rem;border:1px solid transparent;border-radius:.4rem;background:transparent;color:hsl(var(--primary));padding:.1rem .2rem;font-family:Georgia,serif;font-size:1.45rem;font-weight:700;text-align:right;-moz-appearance:textfield}
 .turn-initiative-input::-webkit-inner-spin-button,.turn-initiative-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.turn-initiative-input:hover,.turn-initiative-input:focus{border-color:#533a29;background:hsl(var(--background))}
+.turn-initiative-input:hover,.turn-initiative-input:focus{border-color:hsl(var(--border));background:hsl(var(--background))}
 .turn-tools{display:grid;gap:.4rem}
 .turn-tools button{border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);background:hsl(var(--secondary));color:hsl(var(--foreground));padding:.5rem}
 .turn-tools .turn-clear{color:hsl(var(--destructive))}
 .turn-footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem}
 .turn-step{min-height:2.4rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);background:hsl(var(--background));color:hsl(var(--foreground));font-size:1.1rem}
-.turn-step.primary-step{border-color:#ffd18a;background:#ffd18a;color:#26180f;font-weight:700}
+.turn-step.primary-step{border-color:hsl(var(--primary));background:hsl(var(--primary));color:hsl(var(--primary-foreground));font-weight:700}
 .turn-settings{border:0;background:transparent;color:hsl(var(--muted-foreground));font-size:1.15rem;padding:.3rem}
 .turn-settings.active,.turn-settings:hover{color:hsl(var(--primary))}
 /* Effetti nella voce dei turni: stessa lista e stesso popup della scheda. */

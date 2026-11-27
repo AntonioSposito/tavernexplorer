@@ -3,15 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#17120f" />
+    <meta name="theme-color" content="#1f1f1f" />
     <title>TavernExplorer</title>
     <!-- Prima del JavaScript: le tendine del token restano trasparenti, le finestre mostrano subito righe di caricamento. -->
-    <script>if (/[?&](token-menu|token-hp)/.test(location.search)) document.documentElement.classList.add("token-menu-page");</script>
+    <script>
+      if (/[?&](token-menu|token-hp)/.test(location.search)) document.documentElement.classList.add("token-menu-page");
+      // Tema scelto in Impostazioni (src/themes.ts): sfondo e righe di caricamento hanno già i suoi colori.
+      try {
+        var theme = JSON.parse(localStorage.getItem("it.tavernexplorer/theme/v1") || '"scuro"');
+        var boot = { chiaro: ["#f5f5f5", "#e6e6e6", "#eeeeee"] }[theme];
+        document.documentElement.dataset.theme = theme;
+        if (boot) { var root = document.documentElement.style; root.setProperty("--boot-bg", boot[0]); root.setProperty("--boot-a", boot[1]); root.setProperty("--boot-b", boot[2]); }
+      } catch (error) { /* storage bloccato: tema di default */ }
+    </script>
     <style>
-      html:not(.token-menu-page) body { margin: 0; background: #17120f; }
+      :where(html:not(.token-menu-page)) body { margin: 0; background: var(--boot-bg, #1f1f1f); }
       .token-menu-page .boot-skeleton { display: none; }
       .boot-skeleton { display: grid; gap: .5rem; padding: 1rem; }
-      .boot-skeleton span { display: block; height: 2.75rem; border-radius: .7rem; background: linear-gradient(90deg, #2e2927 25%, #352f2d 50%, #2e2927 75%) 0 0 / 200% 100%; animation: boot-shimmer 1.2s linear infinite; }
+      .boot-skeleton span { display: block; height: 2.75rem; border-radius: .7rem; background: linear-gradient(90deg, var(--boot-a, #2b2b2b) 25%, var(--boot-b, #333333) 50%, var(--boot-a, #2b2b2b) 75%) 0 0 / 200% 100%; animation: boot-shimmer 1.2s linear infinite; }
       @keyframes boot-shimmer { to { background-position: -200% 0; } }
       @media (prefers-reduced-motion: reduce) { .boot-skeleton span { animation: none; } }
     </style>
