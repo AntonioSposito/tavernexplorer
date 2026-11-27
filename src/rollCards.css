@@ -1,28 +1,40 @@
-/* Card dei tiri ispirate ai template "D&D 5e by Roll20": carta chiara, intestazione bordeaux, risultati in riquadri. */
-.r20-card { max-width: 28rem; margin-top: .35rem; border: 1px solid #b9a98a; border-radius: 6px; background: #fdfaf3; color: #2b2118; overflow: hidden; font-size: .85rem; }
-.r20-card header { display: flex; flex-direction: column; padding: .4rem .6rem; background: #7e2d40; color: #fff; }
-.r20-card header strong { font-size: .95rem; }
-.r20-card header small { color: #f1dfe3; font-style: italic; }
-.r20-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .3rem .6rem; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; }
-.r20-label { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #7e2d40; }
-.r20-values { display: flex; align-items: center; gap: .35rem; }
-.r20-values em { color: #5b4a3a; }
-.r20-roll { min-width: 2.2rem; padding: .1rem .4rem; border: 2px solid #c9b98f; border-radius: 4px; background: #fef68e; color: #000; font-weight: 700; text-align: center; cursor: help; }
-.r20-roll.crit { border-color: #3fb315; }
-.r20-roll.fumble { border-color: #b31515; }
-.r20-roll.dropped { opacity: .45; }
-.r20-effect { flex-basis: 100%; color: #5b4a3a; }
-.r20-note { margin: 0; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; color: #b31515; font-weight: 600; }
-.r20-description { margin: 0; padding: .35rem .6rem; border-top: 1px solid #e6dcc8; white-space: pre-wrap; }
-.r20-description summary { cursor: pointer; color: #7e2d40; font-weight: 600; }
-.r20-description p { margin: .3rem 0 0; }
-.r20-alert { margin: 0; padding: .35rem .6rem; border-bottom: 1px solid #e6dcc8; background: #fff1c2; color: #8a4b00; font-weight: 700; }
-.message-player { font-weight: 400; color: hsl(var(--muted-foreground)); }
-/* Tiri e voci dei mostri: blu invece del rosso dei PG. */
-.r20-card.monster header { background: #1f4e79; }
-.r20-card.monster .r20-label, .r20-card.monster .r20-description summary { color: #1f4e79; }
-.r20-card.monster header small { color: #dce8f4; }
-/* Prova icone: nome a sinistra, icona a destra nella card in chat. */
-.r20-card header { flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; }
+/* Card dei tiri come il conto di una taverna: etichetta, puntini, numero. Il numero è l'unico elemento forte
+   (Georgia ottone, come i numeri della scheda); il resto si fonde con il messaggio scuro che la contiene. */
+.r20-card { --card-ink: #f7ead2; --card-muted: #b9a384; --card-brass: #ffd18a; --card-title: #ffd99c; --card-leader: #6b5240;
+  max-width: 28rem; margin-top: .4rem; color: var(--card-ink); font-size: .85rem; }
+.r20-card header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: .5rem; padding-bottom: .4rem; border-bottom: 1px solid #533a29; }
 .r20-card header > div { display: flex; flex-direction: column; min-width: 0; }
-.r20-card header .entry-icon { width: 2.2rem; height: 2.2rem; }
+.r20-card header strong { font-family: Georgia, serif; font-size: 1.05rem; color: var(--card-title); }
+.r20-card header small { color: var(--card-muted); font-style: italic; }
+.r20-card header .entry-icon { width: 2rem; height: 2rem; }
+.r20-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .5rem; padding: .3rem 0; }
+/* La riga di puntini va dall'etichetta al numero. */
+.r20-label { display: flex; flex: 1; align-items: baseline; min-width: 0; color: var(--card-muted); }
+.r20-label::after { content: ""; flex: 1; min-width: 1rem; margin-left: .4rem; border-bottom: 2px dotted var(--card-leader); }
+.r20-values { display: flex; align-items: baseline; gap: .4rem; }
+.r20-values em { color: var(--card-muted); }
+.r20-values strong { font-family: Georgia, serif; font-size: 1.1rem; color: var(--card-brass); }
+.r20-roll { font-family: Georgia, serif; font-size: 1.45rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--card-brass); cursor: help; }
+.r20-roll.crit { color: #8fdc8a; }
+.r20-roll.fumble { color: #ec8a78; }
+.r20-roll.crit::after, .r20-roll.fumble::after { margin-left: .25rem; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .68rem; font-weight: 600; }
+.r20-roll.crit::after { content: "critico"; }
+.r20-roll.fumble::after { content: "1 naturale"; }
+/* Il dado scartato (vantaggio o svantaggio) resta piccolo e barrato accanto a quello tenuto. */
+.r20-roll.dropped { font-size: .95rem; color: var(--card-muted); text-decoration: line-through; }
+.r20-roll.dropped::after { content: none; }
+.r20-effect { flex-basis: 100%; color: var(--card-muted); }
+.r20-note { margin: .2rem 0 0; color: #ec8a78; font-weight: 600; }
+.r20-description { margin: .2rem 0 0; padding-top: .35rem; border-top: 1px solid #533a29; color: #d8c8af; white-space: pre-wrap; line-height: 1.45; }
+.r20-description summary { cursor: pointer; color: #e8b769; font-weight: 600; }
+.r20-description p { margin: .3rem 0 0; }
+.r20-alert { margin: .4rem 0 0; padding: .35rem .5rem; border-radius: 6px; background: hsl(38 92% 50% / .14); color: var(--card-brass); font-weight: 700; }
+.message-player { font-weight: 400; color: hsl(var(--muted-foreground)); }
+/* Mostri: nome in blu acciaio, per distinguerli a colpo d'occhio dai PG. */
+.r20-card.monster header strong, .r20-card.monster .r20-description summary { color: #9cc3e6; }
+/* Immagine di chi parla, prima del nome. */
+/* Finestre strette: l'orario scende sotto il nome invece di accavallarsi. */
+.message > header { flex-wrap: wrap; align-items: center; gap: .15rem .6rem; }
+.message > header small { margin-left: auto; white-space: nowrap; }
+.message-author { display: inline-flex; align-items: center; min-width: 0; }
+.message-avatar { flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; border: 1px solid #533a29; margin-right: .45rem; }

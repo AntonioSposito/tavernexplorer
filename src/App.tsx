@@ -75,6 +75,8 @@ type SheetTab = "main" | "actions" | "spells" | "inventory" | "traits" | "bio" |
 const SHEET_TAB_LABELS: Record<SheetTab, string> = { main: "Base", actions: "Azioni", spells: "Magia", inventory: "Zaino", traits: "Tratti", bio: "Bio", options: "Modifica" };
 
 const signed = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
+// Solo indirizzi: un'immagine incorporata (data:) gonfierebbe ogni messaggio salvato nel cloud.
+const chatAvatar = (url?: string) => url && /^https?:\/\//.test(url) ? url : undefined;
 const makeMessage = (partial: Partial<ChatMessage>): ChatMessage => ({
   id: crypto.randomUUID(), kind: "text", author: "Giocatore", body: "", visibility: "everyone", createdAt: Date.now(), ...partial,
 });
@@ -318,6 +320,8 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   async function publish(message: ChatMessage) {
     message.authorId = player.id;
     message.playerName = player.name;
+    message.avatar = chatAvatar(message.avatar ?? characters.find((sheet) => sheet.id === message.characterId)?.avatar);
+    if (!message.avatar) delete message.avatar;
     await broadcastMessage(message);
     setMessages((current) => { const next = [...current.filter((item) => item.id !== message.id), message].slice(-200); storage.messages.set(next); return next; });
     const room = chatRoom();
@@ -331,7 +335,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
     try {
       const result = roll(formula, mode);
       const { card, title, body } = buildRollCard(name, formula, result, mode, attack);
-      await publish(makeMessage({ kind: "roll", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title, body, card: as ? { ...card, monster: true } : card, formula: result.formula, total: result.total, dice: result.dice, visibility: as?.visibility ?? visibility }));
+      await publish(makeMessage({ kind: "roll", author: as?.author ?? active?.name ?? player.name, avatar: as?.avatar, characterId: as ? undefined : active?.id, title, body, card: as ? { ...card, monster: true } : card, formula: result.formula, total: result.total, dice: result.dice, visibility: as?.visibility ?? visibility }));
       if (!as && active && visibility === "everyone") await showRollOnMap(active.id, title, result.total);
       return result;
     } catch (error) {
@@ -356,7 +360,7 @@ export default function App({ phone, onPhoneExit }: { phone?: PhoneSession; onPh
   // `card` arriva dalle liste della scheda con attacco, danno e TS già calcolati; senza, solo nome e descrizione.
   async function shareEntry(entry: ActionEntry | SpellEntry, card?: RollCard, as?: RollAs) {
     try {
-      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: { ...card ?? { name: entry.name, subtitle: reachLabel(entry), rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, ...as && { monster: true } }, visibility: as?.visibility ?? visibility }));
+      await publish(makeMessage({ kind: "share", author: as?.author ?? active?.name ?? player.name, avatar: as?.avatar, characterId: as ? undefined : active?.id, title: entry.name, body: entry.description || [entry.damage && `Danno ${entry.damage}`, entry.saveDc && `CD ${entry.saveDc}`].filter(Boolean).join(" · ") || "Nessuna descrizione", card: { ...card ?? { name: entry.name, subtitle: reachLabel(entry), rolls: [], description: entry.description?.slice(0, DESCRIPTION_LIMIT) || "Nessuna descrizione." }, ...as && { monster: true } }, visibility: as?.visibility ?? visibility }));
     } catch (error) { if (OBR.isAvailable) await OBR.notification.show(error instanceof Error ? error.message : "Condivisione fallita", "ERROR"); }
   }
 
@@ -876,7 +880,7 @@ function Messages({ messages, speakers, speakAs, setSpeakAs, playerName, draft, 
   const onScroll = () => { const list = listRef.current!; stickRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 40; setAtBottom(stickRef.current); };
   return <div className="messages">
     <nav className="message-filters" aria-label="Filtra messaggi">{([ ["all", "Tutti"], ["everyone", "Pubblici"], ["gm", "GM"], ["self", "Personali"] ] as const).map(([id, label]) => <button key={id} className={filter === id ? "active" : ""} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>)}</nav>
-    <section className="message-list" ref={listRef} onScroll={onScroll} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</strong><small>{messageTime(message.createdAt)} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}{!atBottom && <button className="message-jump" aria-label="Vai all'ultimo messaggio" title="Vai all'ultimo messaggio" onClick={jumpToBottom}>↓</button>}</section>
+    <section className="message-list" ref={listRef} onScroll={onScroll} aria-live="polite">{shown.length === 0 && <div className="message-empty">Nessun messaggio in questa vista.</div>}{shown.map((message) => <article key={message.id} className={`message ${message.kind}${fresh.includes(message.id) ? " fresh" : ""}`}><header><strong className="message-author">{message.avatar && <img className="message-avatar" src={message.avatar} alt="" referrerPolicy="no-referrer"/>}<span>{message.author}{message.playerName && message.playerName !== message.author && <span className="message-player"> ({message.playerName})</span>}</span></strong><small>{messageTime(message.createdAt)} · {message.visibility === "everyone" ? "tutti" : message.visibility === "gm" ? "GM" : "solo io"}</small></header>{message.card ? <RollCardView card={message.card}/> : <>{message.title && <h3>{message.title}</h3>}<p>{message.body}</p>{message.kind === "roll" && <div className="roll-result"><span>{message.dice?.join(" + ")}</span><strong>{message.total}</strong></div>}</>}</article>)}{!atBottom && <button className="message-jump" aria-label="Vai all'ultimo messaggio" title="Vai all'ultimo messaggio" onClick={jumpToBottom}>↓</button>}</section>
     <section className="composer"><textarea aria-label="Nuovo messaggio" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim()) send(); } }} placeholder="Scrivi un messaggio…"/><div><select aria-label="Parla come" value={speakAs} onChange={(event) => setSpeakAs(event.target.value)}><option value="">{playerName}</option>{speakers.map((sheet) => <option key={sheet.id} value={sheet.id}>{sheet.name}</option>)}</select><select aria-label="Destinatari" value={visibility} onChange={(event) => setVisibility(event.target.value as Visibility)}><option value="everyone">Tutti</option><option value="self">Solo io</option><option value="gm">Solo GM</option></select><button className="primary" disabled={!draft.trim()} onClick={send}>Invia</button></div>{visibility === "gm" && <small className="composer-note">Il GM deve avere l'estensione aperta almeno una volta per ricevere messaggi cifrati.</small>}</section>
   </div>;
 }
@@ -979,7 +983,7 @@ function Permissions({ value, onChange }: { value: PermissionSettings; onChange:
 }
 
 // Statblock in sola lettura, usato dal Bestiario e dagli NPC della Libreria. children va tra i valori e le azioni.
-type RollAs = { author: string; visibility: Visibility };
+type RollAs = { author: string; visibility: Visibility; avatar?: string };
 type MonsterRoll = { mode: RollMode; visibility: Visibility };
 type ShareAs = (entry: ActionEntry, card?: RollCard, as?: RollAs) => void;
 type InitiativeHandler = (title: string, formula: string, mode: RollMode[]) => void;
@@ -990,7 +994,7 @@ type PerformRoll = (title: string, formula: string, attack?: AttackRoll, mode?: 
 // readOnly: giocatore che può solo vedere il mostro, niente tiri.
 // onEditEntry: il GM aggiunge o modifica tratti e azioni (null = nuova voce).
 function MonsterStatblock({ monster, effects, section, readOnly, onEditEntry, onUpdate, onRoll: performRoll, onShare: shareAs, roll, onRollChange, children }: { roll: MonsterRoll; onRollChange: (roll: MonsterRoll) => void; effects?: CharacterEffect[]; section?: TokenSheetSection; readOnly?: boolean; onEditEntry?: (section: MonsterSection, entry: ActionEntry | null) => void; onUpdate?: (monster: MonsterSheet) => void; monster: MonsterSheet; onRoll: PerformRoll; onShare: ShareAs; children?: ReactNode }) {
-  const as = { author: monster.name, visibility: roll.visibility };
+  const as = { author: monster.name, visibility: roll.visibility, avatar: monster.image };
   const onRoll = (title: string, formula: string, attack?: AttackRoll, mode?: RollMode | RollMode[]) => { if (!readOnly) performRoll(title, formula, attack, [roll.mode, ...[mode ?? []].flat()], as); };
   const onShare = (entry: ActionEntry, card?: RollCard) => shareAs(entry, card, as);
   const cast = monster.spellcasting;

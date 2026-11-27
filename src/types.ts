@@ -344,6 +344,8 @@ export interface ChatMessage {
   dice?: number[];
   // Card in stile template Roll20; i messaggi senza card (vecchi o di testo) usano title/body.
   card?: RollCard;
+  // Immagine di chi parla (PG o mostro), mostrata accanto al nome.
+  avatar?: string;
   visibility: Visibility;
   createdAt: number;
 }
