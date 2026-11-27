@@ -2,6 +2,7 @@ import OBR, { buildPath, buildShape, buildText, Command, type BoundingBox, type 
 import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
 import { effectEmoji, exhaustionLevel } from "./conditions";
 import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
+import { canViewCloudSheet } from "./cloudSheets";
 import { getTurnState, onSheetsChanged, setTurnState } from "./obr";
 import { storage } from "./storage";
 import { linkedCharacterId } from "./tokenTurns";
@@ -15,12 +16,13 @@ const MAX_ICONS = 4;
 const effectIcon = (name: string) => effectEmoji(name) ?? name.trim().slice(0, 2);
 // successes/failures: tiri contro la morte di un PG a 0 PF, in due badge (verde e rosso).
 export interface ConditionIcon { icon: string; rounds?: number; successes?: number; failures?: number; level?: number }
-export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[], deathSaves?: { successes: number; failures: number }): ConditionIcon[] {
+// seesTurnEffects: effetti del token (mostri e NPC), per il GM e per chi può vedere o modificare il mostro.
+export function tokenConditionIcons(turn: TurnEntry | undefined, role: "GM" | "PLAYER", sheetEffects?: CharacterEffect[], deathSaves?: { successes: number; failures: number }, seesTurnEffects = role === "GM"): ConditionIcon[] {
   if (role !== "GM" && turn?.hidden) return [];
   const icons = [
     // Per primo, accanto al token: non finisce mai nel "+N".
     ...deathSaves ? [{ icon: "💀", successes: deathSaves.successes, failures: deathSaves.failures }] : [],
-    ...(sheetEffects ?? turn?.conditions ?? []).filter(isEffectOn)
+    ...(sheetEffects ?? (seesTurnEffects ? turn?.conditions : undefined) ?? []).filter(isEffectOn)
       .map((effect): ConditionIcon => ({ icon: effectIcon(effect.name), ...effect.remainingRounds ? { rounds: effect.remainingRounds } : {}, ...exhaustionLevel(effect.name) ? { level: exhaustionLevel(effect.name) } : {} })),
   ];
   return icons.length > MAX_ICONS ? [...icons.slice(0, MAX_ICONS - 1), { icon: `+${icons.length - MAX_ICONS + 1}` }] : icons;
@@ -161,8 +163,9 @@ function cachedBounds(): BoundsOf {
   };
 }
 
-async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: TurnState, boundsOf: BoundsOf, cell: number): Promise<void> {
-  const entries = new Map(roomSheets.filter((entry) => entry.kind === "pc" || role === "GM").map((entry) => [entry.sheet.id, entry]));
+// NPC e mostri condivisi: PF e CA anche ai giocatori che possono vederli o modificarli.
+async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", name: string, turns: TurnState, boundsOf: BoundsOf, cell: number): Promise<void> {
+  const entries = new Map(roomSheets.filter((entry) => entry.kind === "pc" || canViewCloudSheet(entry, { name, role })).map((entry) => [entry.sheet.id, entry]));
   const monsters = role === "GM" ? new Map(storage.monsters.get().map((monster) => [monster.id, monster])) : new Map<string, MonsterSheet>();
   // Il GM carica nel turn order PF e CA dei token collegati a mostri e NPC; la scrittura riavvia la sincronizzazione.
   if (role === "GM") {
@@ -186,18 +189,19 @@ async function syncTokenStats(tokens: Item[], role: "GM" | "PLAYER", turns: Turn
 
 async function syncTokenStatus(): Promise<void> {
   if (!(await OBR.scene.isReady())) return;
-  const [tokens, turns, role] = await Promise.all([
+  const [tokens, turns, role, name] = await Promise.all([
     OBR.scene.items.getItems((item) => item.layer === "CHARACTER"),
-    getTurnState(), OBR.player.getRole(),
+    getTurnState(), OBR.player.getRole(), OBR.player.getName(),
   ]);
   const boundsOf = cachedBounds();
   const cell = await OBR.scene.grid.getDpi();
-  await syncTokenStats(tokens, role, turns, boundsOf, cell);
+  await syncTokenStats(tokens, role, name, turns, boundsOf, cell);
   const turnsByToken = new Map(turns.entries.filter((entry) => entry.tokenId).map((entry) => [entry.tokenId, entry]));
   const wanted = tokens.flatMap((token) => {
     if (role !== "GM" && !token.visible) return [];
     const sheet = roomSheets.find((entry) => entry.kind === "pc" && entry.sheet.id === linkedCharacterId(token))?.sheet as CharacterSheet | undefined;
-    const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects, sheet?.combat.hp.current === 0 ? sheet.combat.deathSaves : undefined);
+    const npc = roomSheets.find((entry) => entry.kind === "npc" && entry.sheet.id === linkedCharacterId(token));
+    const icons = tokenConditionIcons(turnsByToken.get(token.id), role, sheet?.effects, sheet?.combat.hp.current === 0 ? sheet.combat.deathSaves : undefined, role === "GM" || (!!npc && canViewCloudSheet(npc, { name, role })));
     return icons.length ? [{ token, icons }] : [];
   });
   const desired = new Map(await Promise.all(wanted.map(async ({ token, icons }) => {

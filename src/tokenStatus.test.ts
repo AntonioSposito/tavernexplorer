@@ -55,6 +55,14 @@ it("le icone delle condizioni sono nascoste ai giocatori se il turno è nascosto
   expect(tokenConditionIcons(turn, "GM")).toEqual([{ icon: "🧪", rounds: 2 }]);
 });
 
+it("gli effetti di mostri e NPC (sul token) li vedono il GM e chi può vedere il mostro", async () => {
+  const { tokenConditionIcons } = await import("./tokenStatus");
+  const turn: TurnEntry = { id: "turn", name: "Goblin", initiative: 10, conditions: [{ id: "c", name: "Poisoned" }] };
+  expect(tokenConditionIcons(turn, "PLAYER")).toEqual([]);
+  expect(tokenConditionIcons(turn, "PLAYER", undefined, undefined, true)).toEqual([{ icon: "🧪" }]);
+  expect(tokenConditionIcons(turn, "GM")).toEqual([{ icon: "🧪" }]);
+});
+
 it("per i PG le icone sono gli effetti attivi della scheda: emoji per le condizioni, iniziali per gli altri, +N oltre quattro", async () => {
   const { tokenConditionIcons } = await import("./tokenStatus");
   const effect = (name: string, active = true) => ({ id: name, name, active, modifiers: [] });
@@ -86,7 +94,7 @@ it("barra e CA per i PG, solo CA per NPC e mostri", async () => {
   expect(tokenStats(undefined, undefined)).toBeNull();
 });
 
-it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e le toglie quando il turn order le nasconde", async () => {
+it("disegna barra e CA di tutti i PG per tutti, NPC e mostri per il GM e per chi può vederli, e le toglie quando il turn order le nasconde", async () => {
   const { setupTokenStatus } = await import("./tokenStatus");
   const sheet = pc();
   const other = { ...pc(), id: "other" };
@@ -95,6 +103,7 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
   vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ sheets: [
     { kind: "pc", sheet, acl: { view: ["Marco"], edit: [] } }, { kind: "pc", sheet: other, acl: { view: [], edit: [] } },
     { kind: "pc", sheet: deleted, acl: { view: [], edit: [] }, deletedAt: 1 }, { kind: "npc", sheet: { ...goblin, id: "npc", ac: 11 }, acl: { view: ["*"], edit: [] } },
+    { kind: "npc", sheet: { ...goblin, id: "secret", ac: 9 }, acl: { view: [], edit: [] } },
   ] })));
   localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([goblin]));
   scene.tokens = [
@@ -103,6 +112,7 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
     { id: "t-other", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: { [TOKEN_META_KEY]: { characterId: "other" } } },
     { id: "t-deleted", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: { [TOKEN_META_KEY]: { characterId: "deleted" } } },
     { id: "t-npc", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: { [TOKEN_META_KEY]: { characterId: "npc" } } },
+    { id: "t-secret", layer: "CHARACTER", visible: true, position: { x: 50, y: 50 }, metadata: { [TOKEN_META_KEY]: { characterId: "secret" } } },
   ];
   setupTokenStatus();
   const stats = (tokenId: string) => scene.local.filter((item) => (item.metadata[TOKEN_STATS_META_KEY] as { tokenId?: string } | undefined)?.tokenId === tokenId);
@@ -110,6 +120,7 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
   expect(stats("t-other")).toHaveLength(6);
   expect(stats("t-deleted")).toHaveLength(0);
   expect(stats("t-npc").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["11"]);
+  expect(stats("t-secret").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["9"]);
   // Sfondo, PF (8/20 → giallo sotto metà), temporanei e testo "8/20 +3" come Roll20, più scudo e CA.
   expect(stats("t-ada")).toHaveLength(6);
   expect(stats("t-ada").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["8/20 +3", "15"]);
@@ -122,7 +133,9 @@ it("disegna barra e CA di tutti i PG per tutti, NPC e mostri solo per il GM, e l
   await vi.waitFor(() => expect(stats("t-gob")).toHaveLength(0));
   expect(stats("t-ada")).toHaveLength(6);
   expect(stats("t-other")).toHaveLength(6);
-  expect(stats("t-npc")).toHaveLength(0);
+  // NPC condiviso con tutti: il giocatore ne vede la CA; quello non condiviso no.
+  expect(stats("t-npc").map((item) => item.text?.plainText).filter(Boolean)).toEqual(["11"]);
+  expect(stats("t-secret")).toHaveLength(0);
 
   scene.turns = { ...scene.turns, hideTokenStats: true };
   scene.listeners.forEach((callback) => callback());

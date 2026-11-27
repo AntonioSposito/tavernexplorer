@@ -52,8 +52,8 @@ it("effetti: del PG dalla scheda, del mostro dal suo token; le condizioni vecchi
   const onPcEffects = vi.fn();
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
-  await act(async () => root.render(<TurnOrder state={state} canManage images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} active={null}
-    pcEffects={{ ada: [{ id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 2 }, { id: "off", name: "Bless", active: false, modifiers: [] }] }} onPcEffects={onPcEffects} canEditPc={() => true}/>));
+  await act(async () => root.render(<TurnOrder state={state} canManage showMonsterEffects images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} active={null}
+    pcEffects={{ ada: [{ id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 2 }, { id: "off", name: "Bless", active: false, modifiers: [] }] }} onPcEffects={onPcEffects} canEditSheet={() => true}/>));
   expect([...host.querySelectorAll(".turn-name small")].map((node) => node.textContent)).toEqual(["Poisoned (2)", "Prone"]);
 
   // L'iniziativa il GM la cambia direttamente nella riga.
@@ -97,12 +97,40 @@ it("senza permesso sui turni, il giocatore gestisce gli effetti della sua scheda
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(<TurnOrder state={state} canManage={false} images={{}} onChange={() => undefined} onNext={() => undefined} onPrevious={() => undefined} active={null}
-    pcEffects={{ ada: [], bob: [] }} onPcEffects={() => undefined} canEditPc={(id) => id === "ada"}/>));
+    pcEffects={{ ada: [], bob: [] }} onPcEffects={() => undefined} canEditSheet={(id) => id === "ada"}/>));
   const addButton = () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Aggiungi");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Ada"]')!.click());
   expect(addButton()).toBeDefined();
   await act(async () => document.querySelector<HTMLButtonElement>('.ui-dialog [aria-label="Chiudi"]')!.click());
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Bob"]')!.click());
   expect(addButton()).toBeUndefined();
+  await act(async () => root.unmount());
+});
+
+it("i giocatori vedono effetti e PF solo dei mostri che possono vedere o modificare", async () => {
+  Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
+  const onChange = vi.fn();
+  const onMonsterEffects = vi.fn();
+  const state: TurnState = { round: 1, activeIndex: 0, entries: [
+    { id: "pc", name: "Ada", initiative: 15, characterId: "ada" },
+    { id: "gob", name: "Goblin", initiative: 10, characterId: "goblin", conditions: [{ id: "p", name: "Prone" }], hp: { current: 5, max: 7 }, ac: 13 },
+    { id: "wolf", name: "Lupo", initiative: 8, characterId: "wolf", conditions: [{ id: "q", name: "Blinded" }], hp: { current: 9, max: 11 }, ac: 12 },
+  ] };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(<TurnOrder state={state} canManage={false} images={{}} onNext={() => undefined} onPrevious={() => undefined} active={null}
+    pcEffects={{ ada: [{ id: "x", name: "Poisoned", active: true, modifiers: [] }] }} canSeeMonster={(id) => id === "wolf"} canEditSheet={(id) => id === "wolf"} onChange={onChange} onMonsterEffects={onMonsterEffects}/>));
+  expect([...host.querySelectorAll(".turn-name small")].map((node) => node.textContent)).toEqual(["Poisoned", "PF 9/11 · CA 12", "Blinded"]);
+  expect(host.querySelector('[aria-label="Effetti di Ada"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Effetti di Lupo"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Effetti di Goblin"]')).toBeNull();
+  // I PF si leggono ma non si cambiano.
+  expect(host.querySelector('[aria-label="PF di Lupo"]')).toBeNull();
+  // Chi può modificare il lupo ne gestisce gli effetti, anche senza permesso sui turni.
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Lupo"]')!.click());
+  await act(async () => document.querySelector<HTMLInputElement>('.ui-dialog .effect-row input[type="checkbox"]')!.click());
+  expect(onChange).not.toHaveBeenCalled();
+  expect(onMonsterEffects.mock.lastCall?.[0].entries[2].conditions).toMatchObject([{ name: "Blinded", active: false }]);
+  await act(async () => document.querySelector<HTMLButtonElement>('.ui-dialog [aria-label="Chiudi"]')!.click());
   await act(async () => root.unmount());
 });
