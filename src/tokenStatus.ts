@@ -1,5 +1,5 @@
 import OBR, { buildPath, buildShape, buildText, Command, type BoundingBox, type Item } from "@owlbear-rodeo/sdk";
-import { TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
+import { TOKEN_BLOOD_META_KEY, TOKEN_STATS_META_KEY, TOKEN_STATUS_META_KEY } from "./constants";
 import { effectEmoji, exhaustionLevel } from "./conditions";
 import { armorClass, effectiveSheet, effectsTotal, isEffectOn } from "./effects";
 import { canViewCloudSheet } from "./cloudSheets";
@@ -126,6 +126,53 @@ function conditionItems(tokenId: string, bounds: BoundingBox, icons: ConditionIc
   });
 }
 
+// Sangue sul token di mostri e NPC: lo vedono tutti, anche chi non vede i PF.
+// 0 illeso o sopra metà, 1 sotto metà (sanguinante), 2 sotto un quarto, 3 a terra.
+export function bloodStage(hp: { current: number; max: number } | undefined): 0 | 1 | 2 | 3 {
+  if (!hp || hp.max <= 0) return 0;
+  if (hp.current <= 0) return 3;
+  const ratio = hp.current / hp.max;
+  return ratio <= 0.25 ? 2 : ratio <= 0.5 ? 1 : 0;
+}
+
+// Schizzi fissi (posizione e raggio in frazioni del token), così il disegno non cambia a ogni aggiornamento.
+const SPLATS: [number, number, number][] = [[-0.18, -0.12, 0.16], [0.22, 0.18, 0.11], [0.05, 0.3, 0.07], [-0.28, 0.24, 0.06],
+  [0.26, -0.25, 0.13], [-0.05, 0.05, 0.2], [-0.3, -0.32, 0.08], [0.32, 0.02, 0.07]];
+const SPIKES = [1, 0.7, 1.45, 0.65, 0.95, 0.75, 1.3, 0.6, 1, 0.8, 1.6, 0.62, 0.9, 0.72, 1.2, 0.66];
+function bloodItems(tokenId: string, bounds: BoundingBox, stage: 1 | 2 | 3, sig: string): Item[] {
+  const metadata = { [TOKEN_BLOOD_META_KEY]: { tokenId, sig } };
+  const size = Math.min(bounds.width, bounds.height);
+  // zIndex 0: sotto barra, scudo e icone, che stanno sullo stesso livello.
+  const item = (path: ReturnType<typeof buildPath>) => path.zIndex(0).attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build();
+  // Ogni schizzo è ruotato in modo diverso e ha due gocce intorno.
+  const splat = ([dx, dy, r]: [number, number, number], index: number) => {
+    const radius = r * size;
+    const rotation = index * 1.7;
+    const center = { x: bounds.center.x + dx * size, y: bounds.center.y + dy * size };
+    const points = SPIKES.map((k, i) => {
+      const angle = (i / SPIKES.length) * Math.PI * 2 + rotation;
+      return [Math.cos(angle) * radius * k, Math.sin(angle) * radius * k];
+    });
+    const mid = (a: number[], b: number[]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const start = mid(points[points.length - 1], points[0]);
+    const drops = [rotation + 0.5, rotation + 2.6].map((angle) => buildShape().shapeType("CIRCLE").width(radius * 0.36).height(radius * 0.36)
+      .position({ x: center.x + Math.cos(angle) * radius * 1.9, y: center.y + Math.sin(angle) * radius * 1.9 })
+      .fillColor("#8b0000").fillOpacity(0.75).strokeWidth(0).strokeOpacity(0).zIndex(0)
+      .attachedTo(tokenId).layer("ATTACHMENT").locked(true).disableHit(true).metadata(metadata).build());
+    return [item(buildPath().commands([[Command.MOVE, start[0], start[1]],
+      ...points.map((point, i) => { const end = mid(point, points[(i + 1) % points.length]); return [Command.QUAD, point[0], point[1], end[0], end[1]] as [Command.QUAD, number, number, number, number]; }),
+      [Command.CLOSE]]).position(center).fillColor("#8b0000").fillOpacity(0.75).strokeWidth(0).strokeOpacity(0)), ...drops];
+  };
+  const items = SPLATS.slice(0, stage === 1 ? 3 : SPLATS.length).flatMap(splat);
+  if (stage === 3) {
+    // A terra: una X rossa sopra il sangue.
+    const arm = size * 0.32;
+    items.push(item(buildPath().commands([[Command.MOVE, -arm, -arm], [Command.LINE, arm, arm], [Command.MOVE, arm, -arm], [Command.LINE, -arm, arm]])
+      .position(bounds.center).fillOpacity(0).strokeColor("#b91c1c").strokeOpacity(0.9).strokeWidth(size * 0.08)));
+  }
+  return items;
+}
+
 // Elementi locali attaccati ai token, marcati con key → { tokenId, sig }: un token resta com'è solo se tutti i suoi
 // elementi hanno la firma voluta, altrimenti si ricrea.
 async function syncAttached(key: string, desired: Map<string, { sig: string; build: () => Item[] }>): Promise<void> {
@@ -210,6 +257,16 @@ async function syncTokenStatus(): Promise<void> {
     return [token.id, { sig, build: () => conditionItems(token.id, bounds, icons, sig, cell) }] as const;
   })));
   await syncAttached(TOKEN_STATUS_META_KEY, desired);
+  const bleeding = turns.hideTokenStats ? [] : tokens.flatMap((token) => {
+    const turn = turnsByToken.get(token.id);
+    const stage = bloodStage(turn?.hp);
+    return stage && (role === "GM" || (token.visible && !turn?.hidden)) ? [{ token, stage }] : [];
+  });
+  await syncAttached(TOKEN_BLOOD_META_KEY, new Map(await Promise.all(bleeding.map(async ({ token, stage }) => {
+    const bounds = await boundsOf(token.id);
+    const sig = JSON.stringify([stage, Math.round(bounds.width), Math.round(bounds.height)]);
+    return [token.id, { sig, build: () => bloodItems(token.id, bounds, stage, sig) }] as const;
+  }))));
 }
 
 export function setupTokenStatus(): void {

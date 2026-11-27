@@ -90,3 +90,5 @@ export const SKILL_ABILITIES: Record<string, string> = {
   insight: "wisdom", intimidation: "charisma", investigation: "intelligence", medicine: "wisdom", nature: "intelligence", perception: "wisdom",
   performance: "charisma", persuasion: "charisma", religion: "intelligence", sleight_of_hand: "dexterity", stealth: "dexterity", survival: "wisdom",
 };
+// Sangue disegnato in locale sui token feriti di mostri e NPC.
+export const TOKEN_BLOOD_META_KEY = `${EXTENSION_ID}/token-blood`;

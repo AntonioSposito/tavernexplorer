@@ -179,3 +179,8 @@ it("l'icona dell'Indebolimento ha il livello nel badge", async () => {
   expect(tokenConditionIcons(undefined, "PLAYER", [{ id: "e", name: "Indebolimento 3", active: true, modifiers: [] }, { id: "o", name: "Exhaustion", active: true, modifiers: [] }]))
     .toEqual([{ icon: "🪫", level: 3 }, { icon: "🪫", level: 1 }]);
 });
+
+it("sangue sul token: sotto metà, sotto un quarto, a terra", async () => {
+  const { bloodStage } = await import("./tokenStatus");
+  expect([undefined, { current: 10, max: 10 }, { current: 6, max: 10 }, { current: 5, max: 10 }, { current: 2, max: 10 }, { current: 0, max: 10 }].map(bloodStage)).toEqual([0, 0, 0, 1, 2, 3]);
+});
