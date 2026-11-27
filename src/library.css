@@ -112,6 +112,9 @@ input.inventory-qty { width: 100%; min-width: 0; padding: .2rem; border: 1px sol
 .inventory-over { color: hsl(var(--destructive)) !important; }
 .metric-explained { cursor: help; }
 .metric-explained strong { text-decoration: underline dotted; text-underline-offset: 3px; }
+/* Valori che si tirano col clic (Iniziativa): mano e bordo acceso, anche se hanno il tooltip. */
+button.metric { cursor: pointer; }
+button.metric:hover { border-color: hsl(var(--primary)); }
 /* Monete: una casella colorata per tipo, importo modificabile come le quantità dello zaino. */
 .coin-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 .coin { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border-radius: 8px; border: 1px solid hsl(var(--coin) / .7); background: hsl(var(--coin) / .22); }

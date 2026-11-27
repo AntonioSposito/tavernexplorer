@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import OBR, { type Item } from "@owlbear-rodeo/sdk";
 import { TURN_META_KEY } from "./constants";
-import { getTokenHitPoints, monsterTokenSections, openTokenActions, openTokenSheet, requestTokenHitPoints, toggleTokenInitiative, TOKEN_SHEET_SECTIONS, type TokenHitPoints, type TokenSheetSection } from "./tokenMenuActions";
+import { getTokenHitPoints, monsterTokenSections, openTokenActions, openTokenSheet, requestTokenHitPoints, rollTokenInitiative, TOKEN_SHEET_SECTIONS, type TokenHitPoints, type TokenSheetSection } from "./tokenMenuActions";
 import { linkedCharacterId } from "./tokenTurns";
 import { storage } from "./storage";
 import type { TurnState } from "./types";
@@ -34,8 +34,8 @@ export function TokenMenu() {
   // Deselezionare chiude il menu di Owlbear e distrugge questa pagina: va fatto solo dopo l'azione.
   const run = async (action: () => Promise<void>) => { await action(); await OBR.player.deselect(); };
   const icon = (name: string) => <span className="token-menu-icon" aria-hidden="true" style={{ WebkitMaskImage: `url(/tab-icons/${name}.png)`, maskImage: `url(/tab-icons/${name}.png)` }}/>;
-  // Tutti già nei turni: la voce li toglie; altrimenti aggiunge i mancanti (selezione mista compresa).
-  const remove = items.length > 0 && inTurnIds.length === items.length;
+  // Tutti già nei turni: la voce ritira e aggiorna il valore; altrimenti tira (selezione mista compresa).
+  const reroll = items.length > 0 && inTurnIds.length === items.length;
   // Azioni, magia, risorse, prove, TS e abilità: un solo token collegato a una scheda personaggio della stanza.
   // Mostri (del bestiario per il GM, condivisi in modifica per un giocatore): tutto tranne le risorse, Magia solo se incantatori.
   const linkedId = items.length === 1 ? linkedCharacterId(items[0]) : undefined;
@@ -45,7 +45,7 @@ export function TokenMenu() {
   return <div className="token-menu">
     <button type="button" disabled={items.length !== 1} onClick={() => void run(() => openTokenSheet(items[0]))}>{icon("sheet")}Apri scheda</button>
     {(Object.keys(TOKEN_SHEET_SECTIONS) as TokenSheetSection[]).filter((section) => monsterSections.length ? section !== "resources" : section !== "details").map((section) => <button key={section} type="button" disabled={!pcToken && !monsterSections.includes(section)} onClick={() => void run(() => openTokenActions(items[0], section))}>{icon(section === "actions" ? "turns" : section === "details" ? "compendium" : "sheet")}{TOKEN_SHEET_SECTIONS[section]}</button>)}
-    <button type="button" disabled={items.length === 0} onClick={() => void run(() => toggleTokenInitiative(items))}>{icon("turns")}{remove ? "Esci dal combattimento" : "Tira iniziativa"}</button>
+    <button type="button" disabled={items.length === 0} onClick={() => void run(() => rollTokenInitiative(items))}>{icon("turns")}{reroll ? "Ritira iniziativa" : "Tira iniziativa"}</button>
   </div>;
 }
 

@@ -61,7 +61,7 @@ export function TokenInitiativePicker() {
       }
       await setTokenCharacters(links);
       const current = await getTurnState();
-      await setTurnState(replaceTurnEntries(current, [...current.entries, ...turns.filter((turn) => !current.entries.some((item) => item.tokenId === turn.tokenId))]));
+      await setTurnState(replaceTurnEntries(current, [...current.entries.filter((item) => !turns.some((turn) => turn.tokenId === item.tokenId)), ...turns]));
       await announceInitiatives(rolled).catch(() => undefined);
       await close();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Turn order non salvato"); setBusy(false); }

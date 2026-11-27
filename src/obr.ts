@@ -89,6 +89,20 @@ export async function addSelectedTokenToTurns(characterId: string, characterName
   await setTurnState(replaceTurnEntries(state, [...state.entries.filter((item) => item.tokenId !== tokenId), entry]));
 }
 
+// Iniziativa tirata dalla scheda: i token del PG sulla scena entrano nei turni con quel valore, o lo prendono se ci sono già.
+export async function setCharacterTokensInitiative(characterId: string, characterName: string, initiative: number, initiativeBonus: number): Promise<void> {
+  if (!OBR.isAvailable || !(await OBR.scene.isReady())) return;
+  const tokens = await OBR.scene.items.getItems((item) => item.layer === "CHARACTER" && linkedCharacterId(item) === characterId);
+  if (!tokens.length) return;
+  const state = await getTurnState();
+  const ids = new Set(tokens.map((token) => token.id));
+  const missing = tokens.filter((token) => !state.entries.some((entry) => entry.tokenId === token.id));
+  await setTurnState(replaceTurnEntries(state, [
+    ...state.entries.map((entry) => ids.has(entry.tokenId ?? "") ? { ...entry, initiative, initiativeBonus } : entry),
+    ...missing.map((token): TurnEntry => ({ id: crypto.randomUUID(), name: characterName, initiative, initiativeBonus, tokenId: token.id, characterId })),
+  ]));
+}
+
 // Token di riserva: iniziali del mostro su disco colorato, cosi' ogni import produce comunque un token.
 function fallbackTokenFile(name: string): File {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase() ?? "").join("") || "?";

@@ -13,7 +13,7 @@ vi.mock("@owlbear-rodeo/sdk", () => ({ default: {
   player: { getSelection: async () => mock.selection, deselect: mock.deselect, getName: async () => "Anna", getRole: async () => "GM" },
   scene: { items: { getItems: async (ids: string[]) => ids.map((id) => ({ id, name: id, metadata: mock.linked ? { [TOKEN_META_KEY]: { characterId: "pc1" } } : {} })) } },
 } }));
-vi.mock("./tokenMenuActions", () => ({ monsterTokenSections: () => mock.monster, openTokenSheet: mock.openSheet, toggleTokenInitiative: mock.toggle, openTokenActions: mock.openActions, TOKEN_SHEET_SECTIONS: { details: "Dettagli veloci", actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove e tiri salvezza", skills: "Abilità" }, getTokenHitPoints: async () => mock.hp, requestTokenHitPoints: mock.setHp }));
+vi.mock("./tokenMenuActions", () => ({ monsterTokenSections: () => mock.monster, openTokenSheet: mock.openSheet, rollTokenInitiative: mock.toggle, openTokenActions: mock.openActions, TOKEN_SHEET_SECTIONS: { details: "Dettagli veloci", actions: "Azioni", spells: "Magia", resources: "Risorse", abilities: "Prove e tiri salvezza", skills: "Abilità" }, getTokenHitPoints: async () => mock.hp, requestTokenHitPoints: mock.setHp }));
 
 import { parseHitPoints, TokenHpMenu, TokenMenu } from "./TokenMenu";
 
@@ -40,11 +40,11 @@ it("chiude il menu e apre la scheda del token selezionato", async () => {
   expect(mock.deselect).toHaveBeenCalled();
 });
 
-it("con tutti i token già nei turni la voce li toglie", async () => {
+it("con tutti i token già nei turni la voce ritira l'iniziativa", async () => {
   mock.selection = ["t1", "t2"]; mock.turnIds = ["t1", "t2"];
   const { sheet, turns } = await renderMenu();
   expect(sheet.disabled).toBe(true);
-  expect(turns.textContent).toBe("Esci dal combattimento");
+  expect(turns.textContent).toBe("Ritira iniziativa");
   await act(async () => { turns.click(); });
   expect(mock.toggle).toHaveBeenCalledWith([expect.objectContaining({ id: "t1" }), expect.objectContaining({ id: "t2" })]);
 });

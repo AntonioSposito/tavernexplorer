@@ -7,14 +7,14 @@ import { Dialog } from "./ui";
 
 
 // Effetti della voce: per un PG quelli della sua scheda, per mostri e NPC quelli del singolo token.
-function ConditionEditor({ entry, state, canManage, onChange, pcEffects, onPcEffects, onShareEffect }: { entry: TurnEntry; state: TurnState; canManage: boolean; onChange: (state: TurnState) => void } & EffectProps) {
+function ConditionEditor({ entry, state, canManage, onChange, pcEffects, onPcEffects, onShareEffect, canEditPc }: { entry: TurnEntry; state: TurnState; canManage: boolean; onChange: (state: TurnState) => void } & EffectProps) {
   const sheetEffects = entry.characterId ? pcEffects?.[entry.characterId] : undefined;
   const effects = sheetEffects ?? (entry.conditions ?? []).map(asEffect);
   const update = (change: (effects: CharacterEffect[]) => CharacterEffect[]) => {
     if (sheetEffects && entry.characterId) onPcEffects?.(entry.characterId, change);
     else onChange({ ...state, entries: state.entries.map((item) => item.id === entry.id ? { ...item, conditions: change((item.conditions ?? []).map(asEffect)) } : item) });
   };
-  return <div className="turn-effects"><EffectList effects={effects} editable={canManage} round={state.round} onChange={update} onShare={(item, card) => onShareEffect?.(entry, item, card)}/></div>;
+  return <div className="turn-effects"><EffectList effects={effects} editable={sheetEffects && entry.characterId ? !!canEditPc?.(entry.characterId) : canManage} round={state.round} onChange={update} onShare={(item, card) => onShareEffect?.(entry, item, card)}/></div>;
 }
 
 interface EffectProps {
@@ -22,6 +22,8 @@ interface EffectProps {
   pcEffects?: Record<string, CharacterEffect[]>;
   onPcEffects?: (characterId: string, update: (effects: CharacterEffect[]) => CharacterEffect[]) => void;
   onShareEffect?: (entry: TurnEntry, item: ActionEntry, card: RollCard) => void;
+  // Gli effetti di un PG li gestisce chi può modificare la sua scheda, anche senza il permesso sui turni.
+  canEditPc?: (characterId: string) => boolean;
 }
 
 interface TurnOrderProps extends EffectProps {
@@ -46,7 +48,7 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("");
 }
 
-export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onFocusToken, active, onAttach, onOpenForPlayers, showStats = false, pcStats = {}, onPcHp, pcEffects, onPcEffects, onShareEffect }: TurnOrderProps) {
+export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevious, onFocusToken, active, onAttach, onOpenForPlayers, showStats = false, pcStats = {}, onPcHp, pcEffects, onPcEffects, onShareEffect, canEditPc }: TurnOrderProps) {
   const [editing, setEditing] = useState(false);
   const [effectsId, setEffectsId] = useState<string | null>(null);
   const effectsEntry = state.entries.find((entry) => entry.id === effectsId);
@@ -74,7 +76,7 @@ export function TurnOrder({ state, canManage, images, onChange, onNext, onPrevio
         </div>
       </article>; })}
     </section>
-    <Dialog open={!!effectsEntry} title={effectsEntry?.name ?? ""} description="Effetti e condizioni" onClose={() => setEffectsId(null)}>{effectsEntry && <div className="action-form"><ConditionEditor entry={effectsEntry} state={state} canManage={canManage} onChange={onChange} pcEffects={pcEffects} onPcEffects={onPcEffects} onShareEffect={onShareEffect}/></div>}</Dialog>
+    <Dialog open={!!effectsEntry} title={effectsEntry?.name ?? ""} description="Effetti e condizioni" onClose={() => setEffectsId(null)}>{effectsEntry && <div className="action-form"><ConditionEditor entry={effectsEntry} state={state} canManage={canManage} onChange={onChange} pcEffects={pcEffects} onPcEffects={onPcEffects} onShareEffect={onShareEffect} canEditPc={canEditPc}/></div>}</Dialog>
     {editing && canManage && <div className="turn-tools">
       {onOpenForPlayers && <button onClick={onOpenForPlayers}>Apri il turn order ai giocatori ↗</button>}
       {onAttach && <button onClick={onAttach} disabled={!active}>Collega scheda e token selezionato</button>}

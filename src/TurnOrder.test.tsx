@@ -53,7 +53,7 @@ it("effetti: del PG dalla scheda, del mostro dal suo token; le condizioni vecchi
   const host = document.body.appendChild(document.createElement("div"));
   const root = createRoot(host);
   await act(async () => root.render(<TurnOrder state={state} canManage images={{}} onChange={onChange} onNext={() => undefined} onPrevious={() => undefined} active={null}
-    pcEffects={{ ada: [{ id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 2 }, { id: "off", name: "Bless", active: false, modifiers: [] }] }} onPcEffects={onPcEffects}/>));
+    pcEffects={{ ada: [{ id: "p", name: "Poisoned", active: true, modifiers: [], remainingRounds: 2 }, { id: "off", name: "Bless", active: false, modifiers: [] }] }} onPcEffects={onPcEffects} canEditPc={() => true}/>));
   expect([...host.querySelectorAll(".turn-name small")].map((node) => node.textContent)).toEqual(["Poisoned (2)", "Prone"]);
 
   // L'iniziativa il GM la cambia direttamente nella riga.
@@ -85,5 +85,24 @@ it("effetti: del PG dalla scheda, del mostro dal suo token; le condizioni vecchi
     { id: "old", name: "Prone", active: true, modifiers: [] },
     expect.objectContaining({ name: "Frightened", active: true, lastTickRound: 2, description: expect.stringContaining("fonte della paura") }),
   ]);
+  await act(async () => root.unmount());
+});
+
+it("senza permesso sui turni, il giocatore gestisce gli effetti della sua scheda ma non quelli delle altre", async () => {
+  Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { configurable: true, value: true });
+  const state: TurnState = { round: 1, activeIndex: 0, entries: [
+    { id: "pc", name: "Ada", initiative: 15, characterId: "ada" },
+    { id: "other", name: "Bob", initiative: 12, characterId: "bob" },
+  ] };
+  const host = document.body.appendChild(document.createElement("div"));
+  const root = createRoot(host);
+  await act(async () => root.render(<TurnOrder state={state} canManage={false} images={{}} onChange={() => undefined} onNext={() => undefined} onPrevious={() => undefined} active={null}
+    pcEffects={{ ada: [], bob: [] }} onPcEffects={() => undefined} canEditPc={(id) => id === "ada"}/>));
+  const addButton = () => [...document.querySelectorAll<HTMLButtonElement>(".ui-dialog button")].find((button) => button.textContent === "Aggiungi");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Ada"]')!.click());
+  expect(addButton()).toBeDefined();
+  await act(async () => document.querySelector<HTMLButtonElement>('.ui-dialog [aria-label="Chiudi"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Effetti di Bob"]')!.click());
+  expect(addButton()).toBeUndefined();
   await act(async () => root.unmount());
 });

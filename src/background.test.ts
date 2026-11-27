@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { STORAGE_CLOUD_CACHE, STORAGE_MESSAGES, STORAGE_MONSTERS, TOKEN_META_KEY, TURN_META_KEY } from "./constants";
+import OBR from "@owlbear-rodeo/sdk";
 import { importRoll20 } from "./importer";
-import { openTokenSheet, toggleTokenInitiative } from "./tokenMenuActions";
+import { openTokenSheet, rollTokenInitiative } from "./tokenMenuActions";
 
 const mock = vi.hoisted(() => ({
   ready: null as null | (() => Promise<void>),
@@ -58,7 +59,7 @@ it("apre la scheda del token in finestra: PG nella scheda, mostro nel bestiario"
 });
 
 it("blocca il menu iniziativa per un giocatore senza permesso", async () => {
-  await toggleTokenInitiative([{ id: "token-1", name: "Lupo", metadata: {} }] as never);
+  await rollTokenInitiative([{ id: "token-1", name: "Lupo", metadata: {} }] as never);
   expect(mock.setMetadata).not.toHaveBeenCalled();
   expect(mock.notify).toHaveBeenCalled();
 });
@@ -67,7 +68,7 @@ it("senza permesso il giocatore tira l'iniziativa solo per il token del suo PG",
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
   const other = importRoll20({ character: { name: "Altro" }, normalized: { identity: { character_name: "Altro" }, combat: { initiative: 1 } } });
   localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet, acl: { view: [], edit: ["Master"] } }, { kind: "pc", sheet: other, acl: { view: [], edit: [] } }]));
-  await toggleTokenInitiative([
+  await rollTokenInitiative([
     { id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } },
     { id: "token-2", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: other.id } } },
     { id: "token-3", name: "Lupo", metadata: {} },
@@ -79,7 +80,7 @@ it("senza permesso il giocatore tira l'iniziativa solo per il token del suo PG",
 it("senza permesso il giocatore tira l'iniziativa per il mostro condiviso che può modificare", async () => {
   const gargoyle = { id: "beasts/Gargoyle", name: "Gargoyle", challengeRating: "2", abilities: { dex: 11 } };
   localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "npc", sheet: gargoyle, acl: { view: [], edit: ["Master"] } }]));
-  await toggleTokenInitiative([{ id: "token-g", name: "Gargoyle", metadata: { [TOKEN_META_KEY]: { characterId: gargoyle.id } } }] as never);
+  await rollTokenInitiative([{ id: "token-g", name: "Gargoyle", metadata: { [TOKEN_META_KEY]: { characterId: gargoyle.id } } }] as never);
   expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-g", characterId: gargoyle.id, name: "Gargoyle" }]);
   expect(mock.notify).not.toHaveBeenCalled();
 });
@@ -87,7 +88,7 @@ it("senza permesso il giocatore tira l'iniziativa per il mostro condiviso che pu
 it("senza la scheda in cache (TavernExplorer mai aperto) il giocatore la legge dal server", async () => {
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
   const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ sheets: [{ kind: "pc", sheet, acl: { view: [], edit: ["Master"] } }] })));
-  await toggleTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
+  await rollTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
   fetchMock.mockRestore();
   expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-1", characterId: sheet.id, name: "Eroe" }]);
   expect(mock.notify).not.toHaveBeenCalled();
@@ -97,7 +98,7 @@ it("aggiungendo un token collegato tira l'iniziativa e la mostra in chat come da
   mock.role = "GM";
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 3 } } });
   localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet }]));
-  await toggleTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
+  await rollTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
   const turns = mock.setMetadata.mock.calls[0][0][TURN_META_KEY];
   expect(turns.entries).toMatchObject([{ tokenId: "token-1", characterId: sheet.id, name: "Eroe" }]);
   const message = mock.send.mock.calls[0][1];
@@ -106,12 +107,24 @@ it("aggiungendo un token collegato tira l'iniziativa e la mostra in chat come da
   expect(JSON.parse(localStorage.getItem(STORAGE_MESSAGES)!)).toMatchObject([{ id: message.id }]);
 });
 
+it("ritirando l'iniziativa di un token già nei turni il valore si aggiorna", async () => {
+  mock.role = "GM";
+  const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" }, combat: { initiative: 100 } } });
+  localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet }]));
+  vi.spyOn(OBR.room, "getMetadata").mockResolvedValueOnce({ [TURN_META_KEY]: { round: 1, activeIndex: 0, entries: [{ id: "e1", name: "Eroe", initiative: 1, tokenId: "token-1", characterId: sheet.id }] } });
+  await rollTokenInitiative([{ id: "token-1", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: sheet.id } } }] as never);
+  const [entry, ...others] = mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries;
+  expect(others).toEqual([]);
+  expect(entry).toMatchObject({ id: "e1", tokenId: "token-1", initiativeBonus: 100 });
+  expect(entry.initiative).toBeGreaterThan(100);
+});
+
 it("per i token senza scheda il GM sceglie la scheda nel popover invece di scrivere il valore", async () => {
   mock.role = "GM";
   const sheet = importRoll20({ character: { name: "Eroe" }, normalized: { identity: { character_name: "Eroe" } } });
   localStorage.setItem(`${STORAGE_CLOUD_CACHE}/r1`, JSON.stringify([{ kind: "pc", sheet }]));
   const prompt = vi.spyOn(window, "prompt");
-  await toggleTokenInitiative([{ id: "token-2", name: "Goblin", metadata: {} }] as never);
+  await rollTokenInitiative([{ id: "token-2", name: "Goblin", metadata: {} }] as never);
   expect(prompt).not.toHaveBeenCalled();
   expect(mock.open).toHaveBeenCalledWith(expect.objectContaining({ id: "it.tavernexplorer/initiative-picker", url: "/?initiative=token-2", anchorReference: "POSITION" }));
   prompt.mockRestore();
@@ -120,7 +133,7 @@ it("per i token senza scheda il GM sceglie la scheda nel popover invece di scriv
 it("un token collegato a un mostro del bestiario tira da solo e manda il tiro solo al GM", async () => {
   mock.role = "GM";
   localStorage.setItem(STORAGE_MONSTERS, JSON.stringify([{ id: "goblin", name: "Goblin", challengeRating: "1/4", abilities: { dex: 14 } }]));
-  await toggleTokenInitiative([{ id: "token-3", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: "goblin" } } }] as never);
+  await rollTokenInitiative([{ id: "token-3", name: "Token", metadata: { [TOKEN_META_KEY]: { characterId: "goblin" } } }] as never);
   expect(mock.open).not.toHaveBeenCalled();
   expect(mock.setMetadata.mock.calls[0][0][TURN_META_KEY].entries).toMatchObject([{ tokenId: "token-3", characterId: "goblin", name: "Goblin", initiativeBonus: 2 }]);
   // Nessun broadcast: la chat del GM lo legge dalla cronologia salvata.

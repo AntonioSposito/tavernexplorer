@@ -10,7 +10,7 @@ import { canEditCloudSheet } from "./cloudSheets";
 import { effectiveSheet } from "./effects";
 import { setHitPointTotal } from "./hitPoints";
 import { notifySheetsChanged } from "./obr";
-import type { CharacterSheet, CloudSheet, MonsterSheet, TurnState } from "./types";
+import type { CharacterSheet, CloudSheet, MonsterSheet, TurnEntry, TurnState } from "./types";
 
 // Voci della tendina TavernExplorer nel menu del token.
 
@@ -58,7 +58,8 @@ export async function openTokenActions(token: Item, section: TokenSheetSection =
   });
 }
 
-export async function toggleTokenInitiative(items: Item[]): Promise<void> {
+// Tira l'iniziativa dei token: chi è già nei turni prende il nuovo valore.
+export async function rollTokenInitiative(items: Item[]): Promise<void> {
   const roomMeta = await OBR.room.getMetadata();
   const permissions = roomMeta[PERMISSIONS_META_KEY] as { playersManageTurns?: boolean } | undefined;
   const role = await OBR.player.getRole();
@@ -67,7 +68,7 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
   // Il bestiario è nel browser del GM: solo lui tira per i token collegati ai suoi mostri.
   let monsters = gm ? storage.monsters.get() : [];
   if (!gm && !permissions?.playersManageTurns) {
-    // Senza permesso il giocatore entra (o esce) solo con i token dei PG e dei mostri condivisi che può modificare.
+    // Senza permesso il giocatore tira solo per i token dei PG e dei mostri condivisi che può modificare.
     const player = { name: await OBR.player.getName(), role };
     const editable = (entries: CloudSheet[]) => entries.filter((entry) => (entry.kind === "pc" || entry.kind === "npc") && !entry.deletedAt && canEditCloudSheet(entry, player));
     let own = editable(storage.cloudCache.get(OBR.room.id));
@@ -85,25 +86,23 @@ export async function toggleTokenInitiative(items: Item[]): Promise<void> {
     }
   }
   const current = (roomMeta[TURN_META_KEY] as unknown as TurnState | undefined) ?? { round: 1, activeIndex: 0, entries: [] };
-  const ids = new Set(items.map((item) => item.id));
-  const alreadyPresent = items.every((item) => current.entries.some((entry) => entry.tokenId === item.id));
-  const entries = alreadyPresent ? current.entries.filter((entry) => !ids.has(entry.tokenId ?? "")) : [...current.entries];
+  const added: TurnEntry[] = [];
   const rolled: InitiativeRolled[] = [];
   // Token senza scheda: il GM sceglie la scheda (o il valore) nel popover; gli altri scrivono il valore.
   const unlinked: string[] = [];
-  if (!alreadyPresent) {
-    const pick = gm && (linkedSheets.length > 0 || monsters.length > 0);
-    for (const item of items) {
-      if (entries.some((entry) => entry.tokenId === item.id)) continue;
-      const monster = monsters.find((entry) => entry.id === linkedCharacterId(item));
-      if (monster) { const added = monsterTokenTurn(item.id, monster); entries.push(added.turn); rolled.push(added.rolled); continue; }
-      const entry = createTokenTurn(item, linkedSheets,
-        (_bonus, sheet) => { const roll = rollSheetInitiative(sheet); rolled.push(roll.rolled); return roll.initiative; },
-        (name) => { if (pick) { unlinked.push(item.id); return null; } const value = window.prompt(`Iniziativa per ${name}`, "0"); return value === null ? null : Number(value) || 0; },
-      );
-      if (entry) entries.push(entry);
-    }
+  const pick = gm && (linkedSheets.length > 0 || monsters.length > 0);
+  for (const item of items) {
+    const monster = monsters.find((entry) => entry.id === linkedCharacterId(item));
+    if (monster) { const turn = monsterTokenTurn(item.id, monster); added.push(turn.turn); rolled.push(turn.rolled); continue; }
+    const entry = createTokenTurn(item, linkedSheets,
+      (_bonus, sheet) => { const roll = rollSheetInitiative(sheet); rolled.push(roll.rolled); return roll.initiative; },
+      (name) => { if (pick) { unlinked.push(item.id); return null; } const value = window.prompt(`Iniziativa per ${name}`, "0"); return value === null ? null : Number(value) || 0; },
+    );
+    if (entry) added.push(entry);
   }
+  // Ritirando, la voce già nei turni prende il nuovo valore (id e effetti dei mostri restano).
+  const entries = [...current.entries.map((entry) => { const next = added.find((turn) => turn.tokenId === entry.tokenId); return next ? { ...entry, initiative: next.initiative, initiativeBonus: next.initiativeBonus } : entry; }),
+    ...added.filter((turn) => !current.entries.some((entry) => entry.tokenId === turn.tokenId))];
   try { await writeRoomMetadata({ [TURN_META_KEY]: replaceTurnEntries(current, entries) }); }
   catch (error) { await OBR.notification.show(error instanceof Error ? error.message : "Ordine dei turni non salvato", "ERROR"); return; }
   await announceInitiatives(rolled).catch(() => undefined);
